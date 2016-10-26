@@ -16,11 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
+#include <string.h>
 
 char *strncat(char *__restrict dst, const char *__restrict src, size_t n)
 {
-	char start = dst;
+	char *start = dst;
 
 	while (*dst)
 		++dst;

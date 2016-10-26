@@ -20,7 +20,7 @@
 
 char *strcat(char *__restrict dst, const char *__restrict src)
 {
-	char start = dst;
+	char *start = dst;
 
 	while (*dst)
 		++dst;
