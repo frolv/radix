@@ -51,14 +51,14 @@ void tty_putchar(int c)
 /* tty_write: write size bytes of string data to the tty */
 void tty_write(const char *data, size_t size)
 {
-	while (n--)
+	while (size--)
 		tty_putchar(*data++);
 }
 
 /* tty_nextrow: advance to the next row, "scrolling" if necessary */
 static void tty_nextrow(void)
 {
-	size_t x, y, dst, src;
+	size_t x, dst;
 
 	tty_col = 0;
 	if (tty_row == VGA_HEIGHT - 1) {
