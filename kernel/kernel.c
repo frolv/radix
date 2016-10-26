@@ -19,4 +19,5 @@
 /* kernel entry point */
 int kmain(void)
 {
+	return 0;
 }
