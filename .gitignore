@@ -1,2 +1,5 @@
 *.o
+isodir
 root
+untitled*
+*.swp
