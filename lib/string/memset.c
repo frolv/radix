@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
 void *memset(void *s, int c, size_t n)
 {
 	unsigned char *p = s;

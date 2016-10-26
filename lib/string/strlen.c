@@ -1,5 +1,5 @@
 /*
- * lib/string/memmove.c
+ * lib/string/strlen.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,19 +18,11 @@
 
 #include <string.h>
 
-void *memmove(void *dst, const void *src, size_t n)
+size_t strlen(const char *s)
 {
-	size_t i;
-	unsigned char *d = dst;
-	const unsigned char *s = src;
+	size_t len = 0;
 
-	if (d < s) {
-		for (i = 0; i < n; ++i)
-			d[i] = s[i];
-	} else {
-		for (i = n; i; --i)
-			d[i - 1] = s[i - 1];
-	}
-
-	return dst;
+	while (*s++)
+		++len;
+	return len;
 }

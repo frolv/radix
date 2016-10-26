@@ -1,5 +1,5 @@
 /*
- * lib/string/memmove.c
+ * lib/string/strcmp.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,19 +18,11 @@
 
 #include <string.h>
 
-void *memmove(void *dst, const void *src, size_t n)
+int strcmp(const char *s1, const char *s2)
 {
-	size_t i;
-	unsigned char *d = dst;
-	const unsigned char *s = src;
-
-	if (d < s) {
-		for (i = 0; i < n; ++i)
-			d[i] = s[i];
-	} else {
-		for (i = n; i; --i)
-			d[i - 1] = s[i - 1];
+	for (; *s1 == *s2; ++s1, ++s2) {
+		if (!*s1)
+			return 0;
 	}
-
-	return dst;
+	return *s1 < *s2 ? -1 : 1;
 }

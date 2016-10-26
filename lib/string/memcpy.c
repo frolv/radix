@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
 void *memcpy(void *__restrict dst, const void *__restrict src, size_t n)
 {
 	unsigned char *d = dst;

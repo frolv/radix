@@ -1,5 +1,5 @@
 /*
- * lib/string/memmove.c
+ * lib/string/strcpy.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,19 +18,11 @@
 
 #include <string.h>
 
-void *memmove(void *dst, const void *src, size_t n)
+char *strcpy(char *__restrict dst, const char *__restrict src)
 {
-	size_t i;
-	unsigned char *d = dst;
-	const unsigned char *s = src;
+	char *start = dst;
 
-	if (d < s) {
-		for (i = 0; i < n; ++i)
-			d[i] = s[i];
-	} else {
-		for (i = n; i; --i)
-			d[i - 1] = s[i - 1];
-	}
-
-	return dst;
+	while ((*dst++ = *src++))
+		;
+	return start;
 }
