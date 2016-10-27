@@ -1,5 +1,5 @@
 /*
- * kernel/kernel.c
+ * include/stdio.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
+#ifndef OS_STDIO_H
+#define OS_STDIO_H
 
-/* kernel entry point */
-int kmain(void)
-{
-	puts("Kernel loaded");
-	return 0;
-}
+#define EOF (-1)
+
+int putchar(int c);
+int puts(const char *s);
+
+#endif /* OS_STDIO.H */

@@ -1,5 +1,5 @@
 /*
- * kernel/kernel.c
+ * lib/stdio/putchar.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <os/tty.h>
 #include <stdio.h>
 
-/* kernel entry point */
-int kmain(void)
+int putchar(int c)
 {
-	puts("Kernel loaded");
+	tty_putchar(c);
 	return 0;
 }
