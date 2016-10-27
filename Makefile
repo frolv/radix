@@ -82,4 +82,4 @@ clean-libk:
 
 .PHONY: clean-iso
 clean-iso:
-	$(RM) -r $(ISODIR)
+	$(RM) -r $(ISODIR) $(ISONAME)
