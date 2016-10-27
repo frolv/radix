@@ -1,5 +1,5 @@
 /*
- * include/tty.h
+ * include/os/tty.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,8 @@
 #define OS_TTY_H
 
 #include <stddef.h>
+
+#define TTY_TAB_STOP 8
 
 void tty_init(void);
 void tty_putchar(int c);

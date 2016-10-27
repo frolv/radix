@@ -1,3 +1,21 @@
+/*
+ * arch/i386/tty.c
+ * Copyright (C) 2016 Alexei Frolov
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <string.h>
 #include <os/tty.h>
 
@@ -41,6 +59,12 @@ void tty_putchar(int c)
 	if (c == '\n') {
 		tty_nextrow();
 		return;
+	} else if (c == '\t') {
+		while ((++tty_col) % TTY_TAB_STOP != 0) {
+			if (tty_col == VGA_WIDTH)
+				tty_nextrow();
+		}
+		return;
 	}
 
 	tty_put(c, tty_color, tty_col, tty_row);
@@ -63,7 +87,8 @@ static void tty_nextrow(void)
 	tty_col = 0;
 	if (tty_row == VGA_HEIGHT - 1) {
 		/* move each row up by one, discarding the first */
-		memmove(tty_buf, tty_buf + VGA_WIDTH, tty_row * VGA_WIDTH);
+		memmove(tty_buf, tty_buf + VGA_WIDTH,
+				 tty_row * VGA_WIDTH * sizeof(uint16_t));
 		/* clear the final row */
 		for (x = 0; x < VGA_WIDTH; ++x) {
 			dst = tty_row * VGA_WIDTH + x;
