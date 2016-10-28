@@ -16,12 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OS_STDIO_H
-#define OS_STDIO_H
+#ifndef UNTITLED_STDIO_H
+#define UNTITLED_STDIO_H
 
 #define EOF (-1)
 
 int putchar(int c);
 int puts(const char *s);
 
-#endif /* OS_STDIO.H */
+#endif /* UNTITLED_STDIO.H */

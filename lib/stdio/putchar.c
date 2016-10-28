@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <os/tty.h>
 #include <stdio.h>
+#include <untitled/tty.h>
 
 int putchar(int c)
 {

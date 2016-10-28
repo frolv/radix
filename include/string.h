@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OS_STRING_H
-#define OS_STRING_H
+#ifndef UNTITLED_STRING_H
+#define UNTITLED_STRING_H
 
 #include <stddef.h>
 
@@ -35,4 +35,4 @@ char *strncpy(char *__restrict dst, const char *__restrict src, size_t n);
 char *strcat(char *__restrict dst, const char *__restrict src);
 char *strncat(char *__restrict dst, const char *__restrict src, size_t n);
 
-#endif /* OS_STRING_H */
+#endif /* UNTITLED_STRING_H */

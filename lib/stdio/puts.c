@@ -16,9 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <os/tty.h>
 #include <stdio.h>
 #include <string.h>
+#include <untitled/tty.h>
 
 int puts(const char *s)
 {

@@ -17,7 +17,7 @@
  */
 
 #include <string.h>
-#include <os/tty.h>
+#include <untitled/tty.h>
 
 #include "vga.h"
 
