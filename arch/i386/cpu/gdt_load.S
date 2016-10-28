@@ -30,17 +30,17 @@ gdtr:
 gdt_load:
 	movl 4(%esp), %eax
 	movl %eax, gdtr + 2
-	mov 8(%esp), %ax
-	mov %ax, gdtr
+	movw 8(%esp), %ax
+	movw %ax, gdtr
 	lgdt gdtr
 
 	jmp $0x08, $.flush_segments
 # reload data segment registers
 .flush_segments:
-	mov $0x10, %ax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
-	mov %ax, %ss
+	movw $0x10, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
+	movw %ax, %ss
 	ret

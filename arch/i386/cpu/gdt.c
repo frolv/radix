@@ -55,7 +55,7 @@ void gdt_init(void)
  * tss_init:
  * Initialize the task state segment.
  * ESP0 holds the value assigned to the stack pointer after a syscall interrupt.
- * SS0 holds the offset of the kernel's data segment within the GDT.
+ * SS0 holds the offset of the kernel's data segment entry in the GDT.
  */
 static void tss_init(uint32_t esp0, uint32_t ss0)
 {
@@ -66,7 +66,7 @@ static void tss_init(uint32_t esp0, uint32_t ss0)
 	/* SS0 at offset 0x8 */
 	tss[2] = ss0;
 	/* IOPB at offset 0x66 */
-	tss[25] = (sizeof tss) << 16;
+	tss[25] = sizeof tss << 16;
 }
 
 /* gdt_set: create an entry in the global descriptor table */

@@ -2,7 +2,7 @@
 .align 4
 
 .global tss_load
-.type gdt_load, @function
+.type tss_load, @function
 
 tss_load:
 	mov 4(%esp), %ax
