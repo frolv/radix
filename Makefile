@@ -19,8 +19,6 @@ CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra
 LDFLAGS := $(LDFLAGS)
 LIBS := $(LIBS) -nostdlib -lgcc
 
-INCLUDE := -I./include
-
 ARCHDIR := arch/$(HOSTARCH)
 
 include $(ARCHDIR)/config.mk
@@ -37,6 +35,8 @@ LIBDIR := lib
 LIBK_OBJS :=
 
 include $(LIBDIR)/config.mk
+
+INCLUDE := -I./include -I./$(ARCHDIR)/include
 
 .SUFFIXES: .o .c .S
 
