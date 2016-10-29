@@ -47,7 +47,24 @@ struct printf_format {
 } __attribute__((packed));
 
 static int get_format(const char *format, struct printf_format *p);
-static int print_str(va_list ap, struct printf_format *p);
+static int print_str(const char *s, struct printf_format *p);
+static int print_char(int c, struct printf_format *p);
+static int print_int(long long i, struct printf_format *p);
+static int print_uint(unsigned long long u, struct printf_format *p);
+
+#define CHECK(val, mask) (((val) & (mask)) == (mask))
+
+#define va_int_type(i, ap, p, sign) \
+	do { \
+		if (CHECK(p.flags, FLAGS_LLONG)) \
+			i = va_arg(ap, sign long long); \
+		else if (CHECK(p.flags, FLAGS_LONG)) \
+			i = (sign long)va_arg(ap, sign long); \
+		else if (CHECK(p.flags, FLAGS_SHORT))\
+			i = (sign short)va_arg(ap, sign int); \
+		else \
+			i = (sign int)va_arg(ap, sign int); \
+	} while (0)
 
 /*
  * vprintf:
@@ -57,6 +74,8 @@ static int print_str(va_list ap, struct printf_format *p);
 int vprintf(const char *format, va_list ap)
 {
 	int n = 0;
+	long long i;
+	unsigned long long u;
 	struct printf_format p;
 
 	while (*format) {
@@ -68,8 +87,19 @@ int vprintf(const char *format, va_list ap)
 
 		format += get_format(format, &p);
 		switch (p.type) {
+		case FORMAT_CHAR:
+			n += print_char(va_arg(ap, int), &p);
+			break;
 		case FORMAT_STR:
-			n += print_str(ap, &p);
+			n += print_str(va_arg(ap, const char *), &p);
+			break;
+		case FORMAT_INT:
+			va_int_type(i, ap, p, signed);
+			n += print_int(i, &p);
+			break;
+		case FORMAT_UINT:
+			va_int_type(u, ap, p, unsigned);
+			n += print_uint(u, &p);
 			break;
 		case FORMAT_PERCENT:
 			putchar('%');
@@ -125,7 +155,7 @@ static int get_format(const char *format, struct printf_format *p)
 		p->type = FORMAT_INT;
 		break;
 	case 'o':
-		p->type = FORMAT_INT;
+		p->type = FORMAT_UINT;
 		p->base = 8;
 		break;
 	case 's':
@@ -163,21 +193,64 @@ static int atoi_skip(const char **format)
 	return i;
 }
 
-static int print_str(va_list ap, struct printf_format *p)
+#define max(a, b) ((a) < (b) ? (a) : (b))
+
+static int print_str(const char *s, struct printf_format *p)
 {
-	const char *s;
-	int len, pad, n;
+	int len, pad;
 
-	s = va_arg(ap, const char *);
 	len = strlen(s);
-	n = len;
-
 	if ((pad = p->width - len) > 0) {
-		n += pad;
 		while (pad--)
 			tty_putchar(' ');
 	}
 
 	tty_write(s, len);
-	return n;
+	return max(p->width, len);
+}
+
+static int print_char(int c, struct printf_format *p)
+{
+	int pad;
+
+	pad = p->width;
+	while (pad-- > 1)
+		tty_putchar(' ');
+	tty_putchar(c);
+
+	return max(p->width, 1);
+}
+
+/* print_int: print a signed integer */
+static int print_int(long long i, struct printf_format *p)
+{
+	int pad, len, n;
+	char buf[32];
+
+	n = len = 0;
+	if (i < 0) {
+		tty_putchar('-');
+		++len;
+		i = -i;
+	}
+
+	do {
+		buf[n++] = (i % 10) + '0';
+	} while ((i /= 10));
+	buf[n] = '\0';
+	len += n;
+	strrev(buf);
+
+	if ((pad = p->width - len) > 0) {
+		i = CHECK(p->flags, FLAGS_ZERO) ? '0': ' ';
+		while (pad--)
+			tty_putchar(i);
+	}
+	tty_write(buf, n);
+	return max(p->width, len);
+}
+
+static int print_uint(unsigned long long u, struct printf_format *p)
+{
+	return 0;
 }
