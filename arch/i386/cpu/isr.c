@@ -16,7 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stddef.h>
 #include <untitled/sys.h>
 #include "idt.h"
 #include "isr.h"

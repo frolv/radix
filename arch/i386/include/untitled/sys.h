@@ -1,5 +1,5 @@
 /*
- * arch/i386/cpu/idt.h
+ * arch/i386/include/untitled/sys.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,28 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ARCH_I386_IDT_H
-#define UNTITLED_ARCH_I386_IDT_H
+#ifndef UNTITLED_ARCH_I386_UNTITLED_SYS_H
+#define UNTITLED_ARCH_I386_UNTITLED_SYS_H
 
-#include <stddef.h>
-#include <stdint.h>
+struct regs {
+	/* gprs */
+	unsigned int di;
+	unsigned int si;
+	unsigned int bp;
+	unsigned int sp;
+	unsigned int bx;
+	unsigned int dx;
+	unsigned int cx;
+	unsigned int ax;
 
-void idt_set(size_t intno, uintptr_t intfn, uint16_t sel, uint8_t flags);
+	/* segment registers */
+	unsigned int gs;
+	unsigned int fs;
+	unsigned int es;
+	unsigned int ds;
 
-#endif /* UNTITLED_ARCH_I386_IDT_H */
+	unsigned int intno;
+	unsigned int errno;
+};
+
+#endif /* UNTITLED_ARCH_I386_UNTITLED_SYS_H */
