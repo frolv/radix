@@ -19,25 +19,27 @@
 #ifndef UNTITLED_ARCH_I386_UNTITLED_SYS_H
 #define UNTITLED_ARCH_I386_UNTITLED_SYS_H
 
+#include <stdint.h>
+
 struct regs {
 	/* gprs */
-	unsigned int di;
-	unsigned int si;
-	unsigned int bp;
-	unsigned int sp;
-	unsigned int bx;
-	unsigned int dx;
-	unsigned int cx;
-	unsigned int ax;
+	uint32_t di;
+	uint32_t si;
+	uint32_t bp;
+	uint32_t sp;
+	uint32_t bx;
+	uint32_t dx;
+	uint32_t cx;
+	uint32_t ax;
 
 	/* segment registers */
-	unsigned int gs;
-	unsigned int fs;
-	unsigned int es;
-	unsigned int ds;
+	uint32_t gs;
+	uint32_t fs;
+	uint32_t es;
+	uint32_t ds;
 
-	unsigned int intno;
-	unsigned int errno;
+	uint32_t intno;
+	uint32_t errno;
 };
 
 #endif /* UNTITLED_ARCH_I386_UNTITLED_SYS_H */
