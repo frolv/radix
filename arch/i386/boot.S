@@ -49,14 +49,26 @@ _start:
 	# call global constructors
 	call _init
 
+	# intitialize the tty
+	call tty_init
+
 # load the global descriptor table
 load_gdt:
 	call gdt_init
 
-	# initialize the tty and print a message indicating successful gdt load
-	call tty_init
+	# print a message indicating successful gdt load
 	push len_gdt_msg
 	push $gdt_msg
+	call tty_write
+	addl $8, %esp
+
+# load the interrupt descriptor table
+load_idt:
+	call idt_init
+
+	# print a message indicating successful idt load
+	push len_idt_msg
+	push $idt_msg
 	call tty_write
 	addl $8, %esp
 
@@ -74,6 +86,10 @@ kernel_start:
 
 .section .data
 gdt_msg:
-	.ascii "GDT loaded successfully\n"
+	.ascii "[GDT] success\n"
 len_gdt_msg:
 	.long . - gdt_msg
+idt_msg:
+	.ascii "[IDT] success\n"
+len_idt_msg:
+	.long . - idt_msg

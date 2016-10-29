@@ -1,5 +1,5 @@
 /*
- * arch/i386/cpu/idt.c
+ * arch/i386/cpu/isr.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,29 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stddef.h>
-#include <stdint.h>
-#include "idt.h"
-#include "isr.h"
+#ifndef UNTITLED_ARCH_I386_ISR_H
+#define UNTITLED_ARCH_I386_ISR_H
 
-/* Interrupt Descriptor Table */
-static uint64_t idt[256];
+void load_interrupt_routines(void);
 
-extern void idt_load(void *base, size_t s);
-
-void idt_init(void)
-{
-	load_interrupt_routines();
-	idt_load(idt, sizeof idt);
-}
-
-/* idt_set: load a single entry into the IDT */
-void idt_set(size_t intno, uintptr_t intfn, uint16_t sel, uint8_t flags)
-{
-	idt[intno] = intfn & 0xFFFF0000;
-	idt[intno] |= ((uint16_t)flags << 8) & 0xFF00;
-
-	idt[intno] <<= 32;
-	idt[intno] |= (uint32_t)sel << 16;
-	idt[intno] |= intfn & 0x0000FFFF;
-}
+#endif /* UNTITLED_ARCH_I386_ISR_H */
