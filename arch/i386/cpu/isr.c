@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <untitled/irq.h>
+#include <untitled/kernel.h>
 #include <untitled/sys.h>
 #include "idt.h"
 #include "isr.h"
@@ -43,19 +45,31 @@ void load_interrupt_routines(void)
 
 	isr_table_setup();
 
-	for (i = 0; i < NUM_INTERRUPTS - 1; ++i)
+	/* add exception routines */
+	for (i = 0; i < NUM_EXCEPTIONS; ++i)
+		idt_set(i, (uintptr_t)intr[i], 0x08, 0x8E);
+
+	/* add irq routines */
+	for (; i < NUM_INTERRUPTS - 1; ++i)
 		idt_set(i, (uintptr_t)intr[i], 0x08, 0x8E);
 
 	/* syscall interrupt */
-	idt_set(0x80, (uintptr_t)intr[i], 0x08, 0x8E);
+	idt_set(SYSCALL_INTERRUPT, (uintptr_t)intr[SYSCALL_VECTOR], 0x08, 0x8E);
+}
+
+void interrupt_disable(void)
+{
+}
+
+void interrupt_enable(void)
+{
 }
 
 void interrupt_handler(struct regs r)
 {
 	if (isr_handlers[r.intno]) {
 		/* isr_handlers[r.intno](&r); */
-	} else {
-		/* printf("Error: unhandled interrupt %d\n", r.intno); */
-		/* panic(); */
+	} else if (r.intno < 32) {
+		panic("unhandled exception 0x%02X\n", r.intno);
 	}
 }
