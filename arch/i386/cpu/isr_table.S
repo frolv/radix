@@ -17,6 +17,14 @@ isr\i:
 	jmp isr_common
 .endm
 
+.macro IRQ i
+irq\i:
+	cli
+	push $0
+	push $(\i + 32)
+	jmp isr_common
+.endm
+
 # cpu exceptions
 ISR_NOERR 0
 ISR_NOERR 1
@@ -52,7 +60,29 @@ ISR_ERR   30
 ISR_NOERR 31
 
 # standard IRQs
+IRQ 0
+IRQ 1
+IRQ 2
+IRQ 3
+IRQ 4
+IRQ 5
+IRQ 6
+IRQ 7
+IRQ 8
+IRQ 9
+IRQ 10
+IRQ 11
+IRQ 12
+IRQ 13
+IRQ 14
+IRQ 15
 
+# system call interrupt
+sysc:
+	cli
+	push $0
+	push $0x80
+	jmp isr_common
 
 # push all registers onto the stack as part of the struct regs
 isr_common:
@@ -114,6 +144,23 @@ isr_table_setup:
 	movl $isr29, 116(%eax)
 	movl $isr30, 120(%eax)
 	movl $isr31, 124(%eax)
+	movl $irq0,  128(%eax)
+	movl $irq1,  132(%eax)
+	movl $irq2,  136(%eax)
+	movl $irq3,  140(%eax)
+	movl $irq4,  144(%eax)
+	movl $irq5,  148(%eax)
+	movl $irq6,  152(%eax)
+	movl $irq7,  156(%eax)
+	movl $irq8,  160(%eax)
+	movl $irq9,  164(%eax)
+	movl $irq10, 168(%eax)
+	movl $irq11, 172(%eax)
+	movl $irq12, 176(%eax)
+	movl $irq13, 180(%eax)
+	movl $irq14, 184(%eax)
+	movl $irq15, 188(%eax)
+	movl $sysc,  192(%eax)
 	ret
 
 .section .data
@@ -121,4 +168,4 @@ isr_table_setup:
 # array containing the addresses of all interrupt handlers
 .global intr
 intr:
-	.space 128
+	.space 196
