@@ -103,6 +103,7 @@ int vprintf(const char *format, va_list ap)
 			break;
 		case FORMAT_PERCENT:
 			putchar('%');
+			++n;
 			break;
 		}
 	}
@@ -221,25 +222,25 @@ static int print_char(int c, struct printf_format *p)
 	return max(p->width, 1);
 }
 
+static int oct_num(char *out, unsigned long long i);
+static int dec_num(char *out, unsigned long long i);
+static int hex_num(char *out, unsigned long long i, struct printf_format *p);
+
 /* print_int: print a signed integer */
 static int print_int(long long i, struct printf_format *p)
 {
 	int pad, len, n;
 	char buf[32];
 
-	n = len = 0;
+	len = 0;
 	if (i < 0) {
 		tty_putchar('-');
 		++len;
 		i = -i;
 	}
 
-	do {
-		buf[n++] = (i % 10) + '0';
-	} while ((i /= 10));
-	buf[n] = '\0';
+	n = dec_num(buf, i);
 	len += n;
-	strrev(buf);
 
 	if ((pad = p->width - len) > 0) {
 		i = CHECK(p->flags, FLAGS_ZERO) ? '0': ' ';
@@ -250,7 +251,77 @@ static int print_int(long long i, struct printf_format *p)
 	return max(p->width, len);
 }
 
+/* print_uint: print an unsigned integer in octal, decimal or hex format */
 static int print_uint(unsigned long long u, struct printf_format *p)
 {
-	return 0;
+	int pad, len;
+	char buf[32];
+
+	switch (p->base) {
+	case 010:
+		len = oct_num(buf, u);
+		break;
+	case 0x10:
+		len = hex_num(buf, u, p);
+		break;
+	default:
+		len = dec_num(buf, u);
+		break;
+	}
+
+	if ((pad = p->width - len) > 0) {
+		u = CHECK(p->flags, FLAGS_ZERO) ? '0': ' ';
+		while (pad--)
+			tty_putchar(u);
+	}
+	tty_write(buf, len);
+	return max(p->width, len);
+}
+
+static int oct_num(char *out, unsigned long long i)
+{
+	int len = 0;
+
+	do {
+		out[len++] = (i % 8) + '0';
+	} while ((i /= 8));
+	out[len] = '\0';
+	strrev(out);
+
+	return len;
+}
+
+static int dec_num(char *out, unsigned long long i)
+{
+	int len = 0;
+
+	do {
+		out[len++] = (i % 10) + '0';
+	} while ((i /= 10));
+	out[len] = '\0';
+	strrev(out);
+
+	return len;
+}
+
+static int hex_num(char *out, unsigned long long i, struct printf_format *p)
+{
+	static const char *hex_char = "ABCDEF";
+	int c;
+	int len = 0;
+
+	do {
+		if ((c = i % 16) < 10) {
+			out[len++] = c + '0';
+		} else {
+			c = hex_char[c - 10];
+			if CHECK(p->flags, FLAGS_LOWER)
+				c = tolower(c);
+			out[len++] = c;
+		}
+	} while ((i /= 16));
+	out[len] = '\0';
+	strrev(out);
+
+	return len;
 }
