@@ -1,5 +1,5 @@
 #!/bin/sh
 
 echo 'menuentry "untitled" {'
-echo '    multiboot /boot/untitled'
+echo '    multiboot /boot/kuntitled'
 echo '}'

@@ -1,4 +1,5 @@
 PROJECT_NAME = untitled
+KERNEL_NAME = k$(PROJECT_NAME)
 
 DEFAULT_HOST != util/default-host
 HOST ?= $(DEFAULT_HOST)
@@ -40,12 +41,12 @@ INCLUDE := -I./include -I./$(ARCHDIR)/include
 
 .SUFFIXES: .o .c .S
 
-all: libk $(PROJECT_NAME)-kernel
+all: libk $(KERNEL_NAME)
 
-.PHONY: $(PROJECT_NAME)-kernel
-$(PROJECT_NAME)-kernel: $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
-	$(CC) -T $(ARCHDIR)/linker.ld -o $(PROJECT_NAME) $(CFLAGS) \
-		$(KERNEL_OBJS) $(LIBK_OBJS) $(LDFLAGS) $(LIBS)
+.PHONY: $(KERNEL_NAME)
+$(KERNEL_NAME): $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
+	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
+		$(LIBK_OBJS) $(LDFLAGS) $(LIBS)
 
 $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
@@ -63,9 +64,9 @@ ISODIR := isodir
 ISONAME := $(PROJECT_NAME).iso
 
 .PHONY: iso
-iso: $(PROJECT_NAME)
+iso: $(KERNEL_NAME)
 	mkdir -p $(ISODIR)/boot/grub
-	cp $(PROJECT_NAME) $(ISODIR)/boot
+	cp $(KERNEL_NAME) $(ISODIR)/boot
 	util/mkgrubconfig > $(ISODIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISONAME) $(ISODIR)
 
@@ -74,7 +75,7 @@ clean-all: clean-kernel clean-libk clean-iso
 
 .PHONY: clean-kernel
 clean-kernel:
-	$(RM) $(KERNEL_OBJS) $(PROJECT_NAME)
+	$(RM) $(KERNEL_OBJS) $(KERNEL_NAME)
 
 .PHONY: clean-libk
 clean-libk:
