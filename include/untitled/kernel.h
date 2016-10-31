@@ -16,12 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_UNTITLED_KERNEL_H
-#define UNTITLED_UNTITLED_KERNEL_H
+#ifndef UNTITLED_KERNEL_H
+#define UNTITLED_KERNEL_H
 
 #include <stddef.h>
 
-#define HALT()  asm volatile("hlt") 
+#define HALT()  asm volatile("hlt")
 #define DIE() \
 	do { \
 		HALT(); \
@@ -29,4 +29,4 @@
 
 void panic(const char *err, ...);
 
-#endif /* UNTITLED_UNTITLED_KERNEL_H */
+#endif /* UNTITLED_KERNEL_H */

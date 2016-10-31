@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ARCH_I386_VGA_H
-#define UNTITLED_ARCH_I386_VGA_H
+#ifndef ARCH_I386_VGA_H
+#define ARCH_I386_VGA_H
 
 #include <stdint.h>
 
@@ -50,4 +50,4 @@ static inline uint16_t vga_entry(uint8_t c, uint8_t color)
 	return (uint16_t)c | (uint16_t)color << 8;
 }
 
-#endif /* UNTITLED_ARCH_I386_VGA_H */
+#endif /* ARCH_I386_VGA_H */

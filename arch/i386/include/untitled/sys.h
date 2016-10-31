@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ARCH_I386_UNTITLED_SYS_H
-#define UNTITLED_ARCH_I386_UNTITLED_SYS_H
+#ifndef ARCH_I386_UNTITLED_SYS_H
+#define ARCH_I386_UNTITLED_SYS_H
 
 #include <stdint.h>
 
@@ -42,4 +42,4 @@ struct regs {
 	uint32_t errno;
 };
 
-#endif /* UNTITLED_ARCH_I386_UNTITLED_SYS_H */
+#endif /* ARCH_I386_UNTITLED_SYS_H */

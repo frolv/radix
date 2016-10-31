@@ -16,9 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ARCH_I386_ISR_H
-#define UNTITLED_ARCH_I386_ISR_H
+#ifndef ARCH_I386_ISR_H
+#define ARCH_I386_ISR_H
 
 void load_interrupt_routines(void);
 
-#endif /* UNTITLED_ARCH_I386_ISR_H */
+#endif /* ARCH_I386_ISR_H */

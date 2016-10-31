@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ARCH_I386_UNTITLED_ARCH_IRQ_H
-#define UNTITLED_ARCH_I386_UNTITLED_ARCH_IRQ_H
+#ifndef ARCH_I386_UNTITLED_ARCH_IRQ_H
+#define ARCH_I386_UNTITLED_ARCH_IRQ_H
 
 #define __ARCH_SYSCALL_VECTOR 0x30
 
@@ -27,4 +27,4 @@ void interrupt_enable(void);
 #define __arch_irq_disable interrupt_disable
 #define __arch_irq_enable  interrupt_enable
 
-#endif /* UNTITLED_ARCH_I386_UNTITLED_ARCH_IRQ_H */
+#endif /* ARCH_I386_UNTITLED_ARCH_IRQ_H */

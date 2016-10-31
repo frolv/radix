@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_UNTITLED_IRQ_H
-#define UNTITLED_UNTITLED_IRQ_H
+#ifndef UNTITLED_IRQ_H
+#define UNTITLED_IRQ_H
 
 #define SYSCALL_INTERRUPT 0x80
 
@@ -28,4 +28,4 @@
 #define irq_disable __arch_irq_disable
 #define irq_enable  __arch_irq_enable
 
-#endif /* UNTITLED_UNTITLED_IRQ_H */
+#endif /* UNTITLED_IRQ_H */

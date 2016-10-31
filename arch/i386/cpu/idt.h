@@ -16,12 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ARCH_I386_IDT_H
-#define UNTITLED_ARCH_I386_IDT_H
+#ifndef ARCH_I386_IDT_H
+#define ARCH_I386_IDT_H
 
 #include <stddef.h>
 #include <stdint.h>
 
 void idt_set(size_t intno, uintptr_t intfn, uint16_t sel, uint8_t flags);
 
-#endif /* UNTITLED_ARCH_I386_IDT_H */
+#endif /* ARCH_I386_IDT_H */

@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_UNTITLED_TTY_H
-#define UNTITLED_UNTITLED_TTY_H
+#ifndef UNTITLED_TTY_H
+#define UNTITLED_TTY_H
 
 #include <stddef.h>
 
@@ -27,4 +27,4 @@ void tty_init(void);
 void tty_putchar(int c);
 void tty_write(const char *data, size_t size);
 
-#endif /* UNTITLED_UNTITLED_TTY_H */
+#endif /* UNTITLED_TTY_H */
