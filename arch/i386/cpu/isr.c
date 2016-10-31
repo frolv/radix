@@ -57,6 +57,8 @@ void load_interrupt_routines(void)
 	idt_set(SYSCALL_INTERRUPT, (uintptr_t)intr[SYSCALL_VECTOR], 0x08, 0x8E);
 }
 
+static volatile int depth;
+
 void interrupt_disable(void)
 {
 }
@@ -65,11 +67,47 @@ void interrupt_enable(void)
 {
 }
 
+static const char *exceptions[] = {
+	"Division by zero",			/* 0x00 */
+	"Debug",				/* 0x01 */
+	"Non-maskable interrupt",		/* 0x02 */
+	"Breakpoint",				/* 0x03 */
+	"Overflow",				/* 0x04 */
+	"Out of bounds",			/* 0x05 */
+	"Invalid opcode",			/* 0x06 */
+	"Device not available",			/* 0x07 */
+	"Double fault",				/* 0x08 */
+	"Coprocessor segment overrun",		/* 0x09 */
+	"Invalid TSS",				/* 0x0A */
+	"Segment not present",			/* 0x0B */
+	"Stack fault",				/* 0x0C */
+	"General protection fault",		/* 0x0D */
+	"Page fault",				/* 0x0E */
+	"Unknown exception",			/* 0x0F */
+	"x87 floating-point exception",		/* 0x10 */
+	"Alignment check",			/* 0x11 */
+	"Machine check",			/* 0x12 */
+	"SIMD floating-point exception",	/* 0x13 */
+	"Virtualization exception",		/* 0x14 */
+	"Unknown exception",			/* 0x15 */
+	"Unknown exception",			/* 0x16 */
+	"Unknown exception",			/* 0x17 */
+	"Unknown exception",			/* 0x18 */
+	"Unknown exception",			/* 0x19 */
+	"Unknown exception",			/* 0x1A */
+	"Unknown exception",			/* 0x1B */
+	"Unknown exception",			/* 0x1C */
+	"Unknown exception",			/* 0x1D */
+	"Security exception",			/* 0x1E */
+	"Unknown exception"			/* 0x1F */
+};
+
 void interrupt_handler(struct regs r)
 {
 	if (isr_handlers[r.intno]) {
 		/* isr_handlers[r.intno](&r); */
 	} else if (r.intno < 32) {
-		panic("unhandled exception 0x%02X\n", r.intno);
+		panic("unhandled CPU exception 0x%02X `%s'\n", r.intno,
+				exceptions[r.intno]);
 	}
 }
