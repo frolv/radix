@@ -21,6 +21,7 @@
 #include <untitled/sys.h>
 #include "idt.h"
 #include "isr.h"
+#include "pic.h"
 
 #define NUM_EXCEPTIONS	32 /* CPU protected mode exceptions */
 #define NUM_IRQS	16 /* Industry Standard Architecture IRQs */
@@ -39,6 +40,8 @@ extern void isr_table_setup(void);
 /* interrupt handler functions */
 static void (*isr_handlers[256])(struct regs *regs);
 
+static void irq_handler(struct regs *r);
+
 void load_interrupt_routines(void)
 {
 	size_t i;
@@ -50,11 +53,16 @@ void load_interrupt_routines(void)
 		idt_set(i, (uintptr_t)intr[i], 0x08, 0x8E);
 
 	/* add irq routines */
-	for (; i < NUM_INTERRUPTS - 1; ++i)
+	for (; i < NUM_INTERRUPTS - 1; ++i) {
 		idt_set(i, (uintptr_t)intr[i], 0x08, 0x8E);
+		isr_handlers[i] = irq_handler;
+	}
 
 	/* syscall interrupt */
 	idt_set(SYSCALL_INTERRUPT, (uintptr_t)intr[SYSCALL_VECTOR], 0x08, 0x8E);
+
+	/* remap IRQs to vectors 0x20 through 0x2F */
+	pic_remap(0x20, 0x28);
 }
 
 #define CLI() asm volatile("cli")
@@ -119,9 +127,16 @@ static const char *exceptions[] = {
 void interrupt_handler(struct regs r)
 {
 	if (isr_handlers[r.intno]) {
-		/* isr_handlers[r.intno](&r); */
+		isr_handlers[r.intno](&r);
 	} else if (r.intno < 32) {
 		panic("unhandled CPU exception 0x%02X `%s'\n",
 				r.intno, exceptions[r.intno]);
 	}
+}
+
+static void irq_handler(struct regs *r)
+{
+	irq_disable();
+	pic_eoi(r->intno - 0x20);
+	irq_enable();
 }

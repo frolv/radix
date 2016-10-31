@@ -1,5 +1,5 @@
 /*
- * kernel/kernel.c
+ * arch/i386/cpu/pic.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,17 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <untitled/irq.h>
+#ifndef ARCH_I386_PIC_H
+#define ARCH_I386_PIC_H
 
-/* kernel entry point */
-int kmain(void)
-{
-	printf("Kernel loaded\n");
+#include <stdint.h>
 
-	irq_enable();
-	while (1)
-		;
+void pic_eoi(uint32_t irq);
+void pic_remap(uint32_t offset1, uint32_t offset2);
 
-	return 0;
-}
+#endif /* ARCH_I386_PIC_H */
