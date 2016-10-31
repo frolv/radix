@@ -57,14 +57,39 @@ void load_interrupt_routines(void)
 	idt_set(SYSCALL_INTERRUPT, (uintptr_t)intr[SYSCALL_VECTOR], 0x08, 0x8E);
 }
 
+#define CLI() asm volatile("cli")
+#define STI() asm volatile("sti")
+
+#define INTERRUPT_BIT (1 << 9)
+
 static volatile int depth;
 
 void interrupt_disable(void)
 {
+	uint32_t flags;
+
+	asm volatile("pushf;"
+		     "pop %%eax;"
+		     "movl %%eax, %0;"
+		     :"=r"(flags)
+		     :
+		     :"%eax");
+
+	/* interrupts were enabled; this is first disable */
+	if (flags & INTERRUPT_BIT)
+		depth = 1;
+	else
+		++depth;
+
+	CLI();
 }
 
 void interrupt_enable(void)
 {
+	if (depth == 0 || depth == 1)
+		STI();
+	else
+		--depth;
 }
 
 static const char *exceptions[] = {
