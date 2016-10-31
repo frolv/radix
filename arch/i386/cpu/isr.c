@@ -60,23 +60,12 @@ void load_interrupt_routines(void)
 #define CLI() asm volatile("cli")
 #define STI() asm volatile("sti")
 
-#define INTERRUPT_BIT (1 << 9)
-
 static volatile int depth;
 
 void interrupt_disable(void)
 {
-	uint32_t flags;
-
-	asm volatile("pushf;"
-		     "pop %%eax;"
-		     "movl %%eax, %0;"
-		     :"=r"(flags)
-		     :
-		     :"%eax");
-
-	/* interrupts were enabled; this is first disable */
-	if (flags & INTERRUPT_BIT)
+	/* interrupts were already enabled; this is first disable */
+	if (irq_active())
 		depth = 1;
 	else
 		++depth;
@@ -132,7 +121,7 @@ void interrupt_handler(struct regs r)
 	if (isr_handlers[r.intno]) {
 		/* isr_handlers[r.intno](&r); */
 	} else if (r.intno < 32) {
-		panic("unhandled CPU exception 0x%02X `%s'\n", r.intno,
-				exceptions[r.intno]);
+		panic("unhandled CPU exception 0x%02X `%s'\n",
+				r.intno, exceptions[r.intno]);
 	}
 }

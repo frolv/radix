@@ -106,7 +106,7 @@ isr_common:
 
 	# for error code and interrupt number
 	addl $8, %esp
-	ret
+	iret
 
 .global isr_table_setup
 # load the addresses of all interrupt functions into the intr array

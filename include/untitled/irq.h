@@ -25,6 +25,7 @@
 
 #define SYSCALL_VECTOR __ARCH_SYSCALL_VECTOR
 
+#define irq_active  __arch_irq_active
 #define irq_disable __arch_irq_disable
 #define irq_enable  __arch_irq_enable
 

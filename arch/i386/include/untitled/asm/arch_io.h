@@ -1,5 +1,5 @@
 /*
- * include/untitled/asm/io.h
+ * arch/i386/include/untitled/asm/arch_io.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

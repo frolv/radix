@@ -16,15 +16,32 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_UNTITLED_ARCH_IRQ_H
-#define ARCH_I386_UNTITLED_ARCH_IRQ_H
+#ifndef ARCH_I386_UNTITLED_IRQ_H
+#define ARCH_I386_UNTITLED_IRQ_H
+
+#include <untitled/compiler.h>
 
 #define __ARCH_SYSCALL_VECTOR 0x30
+
+#define __arch_irq_active  interrupts_active
+#define __arch_irq_disable interrupt_disable
+#define __arch_irq_enable  interrupt_enable
+
+#define __INTERRUPT_BIT (1 << 9)
 
 void interrupt_disable(void);
 void interrupt_enable(void);
 
-#define __arch_irq_disable interrupt_disable
-#define __arch_irq_enable  interrupt_enable
+#include <stdint.h>
 
-#endif /* ARCH_I386_UNTITLED_ARCH_IRQ_H */
+static __always_inline int interrupts_active(void)
+{
+	uint32_t flags;
+
+	asm volatile("pushf;"
+		     "pop %0;"
+		     :"=g"(flags));
+	return flags & __INTERRUPT_BIT;
+}
+
+#endif /* ARCH_I386_UNTITLED_IRQ_H */
