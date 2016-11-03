@@ -164,6 +164,7 @@ static void irq_generic(struct regs *r)
 	if (irq_handlers[r->intno - IRQ_BASE])
 		irq_handlers[r->intno - IRQ_BASE](r);
 
+	/* just for fun: cause a kernel panic */
 	if (r->errno == 0x10)
 		intr[0x0D]();
 

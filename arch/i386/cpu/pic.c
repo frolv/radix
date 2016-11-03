@@ -75,4 +75,8 @@ void pic_remap(uint32_t offset1, uint32_t offset2)
 	/* restore saved masks */
 	outb(PIC_MASTER_DATA, a1);
 	outb(PIC_SLAVE_DATA,  a2);
+
+	/* TEMP: disable all interrupts except keyboard */
+	outb(0x21, 0xFD);
+	outb(0xA1, 0xFF);
 }

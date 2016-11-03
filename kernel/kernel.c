@@ -25,6 +25,13 @@ int kmain(void)
 	printf("Kernel loaded\n");
 
 	irq_enable();
+
+	/* TEMP: until modules are implemented (so a while) */
+	extern void kbd_install(void);
+	kbd_install();
+	printf("Welcome to UNTITLED!\n");
+	printf("Press `q' for a kernel panic\n");
+
 	while (1)
 		;
 

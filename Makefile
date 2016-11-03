@@ -37,22 +37,30 @@ LIBK_OBJS :=
 
 include $(LIBDIR)/config.mk
 
+# until module support is added
+DRIVERDIR = drivers
+include $(DRIVERDIR)/config.mk
+
 INCLUDE := -I./include -I./$(ARCHDIR)/include
 
 .SUFFIXES: .o .c .S
 
-all: libk $(KERNEL_NAME)
+all: libk drivers $(KERNEL_NAME)
 
 .PHONY: $(KERNEL_NAME)
 $(KERNEL_NAME): $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
-		$(LIBK_OBJS) $(LDFLAGS) $(LIBS)
+		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
 
 $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
 
 .PHONY: libk
 libk: $(LIBK_OBJS)
+
+# temp
+.PHONY: drivers
+drivers: $(DRIVER_OBJS)
 
 .c.o:
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE)
@@ -71,7 +79,7 @@ iso: $(KERNEL_NAME)
 	grub-mkrescue -o $(ISONAME) $(ISODIR)
 
 .PHONY: clean-all
-clean-all: clean-kernel clean-libk clean-iso
+clean-all: clean-kernel clean-libk clean-drivers clean-iso
 
 .PHONY: clean-kernel
 clean-kernel:
@@ -80,6 +88,11 @@ clean-kernel:
 .PHONY: clean-libk
 clean-libk:
 	$(RM) $(LIBK_OBJS)
+
+# temp
+.PHONY: clean-drivers
+clean-drivers:
+	$(RM) $(DRIVER_OBJS)
 
 .PHONY: clean-iso
 clean-iso:
