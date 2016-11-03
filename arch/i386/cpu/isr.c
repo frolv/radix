@@ -29,6 +29,8 @@
 /* +1 for syscall interrupt */
 #define NUM_INTERRUPTS (NUM_EXCEPTIONS + NUM_IRQS + 1)
 
+#define IRQ_BASE	0x20
+
 /*
  * Routines to be called on interrupt.
  * They fill up a struct regs and then call the interrupt handler proper.
@@ -38,9 +40,12 @@ extern void (*intr[NUM_INTERRUPTS])(void);
 extern void isr_table_setup(void);
 
 /* interrupt handler functions */
-static void (*isr_handlers[256])(struct regs *regs);
+static void (*isr_handlers[256])(struct regs *);
 
-static void irq_handler(struct regs *r);
+/* hardware interrupt handler functions */
+static void (*irq_handlers[NUM_IRQS])(struct regs *);
+
+static void irq_generic(struct regs *r);
 
 void load_interrupt_routines(void)
 {
@@ -55,18 +60,36 @@ void load_interrupt_routines(void)
 	/* add irq routines */
 	for (; i < NUM_INTERRUPTS - 1; ++i) {
 		idt_set(i, (uintptr_t)intr[i], 0x08, 0x8E);
-		isr_handlers[i] = irq_handler;
+		isr_handlers[i] = irq_generic;
 	}
 
 	/* syscall interrupt */
 	idt_set(SYSCALL_INTERRUPT, (uintptr_t)intr[SYSCALL_VECTOR], 0x08, 0x8E);
 
 	/* remap IRQs to vectors 0x20 through 0x2F */
-	pic_remap(0x20, 0x28);
+	pic_remap(IRQ_BASE, IRQ_BASE + 8);
 }
 
 #define CLI() asm volatile("cli")
 #define STI() asm volatile("sti")
+
+void install_interrupt_handler(uint32_t irqno, void (*hnd)(struct regs *))
+{
+	if (irqno >= NUM_IRQS)
+		return;
+	CLI();
+	irq_handlers[irqno] = hnd;
+	STI();
+}
+
+void uninstall_interrupt_handler(uint32_t irqno)
+{
+	if (irqno >= NUM_IRQS)
+		return;
+	CLI();
+	irq_handlers[irqno] = NULL;
+	STI();
+}
 
 static volatile int depth;
 
@@ -128,15 +151,22 @@ void interrupt_handler(struct regs r)
 {
 	if (isr_handlers[r.intno]) {
 		isr_handlers[r.intno](&r);
-	} else if (r.intno < 32) {
+	} else if (r.intno < 0x20) {
 		panic("unhandled CPU exception 0x%02X `%s'\n",
 				r.intno, exceptions[r.intno]);
 	}
 }
 
-static void irq_handler(struct regs *r)
+static void irq_generic(struct regs *r)
 {
 	irq_disable();
+
+	if (irq_handlers[r->intno - IRQ_BASE])
+		irq_handlers[r->intno - IRQ_BASE](r);
+
+	if (r->errno == 0x10)
+		intr[0x0D]();
+
 	pic_eoi(r->intno - 0x20);
 	irq_enable();
 }
