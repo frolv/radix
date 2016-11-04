@@ -21,4 +21,6 @@
 
 #define __always_inline inline __attribute__((always_inline))
 
+#define __aligned(x) __attribute__((aligned(x)))
+
 #endif /* UNTITLED_COMPILER_H */
