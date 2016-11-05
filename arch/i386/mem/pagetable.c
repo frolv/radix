@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <untitled/compiler.h>
+#include <untitled/memory.h>
 #include <untitled/page.h>
 
 /*

@@ -1,5 +1,5 @@
 /*
- * kernel/kernel.c
+ * include/untitled/memory.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,27 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <untitled/irq.h>
-#include <untitled/memory.h>
+#ifndef UNTITLED_MEMORY_H
+#define UNTITLED_MEMORY_H
 
-/* kernel entry point */
-int kmain(void)
-{
-	printf("Kernel loaded\n");
+void init_page_directory(void);
 
-	irq_enable();
-	init_page_directory();
-	printf("Paging initialized\n");
-
-	/* TEMP: until modules are implemented (so a while) */
-	extern void kbd_install(void);
-	kbd_install();
-	printf("Welcome to UNTITLED!\n");
-	printf("Press `q' for a kernel panic\n");
-
-	while (1)
-		;
-
-	return 0;
-}
+#endif /* UNTITLED_MEMORY_H */
