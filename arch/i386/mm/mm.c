@@ -17,8 +17,9 @@
  */
 
 #include <untitled/mm.h>
+#include <untitled/page.h>
 
-/* total amount of useable memory in the system */
+/* total amount of usable memory in the system */
 uint64_t totalmem = 0;
 
 #define KERNEL_VIRTUAL_BASE 0xC0000000
@@ -28,8 +29,7 @@ uint64_t totalmem = 0;
 void detect_memory(multiboot_info_t *mbt)
 {
 	memory_map_t *mmap;
-	uint64_t curr_len;
-	uint64_t curr_addr;
+	uint64_t base, len;
 
 	/*
 	 * mmap_addr stores the physical address of the memory map.
@@ -45,8 +45,12 @@ void detect_memory(multiboot_info_t *mbt)
 		if (mmap->type != 1)
 			continue;
 
-		curr_addr = make64(mmap->base_addr_low, mmap->base_addr_high);
-		curr_len = make64(mmap->length_low, mmap->length_high);
-		totalmem += curr_len;
+		base = make64(mmap->base_addr_low, mmap->base_addr_high);
+		len = make64(mmap->length_low, mmap->length_high);
+
+		/* this should already be aligned by the bootloader */
+		base = (base + PAGE_SIZE - 1) & PAGE_MASK;
+		len &= PAGE_MASK;
+		totalmem += len;
 	}
 }

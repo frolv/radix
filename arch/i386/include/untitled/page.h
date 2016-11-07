@@ -33,6 +33,10 @@ typedef struct {
 #define PGDIR_SIZE		0x400
 #define PGTBL_SIZE		0x400
 
+#define PAGE_SHIFT		12
+#define PAGE_SIZE		(1UL << PAGE_SHIFT)
+#define PAGE_MASK		(~(PAGE_SIZE - 1))
+
 #define _PAGE_BIT_PRESENT	0
 #define _PAGE_BIT_RW		1
 #define _PAGE_BIT_USER		2
@@ -40,7 +44,7 @@ typedef struct {
 #define _PAGE_BIT_CD		4
 #define _PAGE_BIT_ACCESSED	5
 #define _PAGE_BIT_DIRTY		6
-#define _PAGE_BIT_SIZE		7
+#define _PAGE_BIT_PSE		7
 #define _PAGE_BIT_GLOBAL	8
 
 #define PAGE_PRESENT	(((pteval_t)1) << _PAGE_BIT_PRESENT)
@@ -50,7 +54,7 @@ typedef struct {
 #define PAGE_CD		(((pteval_t)1) << _PAGE_BIT_CD)
 #define PAGE_ACCESSED	(((pteval_t)1) << _PAGE_BIT_ACCESSED)
 #define PAGE_DIRTY	(((pteval_t)1) << _PAGE_BIT_DIRTY)
-#define PAGE_SIZE	(((pteval_t)1) << _PAGE_BIT_SIZE)
+#define PAGE_PSE	(((pteval_t)1) << _PAGE_BIT_PSE)
 #define PAGE_GLOBAL	(((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
 #include <untitled/compiler.h>
