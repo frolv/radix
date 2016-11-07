@@ -44,6 +44,7 @@ stack_top:
 .section .bss, "aw", @nobits
 .align 0x1000
 # x86 top-level page directory.
+.global pgdir
 pgdir:
 	.fill 0x400, 4, 0x0
 # A single page table to map the kernel's memory.
