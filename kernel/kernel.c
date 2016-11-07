@@ -18,12 +18,17 @@
 
 #include <stdio.h>
 #include <untitled/irq.h>
-#include <untitled/memory.h>
+#include <untitled/multiboot.h>
 
 /* kernel entry point */
-int kmain(void)
+int kmain(multiboot_info_t *mbt, unsigned int magic)
 {
 	printf("Kernel loaded\n");
+
+	if (mbt->flags & 1) {
+		printf("Detected %u MiB of available memory\n",
+				mbt->mem_upper / 0x400);
+	}
 
 	irq_enable();
 

@@ -77,16 +77,16 @@ _start:
 	# identity mapping the kernel. This is done because
 	# enabling paging does not change the address of the
 	# next instruction, which continues to be physical.
-	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %eax
-	orl $0x00000003, %eax
-	movl %eax, pgdir - KERNEL_VIRTUAL_BASE
+	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %ecx
+	orl $0x00000003, %ecx
+	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE
 
 	# Map the page table to page directory entry 0x300
 	# (virtual addresses 0xC0000000 to 0xC03FFFFF),
 	# mapping the kernel in the higher half.
-	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %eax
-	orl $0x00000003, %eax
-	movl %eax, pgdir - KERNEL_VIRTUAL_BASE + 0x300 * 4
+	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %ecx
+	orl $0x00000003, %ecx
+	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE + 0x300 * 4
 
 	# Load the physical address of the page directory into cr3.
 	movl $(pgdir - KERNEL_VIRTUAL_BASE), %ecx
@@ -121,8 +121,8 @@ load_gdt:
 	call gdt_init
 
 	# Print a message indicating successful GDT load.
-	push len_gdt_msg
-	push $gdt_msg
+	pushl len_gdt_msg
+	pushl $gdt_msg
 	call tty_write
 	addl $8, %esp
 
@@ -131,14 +131,20 @@ load_idt:
 	call idt_init
 
 	# Print a message indicating successful IDT load.
-	push len_idt_msg
-	push $idt_msg
+	pushl len_idt_msg
+	pushl $idt_msg
 	call tty_write
 	addl $8, %esp
 
 kernel_start:
+	# ebx contains the physical address of the multiboot_info
+	# structure. Covert this to its equivalent virtual address.
+	addl $KERNEL_VIRTUAL_BASE, %ebx
+	pushl %eax
+	pushl %ebx
 	# Launch the kernel.
 	call kmain
+	addl $8, %esp
 
 	# Hang if kmain returns.
 	cli
