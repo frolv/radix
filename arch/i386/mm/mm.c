@@ -1,5 +1,5 @@
 /*
- * arch/i386/mem/mm.c
+ * arch/i386/mm/mm.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

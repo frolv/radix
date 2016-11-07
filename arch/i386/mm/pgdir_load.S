@@ -1,5 +1,5 @@
 #
-# arch/i386/mem/pdgir_load.S
+# arch/i386/mm/pdgir_load.S
 # Copyright (C) 2016 Alexei Frolov
 #
 # This program is free software: you can redistribute it and/or modify
