@@ -1,5 +1,5 @@
 /*
- * include/untitled/memory.h
+ * include/untitled/mm.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
