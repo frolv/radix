@@ -25,7 +25,7 @@
 #define VGA_HEIGHT 25
 
 /* location of the VGA text mode buffer */
-#define VGA_TEXT_BUFFER_ADDR 0xb8000
+#define VGA_TEXT_BUFFER_ADDR 0xC00B8000
 
 static size_t tty_row;
 static size_t tty_col;

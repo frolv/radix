@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-# constants for multiboot header
+# Constants for multiboot header.
 .set ALIGN,	1 << 0
 .set MEMINFO,	1 << 1
 .set FLAGS,	ALIGN | MEMINFO
@@ -33,40 +33,104 @@
 # Allocate room for a small stack by creating a symbol at the bottom,
 # skipping ahead 16 KiB and creating a symbol at the top. The stack
 # must be 16-byte aligned on x86.
-.section .bss
+.section .bootstrap_stack, "aw", @nobits
 .align 16
 stack_bottom:
-.skip 16384 # 16 KiB
+.skip 0x4000
 stack_top:
+
+.set KERNEL_VIRTUAL_BASE, 0xC0000000
+
+.section .bss, "aw", @nobits
+.align 0x1000
+# x86 top-level page directory.
+pgdir:
+	.fill 0x400, 4, 0x0
+# A single page table to map the kernel's memory.
+kernel_pgtbl:
+	.fill 0x400, 4, 0x0
 
 .section .text
 .global _start
 .type _start, @function
 _start:
-	# set stack pointer to point to the top of the stack
+	# Physical address of the kernel's page table.
+	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %edi
+	movl $0, %esi
+	movl $0x400, %ecx
+
+1:
+	# Mark the address as present and writable.
+	# TODO: this maps .text and .rodata as writable
+	movl %esi, %edx
+	orl $0x00000003, %edx
+	movl %edx, (%edi)
+
+	# Advance to the next page.
+	addl $0x1000, %esi
+	addl $4, %edi
+	loop 1b
+
+2:
+	# Map the page table to page directory entry 0
+	# (virtual addresses 0x00000000 to 0x003FFFFF),
+	# identity mapping the kernel. This is done because
+	# enabling paging does not change the address of the
+	# next instruction, which continues to be physical.
+	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %eax
+	orl $0x00000003, %eax
+	movl %eax, pgdir - KERNEL_VIRTUAL_BASE
+
+	# Map the page table to page directory entry 0x300
+	# (virtual addresses 0xC0000000 to 0xC03FFFFF),
+	# mapping the kernel in the higher half.
+	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %eax
+	orl $0x00000003, %eax
+	movl %eax, pgdir - KERNEL_VIRTUAL_BASE + 0x300 * 4
+
+	# Load the physical address of the page directory into cr3.
+	movl $(pgdir - KERNEL_VIRTUAL_BASE), %ecx
+	movl %ecx, %cr3
+
+	# Enable paging and the write protect bit,
+	# preventing writing to read-only pages.
+	movl %cr0, %ecx
+	orl $0x80010000, %ecx
+	movl %ecx, %cr0
+
+	# Jump to the higher half addresses.
+	leal higher_half_start, %ecx
+	jmp *%ecx
+
+higher_half_start:
+	# Remove the identity mapped-page and flush the TLB.
+	movl $0, pgdir
+	invlpg (0)
+
+	# Set stack pointer to point to the top of the stack.
 	movl $stack_top, %esp
 
-	# call global constructors
+	# Call global constructors.
 	call _init
 
-	# intitialize the tty
+	# Intitialize the TTY.
 	call tty_init
 
-# load the global descriptor table
+# Load the global descriptor table.
 load_gdt:
 	call gdt_init
 
-	# print a message indicating successful gdt load
+	# Print a message indicating successful GDT load.
 	push len_gdt_msg
 	push $gdt_msg
 	call tty_write
 	addl $8, %esp
 
-# load the interrupt descriptor table
+# Load the interrupt descriptor table.
 load_idt:
 	call idt_init
 
-	# print a message indicating successful idt load
+	# Print a message indicating successful IDT load.
 	push len_idt_msg
 	push $idt_msg
 	call tty_write
@@ -85,6 +149,7 @@ kernel_start:
 .size _start, . - _start
 
 .section .data
+.align 4
 gdt_msg:
 	.ascii "[GDT] success\n"
 len_gdt_msg:

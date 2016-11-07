@@ -53,6 +53,8 @@ typedef struct {
 #define PAGE_SIZE	(((pteval_t)1) << _PAGE_BIT_SIZE)
 #define PAGE_GLOBAL	(((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
+#include <untitled/compiler.h>
+
 static __always_inline pde_t make_pde(pdeval_t val)
 {
 	return (pde_t){ val };

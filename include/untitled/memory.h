@@ -19,6 +19,4 @@
 #ifndef UNTITLED_MEMORY_H
 #define UNTITLED_MEMORY_H
 
-void init_page_directory(void);
-
 #endif /* UNTITLED_MEMORY_H */

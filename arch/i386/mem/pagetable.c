@@ -16,38 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-#include <untitled/compiler.h>
-#include <untitled/memory.h>
 #include <untitled/page.h>
 
 /*
  * The page directory of a legacy 2-level x86 paging setup.
  */
-pde_t pgdir[PGDIR_SIZE] __aligned(0x1000);
-
-/* An initial page table to be used by the kernel on boot. */
-static pte_t base_page_table[PGTBL_SIZE] __aligned(0x1000);
-
-extern void pgdir_load(uintptr_t pgdir);
-
-void init_page_directory(void)
-{
-	size_t i;
-	const pdeval_t flags = PAGE_RW | PAGE_PRESENT;
-
-	memset(pgdir, 0, sizeof pgdir);
-
-	/*
-	 * Map the first 1 MiB of virtual memory to the
-	 * first 1 MiB of physical memory.
-	 */
-	for (i = 0; i < PGTBL_SIZE; ++i)
-		base_page_table[i] = make_pte((i * 0x1000) | flags);
-
-	pgdir[0] = make_pde(((uintptr_t)base_page_table) | flags);
-
-	pgdir_load((uintptr_t)pgdir);
-}
+extern pde_t pgdir[PGDIR_SIZE];

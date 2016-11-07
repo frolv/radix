@@ -26,8 +26,6 @@ int kmain(void)
 	printf("Kernel loaded\n");
 
 	irq_enable();
-	init_page_directory();
-	printf("Paging initialized\n");
 
 	/* TEMP: until modules are implemented (so a while) */
 	extern void kbd_install(void);
