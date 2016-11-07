@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <untitled/irq.h>
+#include <untitled/mm.h>
 #include <untitled/multiboot.h>
 
 /* kernel entry point */
@@ -25,17 +26,16 @@ int kmain(multiboot_info_t *mbt, unsigned int magic)
 {
 	printf("Kernel loaded\n");
 
-	if (mbt->flags & 1) {
-		printf("Detected %u MiB of available memory\n",
-				mbt->mem_upper / 0x400);
-	}
+	detect_memory(mbt);
+	printf("Detected a total of %llu MiB of available memory\n",
+			totalmem / 1048576);
 
 	irq_enable();
 
 	/* TEMP: until modules are implemented (so a while) */
 	extern void kbd_install(void);
 	kbd_install();
-	printf("Welcome to UNTITLED!\n");
+	printf("\nWelcome to UNTITLED!\n");
 	printf("Press `q' for a kernel panic\n");
 
 	while (1)

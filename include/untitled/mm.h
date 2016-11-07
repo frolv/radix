@@ -19,4 +19,11 @@
 #ifndef UNTITLED_MEMORY_H
 #define UNTITLED_MEMORY_H
 
+#include <stdint.h>
+#include <untitled/multiboot.h>
+
+extern uint64_t totalmem;
+
+void detect_memory(multiboot_info_t *mbt);
+
 #endif /* UNTITLED_MEMORY_H */

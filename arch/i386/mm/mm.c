@@ -15,3 +15,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include <untitled/mm.h>
+
+/* total amount of useable memory in the system */
+uint64_t totalmem = 0;
+
+#define KERNEL_VIRTUAL_BASE 0xC0000000
+
+#define make64(low, high) ((uint64_t)(high) << 32 | (low))
+
+void detect_memory(multiboot_info_t *mbt)
+{
+	memory_map_t *mmap;
+	uint64_t curr_len;
+	uint64_t curr_addr;
+
+	/*
+	 * mmap_addr stores the physical address of the memory map.
+	 * Make it virtual.
+	 */
+	mbt->mmap_addr += KERNEL_VIRTUAL_BASE;
+
+	for (mmap = (memory_map_t *)mbt->mmap_addr;
+			(uintptr_t)mmap < mbt->mmap_addr + mbt->mmap_length;
+			mmap = (memory_map_t *)((uintptr_t)mmap + mmap->size
+						+ sizeof (mmap->size))) {
+		/* only consider available RAM */
+		if (mmap->type != 1)
+			continue;
+
+		curr_addr = make64(mmap->base_addr_low, mmap->base_addr_high);
+		curr_len = make64(mmap->length_low, mmap->length_high);
+		totalmem += curr_len;
+	}
+}
