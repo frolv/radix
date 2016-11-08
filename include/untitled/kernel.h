@@ -27,6 +27,9 @@
 		HALT(); \
 	} while (1)
 
+#define ALIGN(x, a)		__ALIGN_MASK(x, (typeof (x))(a) - 1)
+#define __ALIGN_MASK(x, mask)	(((x) + (mask)) & ~(mask))
+
 void panic(const char *err, ...);
 
 #endif /* UNTITLED_KERNEL_H */
