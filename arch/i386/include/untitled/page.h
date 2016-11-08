@@ -19,23 +19,16 @@
 #ifndef ARCH_I386_UNTITLED_PAGE_H
 #define ARCH_I386_UNTITLED_PAGE_H
 
-typedef unsigned long pdeval_t;
-typedef unsigned long pteval_t;
-
-typedef struct {
-	pdeval_t pde;
-} pde_t;
-
-typedef struct {
-	pteval_t pte;
-} pte_t;
-
 #define PGDIR_SIZE		0x400
 #define PGTBL_SIZE		0x400
 
+#define PGDIR_SHIFT		22
 #define PAGE_SHIFT		12
 #define PAGE_SIZE		(1UL << PAGE_SHIFT)
 #define PAGE_MASK		(~(PAGE_SIZE - 1))
+
+#define PGDIR_INDEX(x)		((x) >> PGDIR_SHIFT)
+#define PGTBL_INDEX(x)		(((x) >> PAGE_SHIFT) & 0x3FF)
 
 #define _PAGE_BIT_PRESENT	0
 #define _PAGE_BIT_RW		1
@@ -59,6 +52,11 @@ typedef struct {
 
 #include <untitled/compiler.h>
 
+#include <untitled/mm_types.h>
+
+#define PDE(x) ((x).pde)
+#define PTE(x) ((x).pte)
+
 static __always_inline pde_t make_pde(pdeval_t val)
 {
 	return (pde_t){ val };
@@ -68,5 +66,9 @@ static __always_inline pte_t make_pte(pteval_t val)
 {
 	return (pte_t){ val };
 }
+
+#define __pa(x) __virt_to_phys(x)
+
+addr_t __virt_to_phys(addr_t addr);
 
 #endif /* ARCH_I386_UNTITLED_PAGE_H */
