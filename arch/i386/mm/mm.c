@@ -25,7 +25,7 @@
 /* total amount of usable memory in the system */
 uint64_t totalmem = 0;
 
-#define KERNEL_PHYSICAL_END	0xC0800000UL
+#define KERNEL_PHYSICAL_END	0x00800000UL
 
 #define make64(low, high) ((uint64_t)(high) << 32 | (low))
 
