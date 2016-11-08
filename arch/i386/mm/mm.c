@@ -16,20 +16,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <untitled/kernel.h>
 #include <untitled/mm.h>
 #include <untitled/page.h>
+
+#include "physmem.h"
 
 /* total amount of usable memory in the system */
 uint64_t totalmem = 0;
 
-#define KERNEL_VIRTUAL_BASE 0xC0000000
+#define KERNEL_PHYSICAL_END	0xC0800000UL
 
 #define make64(low, high) ((uint64_t)(high) << 32 | (low))
 
 void detect_memory(multiboot_info_t *mbt)
 {
 	memory_map_t *mmap;
-	uint64_t base, len;
+	uint64_t base, orig_base, len;
+
+	phys_stack_init();
 
 	/*
 	 * mmap_addr stores the physical address of the memory map.
@@ -48,9 +53,30 @@ void detect_memory(multiboot_info_t *mbt)
 		base = make64(mmap->base_addr_low, mmap->base_addr_high);
 		len = make64(mmap->length_low, mmap->length_high);
 
-		/* this should already be aligned by the bootloader */
-		base = (base + PAGE_SIZE - 1) & PAGE_MASK;
-		len &= PAGE_MASK;
+		/*
+		 * This should already be aligned by the bootloader.
+		 * But, just in case...
+		 */
+		orig_base = base;
+		base = ALIGN(base, PAGE_SIZE);
+		len = (len - (base - orig_base)) & PAGE_MASK;
+		if (!len)
+			continue;
+
 		totalmem += len;
+
+		/*
+		 * The first 4 MiB of physical memory is reserved
+		 * for the bootloader and the kernel. The next 4 MiB
+		 * is reserved for the physical memory stack.
+		 */
+		if (base < KERNEL_PHYSICAL_END) {
+			if (base + len <= KERNEL_PHYSICAL_END)
+				continue;
+			len = len - (KERNEL_PHYSICAL_END - base);
+			base = KERNEL_PHYSICAL_END;
+		}
+
+		mark_free_region(base, len);
 	}
 }
