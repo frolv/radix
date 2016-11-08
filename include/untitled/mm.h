@@ -16,14 +16,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_MEMORY_H
-#define UNTITLED_MEMORY_H
+#ifndef UNTITLED_MM_H
+#define UNTITLED_MM_H
 
+#include <stddef.h>
 #include <stdint.h>
+#include <untitled/mm_types.h>
 #include <untitled/multiboot.h>
+#include <untitled/page.h>
+
+#define KERNEL_VIRTUAL_BASE	0xC0000000UL
+
+#define phys_addr(x) __pa(x)
 
 extern uint64_t totalmem;
 
 void detect_memory(multiboot_info_t *mbt);
 
-#endif /* UNTITLED_MEMORY_H */
+#endif /* UNTITLED_MM_H */
