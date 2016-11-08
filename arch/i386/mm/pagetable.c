@@ -20,13 +20,15 @@
 #include <untitled/page.h>
 
 /*
- * The final entry page directory is mapped to the page directory itself.
- * The virtual address 0xFFC00000 is therefore the starting address of the
- * page directory, interpreted as a page table.
+ * The final entry in the page directory is mapped to the page directory itself.
+ * The virtual address 0xFFC00000 is therefore the starting address of the page
+ * directory, interpreted as a page table.
  * Virtual address 0xFFFFF000 is the page containing the actual page directory.
  */
 #define PGDIR_BASE	0xFFC00000
 #define PGDIR_VADDR	0xFFFFF000
+
+#define PGTBL(x) 	(pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
 
 /*
  * The page directory of a legacy 2-level x86 paging setup.
@@ -42,7 +44,7 @@ addr_t __virt_to_phys(addr_t addr)
 	pti = PGTBL_INDEX(addr);
 
 	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
-		pgtbl = (pte_t *)(PGDIR_BASE + pdi * PAGE_SIZE);
+		pgtbl = PGTBL(pdi);
 		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
 			return (PTE(pgtbl[pti]) & PAGE_MASK) + (addr & 0xFFF);
 	}
