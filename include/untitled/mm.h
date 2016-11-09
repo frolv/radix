@@ -33,4 +33,10 @@ extern uint64_t totalmem;
 
 void detect_memory(multiboot_info_t *mbt);
 
+addr_t alloc_phys_page();
+void free_phys_page(addr_t base);
+
+int map_page(addr_t virt, addr_t phys);
+int unmap_page(addr_t virt);
+
 #endif /* UNTITLED_MM_H */

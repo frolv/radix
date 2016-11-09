@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
+#include <untitled/kernel.h>
 #include <untitled/mm.h>
 #include <untitled/page.h>
 
@@ -48,6 +50,39 @@ addr_t __virt_to_phys(addr_t addr)
 		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
 			return (PTE(pgtbl[pti]) & PAGE_MASK) + (addr & 0xFFF);
 	}
+
+	return 0;
+}
+
+/*
+ * Map a page with base virtual address virt to physical address phys.
+ */
+int map_page(addr_t virt, addr_t phys)
+{
+	size_t pdi, pti;
+	pte_t *pgtbl;
+	addr_t pa;
+
+	/* ensure addresses are page-aligned */
+	virt = ALIGN(virt, PAGE_SIZE);
+	phys = ALIGN(phys, PAGE_SIZE);
+
+	pdi = PGDIR_INDEX(virt);
+	pti = PGTBL_INDEX(virt);
+	pgtbl = PGTBL(pdi);
+
+	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
+		/* page is already mapped */
+		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
+			return EINVAL;
+	} else {
+		/* allocate a new page table */
+		if (!(pa = alloc_phys_page()))
+			panic("Out of memory\n");
+
+		pgdir[pdi] = make_pde(pa | PAGE_RW | PAGE_PRESENT);
+	}
+	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
 
 	return 0;
 }

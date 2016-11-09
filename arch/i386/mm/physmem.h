@@ -26,7 +26,4 @@ void phys_stack_init(void);
 
 void mark_free_region(addr_t base, size_t len);
 
-addr_t alloc_phys_page(void);
-void free_phys_page(addr_t base);
-
 #endif /* ARCH_I386_MM_PHYSMEM_H */

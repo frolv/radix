@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <untitled/compiler.h>
 #include <untitled/kernel.h>
 #include <untitled/mm.h>
@@ -73,7 +74,7 @@ void mark_free_region(addr_t base, size_t len)
 
 	while (len) {
 		if (unlikely(stack_length == MAX_STACK_LEN)) {
-			/* do something */
+			/* TODO: do something */
 			return;
 		}
 		phys_stack[stack_length++] = pos;
@@ -85,6 +86,11 @@ void mark_free_region(addr_t base, size_t len)
 
 addr_t alloc_phys_page(void)
 {
+	if (!stack_length) {
+		errno = ENOMEM;
+		return 0;
+	}
+
 	return phys_stack[--stack_length];
 }
 
