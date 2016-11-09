@@ -30,6 +30,8 @@
 #define ALIGN(x, a)		__ALIGN_MASK(x, (typeof (x))(a) - 1)
 #define __ALIGN_MASK(x, mask)	(((x) + (mask)) & ~(mask))
 
+#define ALIGNED(x, a)		(((x) & ((a) - 1)) == 0)
+
 void panic(const char *err, ...);
 
 #endif /* UNTITLED_KERNEL_H */
