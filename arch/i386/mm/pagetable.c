@@ -63,9 +63,9 @@ int map_page(addr_t virt, addr_t phys)
 	pte_t *pgtbl;
 	addr_t pa;
 
-	/* ensure addresses are page-aligned */
-	virt = ALIGN(virt, PAGE_SIZE);
-	phys = ALIGN(phys, PAGE_SIZE);
+	/* addresses must be page-aligned */
+	if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
+		return EINVAL;
 
 	pdi = PGDIR_INDEX(virt);
 	pti = PGTBL_INDEX(virt);
@@ -84,5 +84,10 @@ int map_page(addr_t virt, addr_t phys)
 	}
 	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
 
+	return 0;
+}
+
+int unmap_page(addr_t virt)
+{
 	return 0;
 }
