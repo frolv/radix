@@ -1,5 +1,5 @@
 /*
- * lib/stdio/putchar.c
+ * lib/libc/ctype/tolower.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <untitled/tty.h>
+#include <ctype.h>
 
-int putchar(int c)
+int tolower(int c)
 {
-	tty_putchar(c);
-	return 0;
+	if (isupper(c))
+		return c + ('a' - 'A');
+	else
+		return c;
 }

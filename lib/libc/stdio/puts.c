@@ -1,5 +1,5 @@
 /*
- * lib/string/memset.c
+ * lib/libc/stdio/puts.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,14 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
+#include <untitled/tty.h>
 
-void *memset(void *s, int c, size_t n)
+int puts(const char *s)
 {
-	unsigned char *p = s;
-
-	while (n--)
-		*p++ = c;
-
-	return s;
+	tty_write(s, strlen(s));
+	tty_putchar('\n');
+	return 0;
 }

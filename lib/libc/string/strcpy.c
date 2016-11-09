@@ -1,5 +1,5 @@
 /*
- * lib/ctype/toupper.c
+ * lib/libc/string/strcpy.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
+#include <string.h>
 
-int toupper(int c)
+char *strcpy(char *__restrict dst, const char *__restrict src)
 {
-	if (islower(c))
-		return c - ('a' - 'A');
-	else
-		return c;
+	char *start = dst;
+
+	while ((*dst++ = *src++))
+		;
+	return start;
 }

@@ -1,5 +1,5 @@
 /*
- * lib/string/strncat.c
+ * lib/libc/string/strncpy.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,15 +18,13 @@
 
 #include <string.h>
 
-char *strncat(char *__restrict dst, const char *__restrict src, size_t n)
+char *strncpy(char *__restrict dst, const char *__restrict src, size_t n)
 {
 	char *start = dst;
 
-	while (*dst)
-		++dst;
-	while (n-- && *src)
-		*dst++ = *src++;
-	*dst = '\0';
-
+	while (n-- && (*dst++ = *src++))
+		;
+	while (n--)
+		*dst++ = '\0';
 	return start;
 }

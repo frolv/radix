@@ -1,5 +1,5 @@
 /*
- * lib/string/strrev.c
+ * lib/libc/string/strncat.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,19 +18,15 @@
 
 #include <string.h>
 
-char *strrev(char *s)
+char *strncat(char *__restrict dst, const char *__restrict src, size_t n)
 {
-	char *start, *t;
-	char c;
+	char *start = dst;
 
-	start = s;
-	t = s + strlen(s) - 1;
-
-	while (s < t) {
-		c = *t;
-		*t-- = *s;
-		*s++ = c;
-	}
+	while (*dst)
+		++dst;
+	while (n-- && *src)
+		*dst++ = *src++;
+	*dst = '\0';
 
 	return start;
 }

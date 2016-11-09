@@ -1,5 +1,5 @@
 /*
- * lib/ctype/isalpha.c
+ * lib/libc/ctype/isdigit.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
 
 #include <ctype.h>
 
-int isalpha(int c)
+int isdigit(int c)
 {
-	return islower(c) || isupper(c);
+	return c >= '0' && c <= '9';
 }

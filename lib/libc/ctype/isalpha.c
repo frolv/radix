@@ -1,5 +1,5 @@
 /*
- * lib/string/strcat.c
+ * lib/libc/ctype/isalpha.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,16 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
+#include <ctype.h>
 
-char *strcat(char *__restrict dst, const char *__restrict src)
+int isalpha(int c)
 {
-	char *start = dst;
-
-	while (*dst)
-		++dst;
-	while ((*dst++ = *src++))
-		;
-
-	return start;
+	return islower(c) || isupper(c);
 }

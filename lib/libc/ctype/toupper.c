@@ -1,5 +1,5 @@
 /*
- * lib/ctype/isalnum.c
+ * lib/libc/ctype/toupper.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,10 @@
 
 #include <ctype.h>
 
-int isalnum(int c)
+int toupper(int c)
 {
-	return isalpha(c) || isdigit(c);
+	if (islower(c))
+		return c - ('a' - 'A');
+	else
+		return c;
 }

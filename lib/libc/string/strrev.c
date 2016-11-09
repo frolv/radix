@@ -1,5 +1,5 @@
 /*
- * lib/ctype/isspace.c
+ * lib/libc/string/strrev.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,10 +16,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
+#include <string.h>
 
-int isspace(int c)
+char *strrev(char *s)
 {
-	return c == ' ' || c == '\n' || c == '\t' || c == '\v'
-			|| c == '\f' || c == '\r';
+	char *start, *t;
+	char c;
+
+	start = s;
+	t = s + strlen(s) - 1;
+
+	while (s < t) {
+		c = *t;
+		*t-- = *s;
+		*s++ = c;
+	}
+
+	return start;
 }

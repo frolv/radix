@@ -1,5 +1,5 @@
 /*
- * lib/string/memcpy.c
+ * lib/libc/ctype/isalnum.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,15 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
+#include <ctype.h>
 
-void *memcpy(void *__restrict dst, const void *__restrict src, size_t n)
+int isalnum(int c)
 {
-	unsigned char *d = dst;
-	const unsigned char *s = src;
-
-	while (n--)
-		*d++ = *s++;
-
-	return dst;
+	return isalpha(c) || isdigit(c);
 }

@@ -1,5 +1,5 @@
 /*
- * lib/string/strncmp.c
+ * lib/libc/stdio/putchar.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,15 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
+#include <stdio.h>
+#include <untitled/tty.h>
 
-int strncmp(const char *s1, const char *s2, size_t n)
+int putchar(int c)
 {
-	for (; n; ++s1, ++s2, --n) {
-		if (*s1 != *s2)
-			return *s1 < *s2 ? -1 : 1;
-		else if (!*s1)
-			return 0;
-	}
+	tty_putchar(c);
 	return 0;
 }

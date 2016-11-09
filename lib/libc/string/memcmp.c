@@ -1,5 +1,5 @@
 /*
- * lib/string/strncpy.c
+ * lib/libc/string/memcmp.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,13 +18,19 @@
 
 #include <string.h>
 
-char *strncpy(char *__restrict dst, const char *__restrict src, size_t n)
+int memcmp(const void *s1, const void *s2, size_t n)
 {
-	char *start = dst;
+	const unsigned char *a, *b;
+	size_t i;
 
-	while (n-- && (*dst++ = *src++))
-		;
-	while (n--)
-		*dst++ = '\0';
-	return start;
+	a = s1;
+	b = s2;
+
+	for (i = 0; i < n; ++i) {
+		if (a[i] < b[i])
+			return -1;
+		else if (a[i] > b[i])
+			return 1;
+	}
+	return 0;
 }

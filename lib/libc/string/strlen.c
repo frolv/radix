@@ -1,5 +1,5 @@
 /*
- * lib/ctype/isupper.c
+ * lib/libc/string/strlen.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,9 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
+#include <string.h>
 
-int isupper(int c)
+size_t strlen(const char *s)
 {
-	return c >= 'A' && c <= 'Z';
+	size_t len = 0;
+
+	while (*s++)
+		++len;
+	return len;
 }

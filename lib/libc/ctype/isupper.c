@@ -1,5 +1,5 @@
 /*
- * lib/stdio/puts.c
+ * lib/libc/ctype/isupper.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <untitled/tty.h>
+#include <ctype.h>
 
-int puts(const char *s)
+int isupper(int c)
 {
-	tty_write(s, strlen(s));
-	tty_putchar('\n');
-	return 0;
+	return c >= 'A' && c <= 'Z';
 }

@@ -1,5 +1,5 @@
 /*
- * lib/stdio/vprintf.c
+ * lib/libc/stdio/vprintf.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

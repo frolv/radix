@@ -1,5 +1,5 @@
 /*
- * lib/string/memcmp.c
+ * lib/libc/string/strncmp.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,19 +18,13 @@
 
 #include <string.h>
 
-int memcmp(const void *s1, const void *s2, size_t n)
+int strncmp(const char *s1, const char *s2, size_t n)
 {
-	const unsigned char *a, *b;
-	size_t i;
-
-	a = s1;
-	b = s2;
-
-	for (i = 0; i < n; ++i) {
-		if (a[i] < b[i])
-			return -1;
-		else if (a[i] > b[i])
-			return 1;
+	for (; n; ++s1, ++s2, --n) {
+		if (*s1 != *s2)
+			return *s1 < *s2 ? -1 : 1;
+		else if (!*s1)
+			return 0;
 	}
 	return 0;
 }

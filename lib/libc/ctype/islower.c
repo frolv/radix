@@ -1,5 +1,5 @@
 /*
- * lib/string/memmove.c
+ * lib/libc/ctype/islower.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,21 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
+#include <ctype.h>
 
-void *memmove(void *dst, const void *src, size_t n)
+int islower(int c)
 {
-	size_t i;
-	unsigned char *d = dst;
-	const unsigned char *s = src;
-
-	if (d < s) {
-		for (i = 0; i < n; ++i)
-			d[i] = s[i];
-	} else {
-		for (i = n; i; --i)
-			d[i - 1] = s[i - 1];
-	}
-
-	return dst;
+	return c >= 'a' && c <= 'z';
 }

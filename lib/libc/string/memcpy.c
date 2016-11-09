@@ -1,5 +1,5 @@
 /*
- * lib/string/strlen.c
+ * lib/libc/string/memcpy.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,11 +18,13 @@
 
 #include <string.h>
 
-size_t strlen(const char *s)
+void *memcpy(void *__restrict dst, const void *__restrict src, size_t n)
 {
-	size_t len = 0;
+	unsigned char *d = dst;
+	const unsigned char *s = src;
 
-	while (*s++)
-		++len;
-	return len;
+	while (n--)
+		*d++ = *s++;
+
+	return dst;
 }

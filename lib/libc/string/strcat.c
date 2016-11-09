@@ -1,5 +1,5 @@
 /*
- * lib/string/strcmp.c
+ * lib/libc/string/strcat.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,11 +18,14 @@
 
 #include <string.h>
 
-int strcmp(const char *s1, const char *s2)
+char *strcat(char *__restrict dst, const char *__restrict src)
 {
-	for (; *s1 == *s2; ++s1, ++s2) {
-		if (!*s1)
-			return 0;
-	}
-	return *s1 < *s2 ? -1 : 1;
+	char *start = dst;
+
+	while (*dst)
+		++dst;
+	while ((*dst++ = *src++))
+		;
+
+	return start;
 }

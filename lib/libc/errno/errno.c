@@ -1,5 +1,5 @@
 /*
- * lib/ctype/islower.c
+ * lib/libc/errno/errno.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,9 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
+#include <errno.h>
 
-int islower(int c)
-{
-	return c >= 'a' && c <= 'z';
-}
+int errno = 0;

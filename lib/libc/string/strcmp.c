@@ -1,5 +1,5 @@
 /*
- * lib/ctype/tolower.c
+ * lib/libc/string/strcmp.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
+#include <string.h>
 
-int tolower(int c)
+int strcmp(const char *s1, const char *s2)
 {
-	if (isupper(c))
-		return c + ('a' - 'A');
-	else
-		return c;
+	for (; *s1 == *s2; ++s1, ++s2) {
+		if (!*s1)
+			return 0;
+	}
+	return *s1 < *s2 ? -1 : 1;
 }
