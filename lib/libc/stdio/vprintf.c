@@ -136,7 +136,7 @@ static int get_format(const char *format, struct printf_format *p)
 			p->precision = 0;
 	}
 
-	if (*format ==  'h') {
+	if (*format == 'h') {
 		p->flags |= FLAGS_SHORT;
 		++format;
 	} else if (*format == 'l') {
