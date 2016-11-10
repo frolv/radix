@@ -118,7 +118,7 @@ static int __unmap(addr_t virt, int freetable)
 		return EINVAL;
 
 	pgtbl = PGTBL(pdi);
-	if (!(PTE(pgtbl[pti]) & 1))
+	if (!(PTE(pgtbl[pti]) & PAGE_PRESENT))
 		return EINVAL;
 
 	pgtbl[pti] = make_pte(0);
