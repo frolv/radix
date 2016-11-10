@@ -16,7 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <errno.h>
 #include <untitled/kernel.h>
 #include <untitled/mm.h>
 #include <untitled/page.h>
@@ -27,8 +26,8 @@
  * directory, interpreted as a page table.
  * Virtual address 0xFFFFF000 is the page containing the actual page directory.
  */
-#define PGDIR_BASE	0xFFC00000
-#define PGDIR_VADDR	0xFFFFF000
+#define PGDIR_BASE	0xFFC00000UL
+#define PGDIR_VADDR	0xFFFFF000UL
 
 #define PGTBL(x) 	(pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
 
@@ -87,7 +86,54 @@ int map_page(addr_t virt, addr_t phys)
 	return 0;
 }
 
+static int __unmap(addr_t virt, int freetable);
+
+/* Unmap the page with base address virt. */
 int unmap_page(addr_t virt)
 {
+	return __unmap(virt, 0);
+}
+
+/*
+ * Unmap the page with base address virt. If the rest of its
+ * page table is empty, unmap and free the page table too.
+ */
+int unmap_page_pgdir(addr_t virt)
+{
+	return __unmap(virt, 1);
+}
+
+static int __unmap(addr_t virt, int freetable)
+{
+	size_t pdi, pti, i;
+	pte_t *pgtbl;
+
+	if (!ALIGNED(virt, PAGE_SIZE))
+		return EINVAL;
+
+	pdi = PGDIR_INDEX(virt);
+	pti = PGTBL_INDEX(virt);
+
+	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+		return EINVAL;
+
+	pgtbl = PGTBL(pdi);
+	if (!(PTE(pgtbl[pti]) & 1))
+		return EINVAL;
+
+	pgtbl[pti] = make_pte(0);
+
+	if (freetable) {
+		/* check if any other pages exist in the table */
+		for (i = 0; i < PGTBL_SIZE; ++i) {
+			if (PTE(pgtbl[i]) & PAGE_PRESENT)
+				break;
+		}
+		if (i == PGTBL_SIZE) {
+			free_phys_page(PDE(pgdir[pdi]));
+			pgdir[pdi] = make_pde(0);
+		}
+	}
+
 	return 0;
 }

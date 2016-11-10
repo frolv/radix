@@ -19,6 +19,7 @@
 #ifndef UNTITLED_MM_H
 #define UNTITLED_MM_H
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <untitled/mm_types.h>
@@ -38,5 +39,6 @@ void free_phys_page(addr_t base);
 
 int map_page(addr_t virt, addr_t phys);
 int unmap_page(addr_t virt);
+int unmap_page_pgdir(addr_t virt);
 
 #endif /* UNTITLED_MM_H */
