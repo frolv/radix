@@ -1,0 +1,83 @@
+/*
+ * include/untitled/list.h
+ * Copyright (C) 2016 Alexei Frolov
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef UNTITLED_LIST_H
+#define UNTITLED_LIST_H
+
+#include <untitled/compiler.h>
+
+struct list {
+	struct list *next;
+	struct list *prev;
+};
+
+static __always_inline void list_init(struct list *list)
+{
+	list->next = list->prev = list;
+}
+
+/*
+ * Insert elem into the list between the entries head and prev.
+ * This is internal for the two functions below.
+ */
+static __always_inline void __insert(struct list *elem, struct list *prev,
+				     struct list *next)
+{
+	elem->next = next;
+	elem->prev = prev;
+	next->prev = elem;
+	prev->next = elem;
+}
+
+/*
+ * Insert elem into the list after head.
+ */
+static __always_inline void list_add(struct list *head, struct list *elem)
+{
+	__insert(elem, head, head->next);
+}
+
+/*
+ * Insert elem into the list before head.
+ */
+static __always_inline void list_ins(struct list *head, struct list *elem)
+{
+	__insert(elem, head->prev, head);
+}
+
+/*
+ * Delete the entry elem from the list.
+ */
+static __always_inline void list_del(struct list *elem)
+{
+	elem->prev->next = elem->next;
+	elem->next->prev = elem->prev;
+	elem->prev = elem->next = elem;
+}
+
+#define list_entry(ptr, type, member) \
+	const typeof(((type *)0)->member) *__ptr = (ptr); \
+	(type *)((char *)__ptr - offsetof(type, member))
+
+#define list_for_each(pos, head) \
+	for (pos = (head)->next; pos != (head); pos = pos->next)
+
+#define list_for_each_r(pos, head) \
+	for (pos = (head)->prev; pos != (head); pos = pos->prev)
+
+#endif /* UNTITLED_LIST_H */
