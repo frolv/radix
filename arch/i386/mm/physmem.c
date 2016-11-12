@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <errno.h>
 #include <untitled/compiler.h>
+#include <untitled/error.h>
 #include <untitled/kernel.h>
 #include <untitled/mm.h>
 #include <untitled/page.h>

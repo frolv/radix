@@ -1,5 +1,5 @@
 /*
- * include/untitled/mm.h
+ * include/untitled/error.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,29 +16,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_MM_H
-#define UNTITLED_MM_H
+#ifndef UNTITLED_ERROR_H
+#define UNTITLED_ERROR_H
 
-#include <stddef.h>
-#include <stdint.h>
-#include <untitled/error.h>
-#include <untitled/mm_types.h>
-#include <untitled/multiboot.h>
-#include <untitled/page.h>
+#define MAX_ERRNO 79
 
-#define KERNEL_VIRTUAL_BASE	0xC0000000UL
+#include <errno.h>
 
-#define phys_addr(x) __pa(x)
+/*
+ * The last page of virtual addresses maps to the page directory,
+ * and therefore will never be returned by an allocation function.
+ * It is therefore possible to return errors from a function that
+ * returns a pointer through a "pointer" containing the negative
+ * of one of the standard error values - a large unsigned number.
+ */
+#define ERR_PTR(err) ((void *)(-(err)))
+#define IS_ERR(ptr) ((unsigned long)ptr >= (unsigned long)(-MAX_ERRNO))
+#define ERR_VAL(ptr) (-((unsigned long)(ptr)))
 
-extern uint64_t totalmem;
-
-void detect_memory(multiboot_info_t *mbt);
-
-addr_t alloc_phys_page();
-void free_phys_page(addr_t base);
-
-int map_page(addr_t virt, addr_t phys);
-int unmap_page(addr_t virt);
-int unmap_page_pgdir(addr_t virt);
-
-#endif /* UNTITLED_MM_H */
+#endif /* UNTITLED_ERROR_H */
