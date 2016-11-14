@@ -19,6 +19,8 @@
 #ifndef ARCH_I386_UNTITLED_MM_TYPES_H
 #define ARCH_I386_UNTITLED_MM_TYPES_H
 
+#define __ARCH_KERNEL_VIRT_BASE 0xC0000000UL
+
 typedef unsigned long addr_t;
 
 typedef unsigned long pdeval_t;

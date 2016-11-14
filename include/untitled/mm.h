@@ -26,7 +26,7 @@
 #include <untitled/multiboot.h>
 #include <untitled/page.h>
 
-#define KERNEL_VIRTUAL_BASE	0xC0000000UL
+#define KERNEL_VIRTUAL_BASE	__ARCH_KERNEL_VIRT_BASE
 
 #define phys_addr(x) __pa(x)
 
@@ -34,8 +34,11 @@ extern uint64_t totalmem;
 
 void detect_memory(multiboot_info_t *mbt);
 
-addr_t alloc_phys_page();
+addr_t alloc_phys_page(void);
 void free_phys_page(addr_t base);
+
+void *alloc_page(void);
+void free_page(void *base);
 
 int map_page(addr_t virt, addr_t phys);
 int unmap_page(addr_t virt);
