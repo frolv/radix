@@ -32,6 +32,9 @@
 
 #define ALIGNED(x, a)		(((x) & ((a) - 1)) == 0)
 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 void panic(const char *err, ...);
 
 #endif /* UNTITLED_KERNEL_H */
