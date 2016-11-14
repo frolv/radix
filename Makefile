@@ -29,6 +29,7 @@ LDFLAGS := $(LDFLAGS) $(KERNEL_ARCH_LDFLAGS)
 LIBS := $(LIBS) $(KERNEL_ARCH_LIBS)
 
 KERNEL_OBJS := $(patsubst %.c,%.o,$(wildcard kernel/*.c))
+KERNEL_OBJS += $(patsubst %.c,%.o,$(wildcard kernel/*/*.c))
 KERNEL_OBJS += $(KERNEL_ARCH_OBJS)
 
 LIBDIR := lib

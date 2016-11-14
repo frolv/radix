@@ -25,9 +25,9 @@
 #define NAME_LEN	0x40
 
 struct slab_cache {
-	struct list	full;			/* full slabs */
-	struct list	partial;		/* partially full slabs */
-	struct list	free;			/* empty slabs */
+	struct list	full_slabs;		/* full slabs */
+	struct list	partial_slabs;		/* partially full slabs */
+	struct list	free_slabs;		/* empty slabs */
 	size_t		objsize;		/* size of each cached object */
 	int		count;			/* number of objects per slab */
 	int		flags;			/* allocator options */
@@ -35,7 +35,8 @@ struct slab_cache {
 	struct list	list;			/* list of caches */
 };
 
-struct slab_cache *create_cache(const char *name, size_t size, size_t offset);
+struct slab_cache *create_cache(const char *name, size_t size, size_t offset,
+				int flags);
 void *alloc_cache(struct slab_cache *cache);
 
 #define KMALLOC_MAX_SIZE 0x2000
