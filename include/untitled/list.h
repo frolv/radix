@@ -70,9 +70,17 @@ static __always_inline void list_del(struct list *elem)
 	elem->prev = elem->next = elem;
 }
 
+static __always_inline int list_empty(struct list *head)
+{
+	return head->next == head;
+}
+
 #define list_entry(ptr, type, member) \
-	const typeof(((type *)0)->member) *__ptr = (ptr); \
-	(type *)((char *)__ptr - offsetof(type, member))
+	({ const typeof(((type *)0)->member) *__ptr = (ptr); \
+	(type *)((char *)__ptr - offsetof(type, member)); })
+
+#define list_first_entry(head, type, member) \
+	list_entry((head)->next, type, member);
 
 #define list_for_each(pos, head) \
 	for (pos = (head)->next; pos != (head); pos = pos->next)
