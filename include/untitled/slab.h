@@ -29,15 +29,33 @@ struct slab_cache {
 	struct list	partial_slabs;		/* partially full slabs */
 	struct list	free_slabs;		/* empty slabs */
 	size_t		objsize;		/* size of each cached object */
+	size_t		align;			/* object alignment */
+	size_t		offset;			/* byte offset between objects */
 	int		count;			/* number of objects per slab */
-	int		flags;			/* allocator options */
+	unsigned long	flags;			/* allocator options */
 	char		cache_name[NAME_LEN];	/* human-readable cache name */
 	struct list	list;			/* list of caches */
 };
 
-struct slab_cache *create_cache(const char *name, size_t size, size_t offset,
-				int flags);
+struct slab_desc {
+	struct list	list;		/* list to which slab belongs */
+	void		*first;		/* address of first object on slab */
+	int		in_use;		/* number of objects allocated */
+	unsigned int	next;		/* index of next object to allocate */
+};
+
+/* Cache flags */
+#define SLAB_HW_CACHE_ALIGN	(1 << 16)
+
+struct slab_cache *create_cache(const char *name, size_t size, size_t align,
+				unsigned long flags);
+int grow_cache(struct slab_cache *cache);
+
 void *alloc_cache(struct slab_cache *cache);
+void free_cache(struct slab_cache *cache, void *obj);
+
+#define MIN_ALIGN __alignof__(unsigned long long)
+#define MIN_OBJ_SIZE (sizeof (unsigned long long))
 
 #define KMALLOC_MAX_SIZE 0x2000
 
