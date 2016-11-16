@@ -34,4 +34,10 @@ typedef struct {
 	pteval_t pte;
 } pte_t;
 
+struct page {
+	void *slab_cache;	/* address of slab cache */
+	void *slab_desc;	/* address of slab descriptor */
+	void *mem;		/* start of the page itself */
+};
+
 #endif /* ARCH_I386_UNTITLED_MM_TYPES_H */
