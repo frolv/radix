@@ -27,18 +27,28 @@
 #include <untitled/page.h>
 
 #define KERNEL_VIRTUAL_BASE	__ARCH_KERNEL_VIRT_BASE
+#define PAGE_MAP_BASE		(KERNEL_VIRTUAL_BASE + 0x01000000)
 
 #define phys_addr(x) __pa(x)
 
 extern uint64_t totalmem;
 
 void detect_memory(multiboot_info_t *mbt);
+void page_map_init(void);
 
 addr_t alloc_phys_page(void);
 void free_phys_page(addr_t base);
 
-void *alloc_page(void);
+struct page *alloc_page(void);
 void free_page(void *base);
+
+extern struct page *page_map;
+
+/* Find the struct page that corresponds to an address. */
+static __always_inline struct page *virt_to_page(void *ptr)
+{
+	return page_map + (phys_addr((uintptr_t)ptr) >> PAGE_SHIFT);
+}
 
 int map_page(addr_t virt, addr_t phys);
 int unmap_page(addr_t virt);
