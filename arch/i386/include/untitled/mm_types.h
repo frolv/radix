@@ -34,10 +34,13 @@ typedef struct {
 	pteval_t pte;
 } pte_t;
 
+#define PAGE_BLOCK_ORDER(p) (((p)->status) & 0x0000000F)
+
 struct page {
-	void *slab_cache;	/* address of slab cache */
-	void *slab_desc;	/* address of slab descriptor */
-	void *mem;		/* start of the page itself */
+	void		*slab_cache;	/* address of slab cache */
+	void		*slab_desc;	/* address of slab descriptor */
+	void		*mem;		/* start of the page itself */
+	unsigned int	status;
 };
 
 #endif /* ARCH_I386_UNTITLED_MM_TYPES_H */
