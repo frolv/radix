@@ -19,8 +19,7 @@
 #include <untitled/kernel.h>
 #include <untitled/mm.h>
 #include <untitled/page.h>
-
-#include "physmem.h"
+#include <untitled/physmem.h>
 
 /* total amount of usable memory in the system */
 uint64_t totalmem = 0;
@@ -33,8 +32,6 @@ void detect_memory(multiboot_info_t *mbt)
 {
 	memory_map_t *mmap;
 	uint64_t base, orig_base, len;
-
-	phys_stack_init();
 
 	/*
 	 * mmap_addr stores the physical address of the memory map.
@@ -77,6 +74,6 @@ void detect_memory(multiboot_info_t *mbt)
 			base = KERNEL_PHYSICAL_END;
 		}
 
-		mark_free_region(base, len);
+		mark_free_phys_region(base, len);
 	}
 }

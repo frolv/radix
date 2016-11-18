@@ -1,5 +1,5 @@
 /*
- * arch/i386/mm/physmem.h
+ * include/untitled/mm.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,14 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_MM_PHYSMEM_H
-#define ARCH_I386_MM_PHYSMEM_H
+#ifndef UNTITLED_PHYSMEM_H
+#define UNTITLED_PHYSMEM_H
 
-#include <stddef.h>
 #include <untitled/mm_types.h>
 
-void phys_stack_init(void);
+void mark_free_phys_region(addr_t base, size_t len);
 
-void mark_free_region(addr_t base, size_t len);
-
-#endif /* ARCH_I386_MM_PHYSMEM_H */
+#endif /* UNTITLED_PHYSMEM_H */
