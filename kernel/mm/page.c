@@ -63,7 +63,6 @@ void buddy_init(struct multiboot_info *mbt)
 		totalmem += len;
 		next = base + len;
 	}
-	size_t pfn = 159;
 }
 
 static struct page *__alloc_pages(struct buddy *zone, size_t ord);
