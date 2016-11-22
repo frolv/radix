@@ -34,13 +34,18 @@ typedef struct {
 	pteval_t pte;
 } pte_t;
 
-#define PAGE_BLOCK_ORDER(p) (((p)->status) & 0x0000000F)
+#include <untitled/list.h>
+
+#define __ARCH_INNER_ORDER	0xF
+#define __PAGE_BLOCK_ORDER(p)	(((p)->status) & 0x0000000F)
+#define PAGE_MAPPED		(1 << 8)
 
 struct page {
 	void		*slab_cache;	/* address of slab cache */
 	void		*slab_desc;	/* address of slab descriptor */
 	void		*mem;		/* start of the page itself */
-	unsigned int	status;
+	unsigned int	status;		/* information about state */
+	struct list	list;		/* buddy allocator list */
 };
 
 #endif /* ARCH_I386_UNTITLED_MM_TYPES_H */
