@@ -20,15 +20,20 @@
 #include <untitled/irq.h>
 #include <untitled/mm.h>
 #include <untitled/multiboot.h>
+#include <untitled/kernel.h>
+
+#include "mm/slab.h"
 
 /* kernel entry point */
-int kmain(multiboot_info_t *mbt, unsigned int magic)
+int kmain(multiboot_info_t *mbt)
 {
 	printf("Kernel loaded\n");
 
+	buddy_init();
 	detect_memory(mbt);
 	printf("Detected a total of %llu MiB of available memory\n",
 			totalmem / 1048576);
+	slab_init();
 
 	irq_enable();
 

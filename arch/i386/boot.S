@@ -146,7 +146,6 @@ kernel_start:
 	# ebx contains the physical address of the multiboot_info
 	# structure. Covert this to its equivalent virtual address.
 	addl $KERNEL_VIRTUAL_BASE, %ebx
-	pushl %eax
 	pushl %ebx
 	# Launch the kernel.
 	call kmain
