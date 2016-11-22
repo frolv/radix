@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include <untitled/kernel.h>
 #include <untitled/mm.h>
 #include <untitled/page.h>
@@ -24,10 +25,8 @@
 
 #define PAGE_UNINIT_MAGIC	0xDEADFEED
 
-extern pde_t *pgdir;
-
 struct page *page_map = (struct page *)PAGE_MAP_BASE;
-addr_t page_map_end;
+addr_t page_map_end = PAGE_MAP_BASE;
 
 /* First 16 MiB of memory. */
 static struct buddy zone_dma;
@@ -37,26 +36,13 @@ static struct buddy zone_reg;
 /* total amount of usable memory in the system */
 uint64_t totalmem = 0;
 
-#define make64(low, high) ((uint64_t)(high) << 32 | (low))
-
 static int next_phys_region(struct multiboot_info *mbt,
 			    uint64_t *base, uint64_t *len);
+static void init_region(addr_t base, uint64_t len);
 
 void buddy_init(struct multiboot_info *mbt)
 {
-	addr_t pgtbl;
-	size_t pdi, ntables;
 	uint64_t base, len;
-
-	/*
-	 * Allocate required page tables for the page map
-	 * going backwards from the end of the kernel.
-	 */
-	pgtbl = KERNEL_VIRTUAL_BASE + KERNEL_SIZE - PGTBL_SIZE;
-	ntables = 1;
-
-	/* page directory index 0x304 maps starting at 0xC1000000 */
-	pdi = 0x304;
 
 	/*
 	 * mmap_addr stores the physical address of the memory map.
@@ -65,7 +51,7 @@ void buddy_init(struct multiboot_info *mbt)
 	mbt->mmap_addr += KERNEL_VIRTUAL_BASE;
 
 	while (next_phys_region(mbt, &base, &len)) {
-		/* init_region(base, len); */
+		init_region(base, len);
 		totalmem += len;
 	}
 }
@@ -119,6 +105,8 @@ static struct memory_map *mmap = NULL;
 #define IN_RANGE(mmap, mbt) \
 	((addr_t)mmap < mbt->mmap_addr + mbt->mmap_length)
 
+#define make64(low, high) ((uint64_t)(high) << 32 | (low))
+
 /*
  * Find the next physical region in the multiboot memory map.
  * Store its base address and length.
@@ -155,4 +143,91 @@ static int next_phys_region(struct multiboot_info *mbt,
 	*base = b;
 	*len = l;
 	return 1;
+}
+
+static size_t order(size_t n)
+{
+	size_t ord = 0;
+
+	while ((n >>= 1))
+		++ord;
+
+	return ord;
+}
+
+/*
+ * Allocate required page tables for the page map
+ * going backwards from the end of the kernel.
+ */
+static addr_t curr_pgtbl = KERNEL_VIRTUAL_BASE + KERNEL_SIZE - PGTBL_SIZE;
+static size_t ntables = 0;
+
+/* Number of pages used for the page_map */
+static size_t npages = 0;
+
+#define T(x) (1U << (x))
+
+static void check_space(size_t pfn);
+
+/* Populate struct pages for a region of physical memory starting at base. */
+static void init_region(addr_t base, uint64_t len)
+{
+	size_t ord, pfn, start, pages;
+	addr_t end;
+
+	while (len) {
+		pages = len / PAGE_SIZE;
+
+		/* determine the size of the block, up the the maximum 2^9 */
+		if ((ord = order(pages)) > PA_MAX_ORDER - 1)
+			ord = PA_MAX_ORDER - 1;
+		if (pages < T(ord))
+			--ord;
+
+		end = base + T(ord) * PAGE_SIZE;
+
+		/* initialize all pages in the block */
+		start = base >> PAGE_SHIFT;
+		for (; base < end; base += PAGE_SIZE) {
+			pfn = base >> PAGE_SHIFT;
+
+			check_space(pfn);
+
+			page_map[pfn].slab_cache = (void *)PAGE_UNINIT_MAGIC;
+			page_map[pfn].slab_desc = (void *)PAGE_UNINIT_MAGIC;
+			page_map[pfn].mem = (void *)PAGE_UNINIT_MAGIC;
+			page_map[pfn].status = PAGE_ORDER_INNER;
+			list_init(&page_map[pfn].list);
+
+			len -= PAGE_SIZE;
+		}
+		page_map[start].status = ord;
+	}
+}
+
+/* Ensure that page table is set up for page map entries. */
+static void check_space(size_t pfn)
+{
+	size_t req_len, off, tbl;
+	const unsigned int flags = PAGE_RW | PAGE_PRESENT;
+
+	req_len = (pfn + 1) * sizeof (struct page);
+
+	/* Check if a new virtual page needs to be mapped */
+	if (req_len > npages * PAGE_SIZE) {
+		/* Check if a new page table is required */
+		tbl = ntables * PAGE_SIZE * PTRS_PER_PGTBL;
+		if (req_len > tbl) {
+			memset((void *)curr_pgtbl, 0, PGTBL_SIZE);
+			__create_pgtbl(PAGE_MAP_BASE + tbl,
+				       make_pde(phys_addr(curr_pgtbl) | flags));
+			curr_pgtbl -= PGTBL_SIZE;
+			++ntables;
+		}
+
+		off = npages * PAGE_SIZE;
+		map_page(PAGE_MAP_BASE + off, __PAGE_MAP_PHYS_BASE + off);
+		++npages;
+		page_map_end += PAGE_SIZE;
+	}
 }

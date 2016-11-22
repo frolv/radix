@@ -70,6 +70,7 @@ static __always_inline struct page *virt_to_page(void *ptr)
 	return page_map + (phys_addr(ptr) >> PAGE_SHIFT);
 }
 
+void __create_pgtbl(addr_t virt, pde_t pde);
 int map_page(addr_t virt, addr_t phys);
 int unmap_page(addr_t virt);
 int unmap_page_pgdir(addr_t virt);

@@ -53,6 +53,11 @@ addr_t __virt_to_phys(addr_t addr)
 	return 0;
 }
 
+void __create_pgtbl(addr_t virt, pde_t pde)
+{
+	pgdir[PGDIR_INDEX(virt)] = pde;
+}
+
 /*
  * Map a page with base virtual address virt to physical address phys.
  */
@@ -60,6 +65,7 @@ int map_page(addr_t virt, addr_t phys)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
+	void *new;
 
 	/* addresses must be page-aligned */
 	if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
@@ -75,10 +81,11 @@ int map_page(addr_t virt, addr_t phys)
 			return EINVAL;
 	} else {
 		/* allocate a new page table */
-		/* if (!(pa = alloc_phys_page())) */
-		/* 	panic("Out of memory\n"); */
+		new = alloc_page(PA_STANDARD);
+		if (IS_ERR(new))
+			panic("Out of memory\n");
 
-		/* pgdir[pdi] = make_pde(pa | PAGE_RW | PAGE_PRESENT); */
+		pgdir[pdi] = make_pde(phys_addr(new) | PAGE_RW | PAGE_PRESENT);
 	}
 	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
 
