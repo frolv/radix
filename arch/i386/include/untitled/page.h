@@ -19,8 +19,10 @@
 #ifndef ARCH_I386_UNTITLED_PAGE_H
 #define ARCH_I386_UNTITLED_PAGE_H
 
-#define PGDIR_SIZE		0x400
-#define PGTBL_SIZE		0x400
+#define PTRS_PER_PGDIR		0x400
+#define PTRS_PER_PGTBL		0x400
+#define	PGDIR_SIZE		(PTRS_PER_PGDIR * sizeof (void *))
+#define	PGTBL_SIZE		(PTRS_PER_PGTBL * sizeof (void *))
 
 #define PGDIR_SHIFT		22
 #define PAGE_SHIFT		12
