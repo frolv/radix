@@ -1,5 +1,5 @@
 /*
- * include/untitled/mm.h
+ * kernel/mm/page.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_PHYSMEM_H
-#define UNTITLED_PHYSMEM_H
+#ifndef KERNEL_MM_BUDDY_H
+#define KERNEL_MM_BUDDY_H
 
+#include <untitled/list.h>
+#include <untitled/mm.h>
 #include <untitled/mm_types.h>
 
-void mark_free_phys_region(addr_t base, size_t len);
+/*
+ * The first page in a block stores the order of the whole block.
+ * The rest are assigned the PAGE_ORDER_INNER value.
+ */
+#define PAGE_ORDER_INNER	__ARCH_INNER_ORDER
+#define PAGE_BLOCK_ORDER(p)	__PAGE_BLOCK_ORDER(p)
 
-#endif /* UNTITLED_PHYSMEM_H */
+struct buddy {
+	struct list	ord[PA_MAX_ORDER];	/* lists of 2^i size blocks */
+	size_t		npages[PA_MAX_ORDER];	/* size of each list */
+	size_t		max_ord;		/* maximum available order */
+};
+
+#endif /* KERNEL_MM_BUDDY_H */

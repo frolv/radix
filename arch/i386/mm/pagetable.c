@@ -60,7 +60,6 @@ int map_page(addr_t virt, addr_t phys)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
-	addr_t pa;
 
 	/* addresses must be page-aligned */
 	if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
@@ -76,10 +75,10 @@ int map_page(addr_t virt, addr_t phys)
 			return EINVAL;
 	} else {
 		/* allocate a new page table */
-		if (!(pa = alloc_phys_page()))
-			panic("Out of memory\n");
+		/* if (!(pa = alloc_phys_page())) */
+		/* 	panic("Out of memory\n"); */
 
-		pgdir[pdi] = make_pde(pa | PAGE_RW | PAGE_PRESENT);
+		/* pgdir[pdi] = make_pde(pa | PAGE_RW | PAGE_PRESENT); */
 	}
 	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
 
@@ -130,7 +129,7 @@ static int __unmap(addr_t virt, int freetable)
 				break;
 		}
 		if (i == PGTBL_SIZE) {
-			free_phys_page(PDE(pgdir[pdi]));
+			/* free_phys_page(PDE(pgdir[pdi])); */
 			pgdir[pdi] = make_pde(0);
 		}
 	}

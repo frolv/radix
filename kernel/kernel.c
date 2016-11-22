@@ -29,8 +29,7 @@ int kmain(multiboot_info_t *mbt)
 {
 	printf("Kernel loaded\n");
 
-	buddy_init();
-	detect_memory(mbt);
+	buddy_init(mbt);
 	printf("Detected a total of %llu MiB of available memory\n",
 			totalmem / 1048576);
 	slab_init();
