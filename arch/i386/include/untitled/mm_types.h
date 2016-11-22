@@ -38,7 +38,9 @@ typedef struct {
 
 #define __ARCH_INNER_ORDER	0xF
 #define __PAGE_BLOCK_ORDER(p)	(((p)->status) & 0x0000000F)
-#define PAGE_MAPPED		(1 << 8)
+#define ST_PAGE_MAPPED		(1 << 8)
+#define ST_PAGE_INVALID		(1 << 9)
+#define ST_PAGE_RESERVED	(1 << 10)
 
 struct page {
 	void		*slab_cache;	/* address of slab cache */
