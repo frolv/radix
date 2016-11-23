@@ -33,7 +33,7 @@
 
 struct buddy {
 	struct list	ord[PA_MAX_ORDER];	/* lists of 2^i size blocks */
-	size_t		npages[PA_MAX_ORDER];	/* size of each list */
+	size_t		len[PA_MAX_ORDER];	/* length of each list */
 	size_t		max_ord;		/* maximum available order */
 };
 

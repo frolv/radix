@@ -39,10 +39,12 @@ uint64_t totalmem = 0;
 static int next_phys_region(struct multiboot_info *mbt,
 			    uint64_t *base, uint64_t *len);
 static void init_region(addr_t base, uint64_t len, unsigned int flags);
+static void buddy_populate(void);
 
 void buddy_init(struct multiboot_info *mbt)
 {
 	uint64_t base, len, next;
+	size_t i;
 
 	/*
 	 * mmap_addr stores the physical address of the memory map.
@@ -60,9 +62,16 @@ void buddy_init(struct multiboot_info *mbt)
 			init_region(next, base - next, PM_PAGE_INVALID);
 
 		init_region(base, len, 0);
-		totalmem += len;
 		next = base + len;
 	}
+
+	for (i = 0; i < PA_MAX_ORDER; ++i) {
+		list_init(&zone_dma.ord[i]);
+		zone_dma.len[i] = 0;
+		list_init(&zone_reg.ord[i]);
+		zone_reg.len[i] = 0;
+	}
+	buddy_populate();
 }
 
 static struct page *__alloc_pages(struct buddy *zone, size_t ord);
@@ -132,8 +141,10 @@ static int next_phys_region(struct multiboot_info *mbt,
 		mmap = NEXT_MAP(mmap);
 
 	/* only consider available RAM */
-	while (mmap->type != 1 && IN_RANGE(mmap, mbt))
+	while (mmap->type != 1 && IN_RANGE(mmap, mbt)) {
+		totalmem += make64(mmap->length_low, mmap->length_high);
 		mmap = NEXT_MAP(mmap);
+	}
 
 	if (!IN_RANGE(mmap, mbt))
 		return 0;
@@ -151,6 +162,7 @@ static int next_phys_region(struct multiboot_info *mbt,
 
 	*base = b;
 	*len = l;
+	totalmem += l;
 	return 1;
 }
 
@@ -174,8 +186,6 @@ static size_t ntables = 0;
 /* Number of pages used for the page_map */
 static size_t npages = 0;
 
-#define T(x) (1U << (x))
-
 static void check_space(size_t pfn);
 
 /* Populate struct pages for a region of physical memory starting at base. */
@@ -190,10 +200,10 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 		/* determine the size of the block, up the the maximum 2^9 */
 		if ((ord = order(pages)) > PA_MAX_ORDER - 1)
 			ord = PA_MAX_ORDER - 1;
-		if (pages < T(ord))
+		if (pages < TWO(ord))
 			--ord;
 
-		end = base + T(ord) * PAGE_SIZE;
+		end = base + TWO(ord) * PAGE_SIZE;
 
 		/* initialize all pages in the block */
 		start = base >> PAGE_SHIFT;
@@ -238,5 +248,106 @@ static void check_space(size_t pfn)
 		map_page(PAGE_MAP_BASE + off, __PAGE_MAP_PHYS_BASE + off);
 		++npages;
 		page_map_end += PAGE_SIZE;
+	}
+}
+
+static void split_block(size_t pfn, size_t lim);
+
+#define M_TO_PAGES(m) (_M(m) / PAGE_SIZE)
+
+/* Initialize all buddy allocator lists. */
+static void buddy_populate(void)
+{
+	size_t pfn, end, ord, section_end;
+
+	pfn = 0;
+	/* first 4 MiB are reserved for kernel usage */
+	section_end = M_TO_PAGES(4);
+	while (pfn < section_end) {
+		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
+		end = pfn + TWO(ord);
+
+		if (end > section_end) {
+			split_block(pfn, section_end);
+			end = section_end;
+		}
+		for (; pfn < end; ++pfn)
+			page_map[pfn].status |= PM_PAGE_MAPPED |
+						PM_PAGE_RESERVED;
+	}
+
+	/* addresses < 16 MiB are part of the DMA zone */
+	section_end = M_TO_PAGES(16);
+	while (pfn < section_end) {
+		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
+		end = pfn + TWO(ord);
+
+		if (end > section_end) {
+			split_block(pfn, section_end);
+			end = section_end;
+			ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
+		}
+		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
+			list_add(&zone_dma.ord[ord], &page_map[pfn].list);
+			zone_dma.len[ord]++;
+		}
+		pfn = end;
+	}
+
+	/* mark the pages in the page_map as reserved */
+	section_end = pfn + npages;
+	while (pfn < section_end) {
+		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
+		end = pfn + TWO(ord);
+
+		if (end > section_end) {
+			split_block(pfn, section_end);
+			end = section_end;
+		}
+		for (; pfn < end; ++pfn)
+			page_map[pfn].status |= PM_PAGE_MAPPED |
+						PM_PAGE_RESERVED;
+	}
+
+	/* finally, add all remaining valid memory to buddy lists */
+	section_end = totalmem / PAGE_SIZE;
+	while (pfn < section_end) {
+		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
+		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
+			list_add(&zone_reg.ord[ord], &page_map[pfn].list);
+			zone_reg.len[ord]++;
+		}
+		pfn += TWO(ord);
+	}
+}
+
+/* Split block of pages starting at pfn into two blocks around PFN lim. */
+static void split_block(size_t pfn, size_t lim)
+{
+	size_t ord, rem, end;
+
+	ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
+	rem = pfn + TWO(ord) - lim;
+	end = lim;
+
+	while (rem) {
+		ord = order(rem);
+		if (rem < TWO(ord))
+			--ord;
+
+		PM_SET_BLOCK_ORDER(page_map + end, ord);
+		end += TWO(ord);
+		rem -= TWO(ord);
+	}
+
+	rem = lim - pfn;
+	while (rem) {
+		ord = order(rem);
+		if (rem < TWO(ord))
+			--ord;
+
+		PM_SET_BLOCK_ORDER(page_map + pfn, ord);
+		pfn += TWO(ord);
+		rem -= TWO(ord);
 	}
 }
