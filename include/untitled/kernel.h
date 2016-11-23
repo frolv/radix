@@ -35,6 +35,12 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
+#define TWO(x) (1U << (x))
+
+#define _K(n)	(n * 1024UL)
+#define _M(n)	(_K(n) * 1024UL)
+#define _G(n)	(_M(n) * 1024UL)
+
 void panic(const char *err, ...);
 
 #endif /* UNTITLED_KERNEL_H */
