@@ -64,10 +64,12 @@ static __always_inline struct page *alloc_page(unsigned int flags)
 
 extern struct page *page_map;
 
+#define PFN(x) (phys_addr(x) >> PAGE_SHIFT)
+
 /* Find the struct page that corresponds to an address. */
 static __always_inline struct page *virt_to_page(void *ptr)
 {
-	return page_map + (phys_addr(ptr) >> PAGE_SHIFT);
+	return page_map + PFN(ptr);
 }
 
 void __create_pgtbl(addr_t virt, pde_t pde);
