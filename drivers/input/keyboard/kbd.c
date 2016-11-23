@@ -27,7 +27,6 @@ void kbd_handler(struct regs *r)
 	uint8_t c;
 
 	c = inb(0x60);
-	printf("Keyboard interrupt 0x%02X\n", c);
 
 	/* just for fun */
 	r->errno = c;
