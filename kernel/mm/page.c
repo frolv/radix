@@ -217,7 +217,7 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 /* Ensure that page table is set up for page map entries. */
 static void check_space(size_t pfn)
 {
-	size_t req_len, off, tbl;
+	size_t req_len, off, tbl_off;
 	const unsigned int flags = PAGE_RW | PAGE_PRESENT;
 
 	req_len = (pfn + 1) * sizeof (struct page);
@@ -225,10 +225,10 @@ static void check_space(size_t pfn)
 	/* Check if a new virtual page needs to be mapped */
 	if (req_len > npages * PAGE_SIZE) {
 		/* Check if a new page table is required */
-		tbl = ntables * PAGE_SIZE * PTRS_PER_PGTBL;
-		if (req_len > tbl) {
+		tbl_off = ntables * PAGE_SIZE * PTRS_PER_PGTBL;
+		if (req_len > tbl_off) {
 			memset((void *)curr_pgtbl, 0, PGTBL_SIZE);
-			__create_pgtbl(PAGE_MAP_BASE + tbl,
+			__create_pgtbl(PAGE_MAP_BASE + tbl_off,
 				       make_pde(phys_addr(curr_pgtbl) | flags));
 			curr_pgtbl -= PGTBL_SIZE;
 			++ntables;

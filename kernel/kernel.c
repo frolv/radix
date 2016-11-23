@@ -40,7 +40,7 @@ int kmain(multiboot_info_t *mbt)
 	extern void kbd_install(void);
 	kbd_install();
 	printf("\nWelcome to UNTITLED!\n");
-	printf("Press `q' for a kernel panic\n");
+	printf("Press `q' to traverse page map\n");
 
 	while (1)
 		;
