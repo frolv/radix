@@ -57,7 +57,7 @@ void buddy_init(struct multiboot_info *mbt)
 		 * but all existing memory needs to be mapped.
 		 */
 		if (base != next)
-			init_region(next, base - next, ST_PAGE_INVALID);
+			init_region(next, base - next, PM_PAGE_INVALID);
 
 		init_region(base, len, 0);
 		totalmem += len;
@@ -205,7 +205,7 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 			page_map[pfn].slab_cache = (void *)PAGE_UNINIT_MAGIC;
 			page_map[pfn].slab_desc = (void *)PAGE_UNINIT_MAGIC;
 			page_map[pfn].mem = (void *)PAGE_UNINIT_MAGIC;
-			page_map[pfn].status = ST_PAGE_ORDER_INNER | flags;
+			page_map[pfn].status = PM_PAGE_ORDER_INNER | flags;
 			list_init(&page_map[pfn].list);
 
 			len -= PAGE_SIZE;

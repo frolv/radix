@@ -36,11 +36,23 @@ typedef struct {
 
 #include <untitled/list.h>
 
+/*
+ * x86 page status (32-bit):
+ * xxxxxxxxxxxxxxxxxxxxARIMxxxxOOOO
+ *
+ * x	- currently unused
+ * OOOO	- block order number (first page in block) or PM_PAGE_ORDER_INNER
+ * M	- mapped bit. 1: mapped to a virtual address, 0: not mapped
+ * I	- invalid bit. 1: not located in valid memory, 0: in valid memory
+ * R	- reserved bit. 1: reserved for kernel use, 0: can be allocated
+ * A	- allocated bit. 1: allocated, 0: free (only in valid, unreserved pages)
+ */
 #define __ARCH_INNER_ORDER	0xF
 #define __PAGE_BLOCK_ORDER(p)	(((p)->status) & 0x0000000F)
-#define ST_PAGE_MAPPED		(1 << 8)
-#define ST_PAGE_INVALID		(1 << 9)
-#define ST_PAGE_RESERVED	(1 << 10)
+#define PM_PAGE_MAPPED		(1 << 8)
+#define PM_PAGE_INVALID		(1 << 9)
+#define PM_PAGE_RESERVED	(1 << 10)
+#define PM_PAGE_ALLOCATED	(1 << 11)
 
 struct page {
 	void		*slab_cache;	/* address of slab cache */
