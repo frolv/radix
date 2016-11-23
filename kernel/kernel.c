@@ -31,7 +31,7 @@ int kmain(multiboot_info_t *mbt)
 
 	buddy_init(mbt);
 	printf("Detected a total of %llu MiB of available memory\n",
-			totalmem / 1048576);
+			totalmem / _M(1));
 	slab_init();
 
 	irq_enable();
@@ -40,7 +40,7 @@ int kmain(multiboot_info_t *mbt)
 	extern void kbd_install(void);
 	kbd_install();
 	printf("\nWelcome to UNTITLED!\n");
-	printf("Press `q' to traverse page map\n");
+	printf("Use `hjkl' to navigate page map\n");
 
 	while (1)
 		;
