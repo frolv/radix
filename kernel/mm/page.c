@@ -290,6 +290,8 @@ static void buddy_populate(void)
 		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
 			list_add(&zone_dma.ord[ord], &page_map[pfn].list);
 			zone_dma.len[ord]++;
+			for (; pfn < end; ++pfn)
+				PM_SET_MAX_ORDER(page_map + pfn, ord);
 		}
 		pfn = end;
 	}
@@ -313,11 +315,15 @@ static void buddy_populate(void)
 	section_end = totalmem / PAGE_SIZE;
 	while (pfn < section_end) {
 		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
+		end = pfn + TWO(ord);
+
 		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
 			list_add(&zone_reg.ord[ord], &page_map[pfn].list);
 			zone_reg.len[ord]++;
+			for (; pfn < end; ++pfn)
+				PM_SET_MAX_ORDER(page_map + pfn, ord);
 		}
-		pfn += TWO(ord);
+		pfn = end;
 	}
 }
 

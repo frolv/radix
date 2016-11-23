@@ -38,20 +38,25 @@ typedef struct {
 
 /*
  * x86 page status (32-bit):
- * xxxxxxxxxxxxxxxxxxxxARIMxxxxOOOO
+ * xxxxxxxxxxxxxxxxxxxxARIMUUUUOOOO
  *
  * x	- currently unused
  * OOOO	- block order number (first page in block) or PM_PAGE_ORDER_INNER
+ * UUUU	- maximum order to which pages in block can be coalesced
  * M	- mapped bit. 1: mapped to a virtual address, 0: not mapped
  * I	- invalid bit. 1: not located in valid memory, 0: in valid memory
  * R	- reserved bit. 1: reserved for kernel use, 0: can be allocated
  * A	- allocated bit. 1: allocated, 0: free (only in valid, unreserved pages)
  */
 #define __ORDER_MASK		0x0000000F
+#define __MAX_ORDER_MASK	0x000000F0
 #define __ARCH_INNER_ORDER	0xF
 #define __PAGE_BLOCK_ORDER(p)	(((p)->status) & __ORDER_MASK)
+#define __PAGE_MAX_ORDER(p)	((((p)->status) & __MAX_ORDER_MASK) >> 4)
 #define __SET_BLOCK_ORDER(p, ord) \
-	(p)->status = ((((p)->status) & ~__ORDER_MASK) | ord)
+	(p)->status = ((((p)->status) & ~__ORDER_MASK) | (ord))
+#define __SET_MAX_ORDER(p, ord) \
+	(p)->status = ((((p)->status) & ~__MAX_ORDER_MASK) | ((ord) << 4))
 
 #define PM_PAGE_MAPPED		(1 << 8)
 #define PM_PAGE_INVALID		(1 << 9)
