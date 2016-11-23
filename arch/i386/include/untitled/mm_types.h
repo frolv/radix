@@ -38,7 +38,7 @@ typedef struct {
 
 /*
  * x86 page status (32-bit):
- * xxxxxxxxxxxxxxxxxxxxARIMUUUUOOOO
+ * xxxxxxxxxxxxxxxxxxBZARIMUUUUOOOO
  *
  * x	- currently unused
  * OOOO	- block order number (first page in block) or PM_PAGE_ORDER_INNER
@@ -47,6 +47,8 @@ typedef struct {
  * I	- invalid bit. 1: not located in valid memory, 0: in valid memory
  * R	- reserved bit. 1: reserved for kernel use, 0: can be allocated
  * A	- allocated bit. 1: allocated, 0: free (only in valid, unreserved pages)
+ * Z	- zone bit. 1: DMA zone, 0: regular zone
+ * B	- buddy bit. 1: right buddy, 0: left buddy
  */
 #define __ORDER_MASK		0x0000000F
 #define __MAX_ORDER_MASK	0x000000F0
@@ -62,6 +64,8 @@ typedef struct {
 #define PM_PAGE_INVALID		(1 << 9)
 #define PM_PAGE_RESERVED	(1 << 10)
 #define PM_PAGE_ALLOCATED	(1 << 11)
+#define PM_PAGE_ZONE_DMA	(1 << 12)
+#define PM_PAGE_BUDDY_RIGHT	(1 << 13)
 
 struct page {
 	void		*slab_cache;	/* address of slab cache */
