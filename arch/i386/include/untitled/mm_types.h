@@ -47,8 +47,12 @@ typedef struct {
  * R	- reserved bit. 1: reserved for kernel use, 0: can be allocated
  * A	- allocated bit. 1: allocated, 0: free (only in valid, unreserved pages)
  */
+#define __ORDER_MASK		0x0000000F
 #define __ARCH_INNER_ORDER	0xF
-#define __PAGE_BLOCK_ORDER(p)	(((p)->status) & 0x0000000F)
+#define __PAGE_BLOCK_ORDER(p)	(((p)->status) & __ORDER_MASK)
+#define __SET_BLOCK_ORDER(p, ord) \
+	(p)->status = ((((p)->status) & ~__ORDER_MASK) | ord)
+
 #define PM_PAGE_MAPPED		(1 << 8)
 #define PM_PAGE_INVALID		(1 << 9)
 #define PM_PAGE_RESERVED	(1 << 10)

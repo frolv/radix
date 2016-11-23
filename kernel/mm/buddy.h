@@ -27,8 +27,9 @@
  * The first page in a block stores the order of the whole block.
  * The rest are assigned the PAGE_ORDER_INNER value.
  */
-#define PM_PAGE_ORDER_INNER	__ARCH_INNER_ORDER
-#define PM_PAGE_BLOCK_ORDER(p)	__PAGE_BLOCK_ORDER(p)
+#define PM_PAGE_ORDER_INNER		__ARCH_INNER_ORDER
+#define PM_PAGE_BLOCK_ORDER(p)		__PAGE_BLOCK_ORDER(p)
+#define PM_SET_BLOCK_ORDER(p, ord)	__SET_BLOCK_ORDER(p, ord)
 
 struct buddy {
 	struct list	ord[PA_MAX_ORDER];	/* lists of 2^i size blocks */
