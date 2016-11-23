@@ -175,16 +175,16 @@ static void irq_generic(struct regs *r)
 		if (pfn != -1) {
 			switch (r->errno) {
 			case 0x23:
-				--pfn;
-				break;
-			case 0x24:
-				pfn += 128;
-				break;
-			case 0x25:
 				pfn -= 128;
 				break;
-			case 0x26:
+			case 0x24:
 				++pfn;
+				break;
+			case 0x25:
+				--pfn;
+				break;
+			case 0x26:
+				pfn += 128;
 				break;
 			}
 		}
