@@ -65,12 +65,16 @@ void buddy_init(struct multiboot_info *mbt)
 		next = base + len;
 	}
 
+	/* initialize buddy zones */
 	for (i = 0; i < PA_MAX_ORDER; ++i) {
 		list_init(&zone_dma.ord[i]);
 		zone_dma.len[i] = 0;
 		list_init(&zone_reg.ord[i]);
 		zone_reg.len[i] = 0;
 	}
+	zone_dma.max_ord = 0;
+	zone_reg.max_ord = 0;
+
 	buddy_populate();
 }
 
@@ -109,10 +113,24 @@ void free_page(void *base)
 /* Allocate 2^{ord} pages from zone. */
 static struct page *__alloc_pages(struct buddy *zone, size_t ord)
 {
-	if (zone->max_ord > ord)
+	struct page *p;
+
+	if (unlikely(ord > zone->max_ord))
 		return ERR_PTR(ENOMEM);
 
-	return NULL;
+	/* split larger blocks until one of the requested order exists */
+	while (!zone->len[ord]) {
+		/* TODO: this */
+	}
+
+	p = list_first_entry(&zone->ord[ord], struct page, list);
+	list_del(&p->list);
+
+	if (!(p->status & PM_PAGE_MAPPED)) {
+		/* TODO: find free virtual address range, map pages */
+	}
+
+	return p;
 }
 
 static struct memory_map *mmap = NULL;
@@ -290,6 +308,7 @@ static void buddy_populate(void)
 		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
 			list_add(&zone_dma.ord[ord], &page_map[pfn].list);
 			zone_dma.len[ord]++;
+			zone_dma.max_ord = MAX(ord, zone_dma.max_ord);
 			for (; pfn < end; ++pfn)
 				PM_SET_MAX_ORDER(page_map + pfn, ord);
 		}
@@ -320,6 +339,7 @@ static void buddy_populate(void)
 		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
 			list_add(&zone_reg.ord[ord], &page_map[pfn].list);
 			zone_reg.len[ord]++;
+			zone_reg.max_ord = MAX(ord, zone_reg.max_ord);
 			for (; pfn < end; ++pfn)
 				PM_SET_MAX_ORDER(page_map + pfn, ord);
 		}
