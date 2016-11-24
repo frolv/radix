@@ -21,6 +21,8 @@
 
 #define __ARCH_KERNEL_VIRT_BASE 0xC0000000UL
 
+#define __ARCH_MEM_LIMIT	0x100000000ULL
+
 typedef unsigned long addr_t;
 
 typedef unsigned long pdeval_t;

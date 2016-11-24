@@ -35,6 +35,9 @@
 #define __PAGE_MAP_PHYS_BASE	0x01000000
 #define PAGE_MAP_BASE		(KERNEL_VIRTUAL_BASE + __PAGE_MAP_PHYS_BASE)
 
+
+#define MEM_LIMIT __ARCH_MEM_LIMIT
+
 extern uint64_t totalmem;
 
 void buddy_init(struct multiboot_info *mbt);
@@ -52,7 +55,7 @@ void buddy_init(struct multiboot_info *mbt);
 #define PA_ZONE_DMA	0x1
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
-void free_page(void *base);
+void free_pages(struct page *p);
 
 static __always_inline struct page *alloc_page(unsigned int flags)
 {
@@ -70,6 +73,17 @@ extern struct page *page_map;
 static __always_inline struct page *virt_to_page(void *ptr)
 {
 	return page_map + PFN(ptr);
+}
+
+static __always_inline size_t page_to_pfn(struct page *p)
+{
+	return p - page_map;
+}
+
+/* Find the physical address represented by a struct page. */
+static __always_inline addr_t page_to_phys(struct page *p)
+{
+	return page_to_pfn(p) << PAGE_SHIFT;
 }
 
 void __create_pgtbl(addr_t virt, pde_t pde);

@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <untitled/kernel.h>
 #include <untitled/mm.h>
@@ -58,9 +59,20 @@ void buddy_init(struct multiboot_info *mbt)
 		 * next_phys_region only returns valid memory regions,
 		 * but all existing memory needs to be mapped.
 		 */
+		if (base > MEM_LIMIT - PAGE_SIZE)
+			base = MEM_LIMIT - PAGE_SIZE;
+
 		if (base != next)
 			init_region(next, base - next, PM_PAGE_INVALID);
 
+		if (base + len >= MEM_LIMIT - PAGE_SIZE) {
+			printf("\nThis system appears to have more than the "
+					"supported limit\nof %llu MiB of "
+					"memory. Only the first %llu MiB will "
+					"be used.\n\n", MEM_LIMIT / _M(1),
+					MEM_LIMIT / _M(1));
+			break;
+		}
 		init_region(base, len, 0);
 		next = base + len;
 	}
@@ -79,6 +91,8 @@ void buddy_init(struct multiboot_info *mbt)
 }
 
 static struct page *__alloc_pages(struct buddy *zone, size_t ord);
+static void buddy_split(struct buddy *zone, size_t req_ord);
+static struct page *buddy_coalesce(struct buddy *zone, struct page *p);
 
 /*
  * Allocate a contiguous block of pages in memory.
@@ -95,40 +109,129 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 		return __alloc_pages(&zone_reg, ord);
 }
 
-void free_page(void *base)
+/* Free the block of pages starting at base. */
+void free_pages(struct page *p)
 {
-	struct page *p;
-	addr_t virt;
+	struct buddy *zone;
+	size_t ord;
 
-	virt = (addr_t)base;
-	if (!ALIGNED(virt, PAGE_SIZE))
+	/* make sure p is the start of an allocated block */
+	if (!(p->status & PM_PAGE_ALLOCATED))
+		return;
+	if (PM_PAGE_BLOCK_ORDER(p) == PM_PAGE_ORDER_INNER)
 		return;
 
-	p = virt_to_page(base);
+	zone = (p->status & PM_PAGE_ZONE_DMA) ? &zone_dma : &zone_reg;
+
 	p->slab_cache = (void *)PAGE_UNINIT_MAGIC;
 	p->slab_desc = (void *)PAGE_UNINIT_MAGIC;
-	p->mem = (void *)PAGE_UNINIT_MAGIC;
+
+	ord = PM_PAGE_BLOCK_ORDER(p);
+
+	p = buddy_coalesce(zone, p);
+
+	p->status &= ~PM_PAGE_ALLOCATED;
+	list_add(&zone->ord[ord], &p->list);
+	zone->len[ord]++;
+	zone->max_ord = MAX(zone->max_ord, ord);
 }
 
 /* Allocate 2^{ord} pages from zone. */
 static struct page *__alloc_pages(struct buddy *zone, size_t ord)
 {
 	struct page *p;
+	/* addr_t virt; */
 
 	if (unlikely(ord > zone->max_ord))
 		return ERR_PTR(ENOMEM);
 
 	/* split larger blocks until one of the requested order exists */
-	while (!zone->len[ord]) {
-		/* TODO: this */
-	}
+	if (!zone->len[ord])
+		buddy_split(zone, ord);
 
 	p = list_first_entry(&zone->ord[ord], struct page, list);
 	list_del(&p->list);
+	zone->len[ord]--;
+	if (ord == zone->max_ord) {
+		while (!zone->len[zone->max_ord])
+			zone->max_ord--;
+	}
 
 	if (!(p->status & PM_PAGE_MAPPED)) {
 		/* TODO: find free virtual address range, map pages */
+		/* map_pages(page_to_phys(p), virt, POW2(ord)); */
+		/* p->status |= PM_PAGE_MAPPED; */
 	}
+
+	p->status |= PM_PAGE_ALLOCATED;
+	return p;
+}
+
+/* Split a block of pages in zone to get a block of size req_ord. */
+static void buddy_split(struct buddy *zone, size_t req_ord)
+{
+	size_t ord;
+	struct page *p, *buddy;
+
+	/* find the first available block order greater than req_ord */
+	for (ord = req_ord; ord <= zone->max_ord; ++ord) {
+		if (zone->len[ord])
+			break;
+	}
+
+	p = list_first_entry(&zone->ord[ord], struct page, list);
+
+	while (!zone->len[req_ord]) {
+		buddy = p + POW2(ord - 1);
+
+		list_del(&p->list);
+		zone->len[ord]--;
+		--ord;
+
+		PM_SET_BLOCK_ORDER(p, ord);
+		PM_SET_BLOCK_ORDER(buddy, ord);
+		list_add(&zone->ord[ord], &buddy->list);
+		list_add(&zone->ord[ord], &p->list);
+		zone->len[ord] += 2;
+	}
+}
+
+/*
+ * Merge page block starting at p with its buddies as far as possible.
+ * Return pointer to the start of new merged page block.
+ */
+static struct page *buddy_coalesce(struct buddy *zone, struct page *p)
+{
+	size_t ord, block_off;
+	struct page *buddy;
+
+	do {
+		block_off = PM_PAGE_BLOCK_OFFSET(p);
+		ord = PM_PAGE_BLOCK_ORDER(p);
+		if (ALIGNED(block_off, POW2(ord + 1)))
+			buddy = p + POW2(ord);
+		else
+			buddy = p - POW2(ord);
+
+		/*
+		 * Two blocks can be coalesced if they are both
+		 * of the same order and both unallocated.
+		 */
+		if (PM_PAGE_BLOCK_ORDER(buddy) != PM_PAGE_BLOCK_ORDER(p))
+			return p;
+		if (buddy->status & PM_PAGE_ALLOCATED)
+			return p;
+
+		list_del(&buddy->list);
+		zone->len[ord]--;
+
+		/* set p to point to the base of the new, larger block */
+		if (p > buddy)
+			SWAP(p, buddy);
+
+		PM_SET_BLOCK_ORDER(buddy, PM_PAGE_ORDER_INNER);
+		PM_SET_BLOCK_ORDER(p, ord + 1);
+	} while (ord < PM_PAGE_MAX_ORDER(p));
 
 	return p;
 }
@@ -218,10 +321,10 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 		/* determine the size of the block, up the the maximum 2^9 */
 		if ((ord = order(pages)) > PA_MAX_ORDER - 1)
 			ord = PA_MAX_ORDER - 1;
-		if (pages < TWO(ord))
+		if (pages < POW2(ord))
 			--ord;
 
-		end = base + TWO(ord) * PAGE_SIZE;
+		end = base + POW2(ord) * PAGE_SIZE;
 
 		/* initialize all pages in the block */
 		start = base >> PAGE_SHIFT;
@@ -276,14 +379,14 @@ static void split_block(size_t pfn, size_t lim);
 /* Initialize all buddy allocator lists. */
 static void buddy_populate(void)
 {
-	size_t pfn, end, ord, section_end;
+	size_t pfn, start, end, ord, section_end;
 
 	pfn = 0;
 	/* first 4 MiB are reserved for kernel usage */
 	section_end = M_TO_PAGES(4);
 	while (pfn < section_end) {
 		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-		end = pfn + TWO(ord);
+		end = pfn + POW2(ord);
 
 		if (end > section_end) {
 			split_block(pfn, section_end);
@@ -298,7 +401,7 @@ static void buddy_populate(void)
 	section_end = M_TO_PAGES(16);
 	while (pfn < section_end) {
 		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-		end = pfn + TWO(ord);
+		end = pfn + POW2(ord);
 
 		if (end > section_end) {
 			split_block(pfn, section_end);
@@ -309,8 +412,12 @@ static void buddy_populate(void)
 			list_add(&zone_dma.ord[ord], &page_map[pfn].list);
 			zone_dma.len[ord]++;
 			zone_dma.max_ord = MAX(ord, zone_dma.max_ord);
-			for (; pfn < end; ++pfn)
+			start = pfn;
+			for (; pfn < end; ++pfn) {
+				page_map[pfn].status |= PM_PAGE_ZONE_DMA;
 				PM_SET_MAX_ORDER(page_map + pfn, ord);
+				PM_SET_PAGE_OFFSET(page_map + pfn, pfn - start);
+			}
 		}
 		pfn = end;
 	}
@@ -319,7 +426,7 @@ static void buddy_populate(void)
 	section_end = pfn + npages;
 	while (pfn < section_end) {
 		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-		end = pfn + TWO(ord);
+		end = pfn + POW2(ord);
 
 		if (end > section_end) {
 			split_block(pfn, section_end);
@@ -334,14 +441,17 @@ static void buddy_populate(void)
 	section_end = totalmem / PAGE_SIZE;
 	while (pfn < section_end) {
 		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-		end = pfn + TWO(ord);
+		end = pfn + POW2(ord);
 
 		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
 			list_add(&zone_reg.ord[ord], &page_map[pfn].list);
 			zone_reg.len[ord]++;
 			zone_reg.max_ord = MAX(ord, zone_reg.max_ord);
-			for (; pfn < end; ++pfn)
+			start = pfn;
+			for (; pfn < end; ++pfn) {
 				PM_SET_MAX_ORDER(page_map + pfn, ord);
+				PM_SET_PAGE_OFFSET(page_map + pfn, pfn - start);
+			}
 		}
 		pfn = end;
 	}
@@ -353,27 +463,27 @@ static void split_block(size_t pfn, size_t lim)
 	size_t ord, rem, end;
 
 	ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-	rem = pfn + TWO(ord) - lim;
+	rem = pfn + POW2(ord) - lim;
 	end = lim;
 
 	while (rem) {
 		ord = order(rem);
-		if (rem < TWO(ord))
+		if (rem < POW2(ord))
 			--ord;
 
 		PM_SET_BLOCK_ORDER(page_map + end, ord);
-		end += TWO(ord);
-		rem -= TWO(ord);
+		end += POW2(ord);
+		rem -= POW2(ord);
 	}
 
 	rem = lim - pfn;
 	while (rem) {
 		ord = order(rem);
-		if (rem < TWO(ord))
+		if (rem < POW2(ord))
 			--ord;
 
 		PM_SET_BLOCK_ORDER(page_map + pfn, ord);
-		pfn += TWO(ord);
-		rem -= TWO(ord);
+		pfn += POW2(ord);
+		rem -= POW2(ord);
 	}
 }

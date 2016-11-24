@@ -42,7 +42,7 @@
 		(b) = __tmp; \
 	} while (0)
 
-#define TWO(x) (1U << (x))
+#define POW2(x) (1U << (x))
 
 #define _K(n)	((n)   * 1024UL)
 #define _M(n)	(_K(n) * 1024UL)
