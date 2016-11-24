@@ -35,6 +35,13 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
+#define SWAP(a, b) \
+	do { \
+		typeof(a) __tmp = (a); \
+		(a) = (b); \
+		(b) = __tmp; \
+	} while (0)
+
 #define TWO(x) (1U << (x))
 
 #define _K(n)	((n)   * 1024UL)
