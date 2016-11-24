@@ -125,11 +125,11 @@ void free_pages(struct page *p)
 
 	p->slab_cache = (void *)PAGE_UNINIT_MAGIC;
 	p->slab_desc = (void *)PAGE_UNINIT_MAGIC;
+	p->status &= ~PM_PAGE_ALLOCATED;
 
 	p = buddy_coalesce(zone, p);
 	ord = PM_PAGE_BLOCK_ORDER(p);
 
-	p->status &= ~PM_PAGE_ALLOCATED;
 	list_add(&zone->ord[ord], &p->list);
 	zone->len[ord]++;
 	zone->max_ord = MAX(zone->max_ord, ord);
