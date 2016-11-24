@@ -109,7 +109,7 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 		return __alloc_pages(&zone_reg, ord);
 }
 
-/* Free the block of pages starting at base. */
+/* Free the block of pages starting at p. */
 void free_pages(struct page *p)
 {
 	struct buddy *zone;
@@ -127,7 +127,8 @@ void free_pages(struct page *p)
 	p->slab_desc = (void *)PAGE_UNINIT_MAGIC;
 	p->status &= ~PM_PAGE_ALLOCATED;
 
-	p = buddy_coalesce(zone, p);
+	if (PM_PAGE_BLOCK_ORDER(p) < PM_PAGE_MAX_ORDER(p))
+		p = buddy_coalesce(zone, p);
 	ord = PM_PAGE_BLOCK_ORDER(p);
 
 	list_add(&zone->ord[ord], &p->list);
