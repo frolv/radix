@@ -30,8 +30,10 @@
 #define PM_PAGE_ORDER_INNER		__ARCH_INNER_ORDER
 #define PM_PAGE_BLOCK_ORDER(p)		__PAGE_BLOCK_ORDER(p)
 #define PM_PAGE_MAX_ORDER(p)		__PAGE_MAX_ORDER(p)
+#define PM_PAGE_BLOCK_OFFSET(p)		__PAGE_BLOCK_OFFSET(p)
 #define PM_SET_BLOCK_ORDER(p, ord)	__SET_BLOCK_ORDER(p, ord)
 #define PM_SET_MAX_ORDER(p, ord)	__SET_MAX_ORDER(p, ord)
+#define PM_SET_PAGE_OFFSET(p, off)	__SET_PAGE_OFFSET(p, off)
 
 struct buddy {
 	struct list	ord[PA_MAX_ORDER];	/* lists of 2^i size blocks */
