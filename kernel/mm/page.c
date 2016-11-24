@@ -55,13 +55,13 @@ void buddy_init(struct multiboot_info *mbt)
 
 	next = 0;
 	while (next_phys_region(mbt, &base, &len)) {
+		if (base > MEM_LIMIT - PAGE_SIZE)
+			base = MEM_LIMIT - PAGE_SIZE;
+
 		/*
 		 * next_phys_region only returns valid memory regions,
 		 * but all existing memory needs to be mapped.
 		 */
-		if (base > MEM_LIMIT - PAGE_SIZE)
-			base = MEM_LIMIT - PAGE_SIZE;
-
 		if (base != next)
 			init_region(next, base - next, PM_PAGE_INVALID);
 
@@ -126,9 +126,8 @@ void free_pages(struct page *p)
 	p->slab_cache = (void *)PAGE_UNINIT_MAGIC;
 	p->slab_desc = (void *)PAGE_UNINIT_MAGIC;
 
-	ord = PM_PAGE_BLOCK_ORDER(p);
-
 	p = buddy_coalesce(zone, p);
+	ord = PM_PAGE_BLOCK_ORDER(p);
 
 	p->status &= ~PM_PAGE_ALLOCATED;
 	list_add(&zone->ord[ord], &p->list);
