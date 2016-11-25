@@ -50,9 +50,16 @@ void buddy_init(struct multiboot_info *mbt);
  */
 #define PA_MAX_ORDER 10
 
+/* Low level page allocation flags */
+#define __PA_ZONE_REG	0x0	/* allocate from regular (kernel) zone */
+#define __PA_ZONE_DMA	0x1	/* allocate from DMA zone */
+#define __PA_ZONE_USR	0x2	/* allocate from user zone */
+#define __PA_NO_MAP	0x4	/* do not map pages to a virtual address */
+
 /* Page allocation flags */
-#define PA_STANDARD	0x0
-#define PA_ZONE_DMA	0x1
+#define PA_STANDARD	(__PA_ZONE_REG)
+#define PA_DMA		(__PA_ZONE_DMA)
+#define PA_USER		(__PA_ZONE_USR | __PA_NO_MAP)
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);
