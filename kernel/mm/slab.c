@@ -51,6 +51,7 @@ void slab_init(void)
 	list_add(&slab_caches, &cache_cache.list);
 
 	grow_cache(&cache_cache);
+	grow_cache(&cache_cache);
 }
 
 /*
@@ -156,8 +157,8 @@ void free_cache(struct slab_cache *cache, void *obj)
 /* Allocate a new slab for the given cache. */
 int grow_cache(struct slab_cache *cache)
 {
+	struct page *p;
 	struct slab_desc *s;
-	void *page;
 	uintptr_t first;
 	int i;
 
@@ -165,16 +166,17 @@ int grow_cache(struct slab_cache *cache)
 		return 0;
 
 	if (cache->flags & SLAB_DESC_ON_SLAB) {
-		/* page = alloc_page(); */
-		/* if (IS_ERR(page)) */
-		/* 	return ERR_VAL(page); */
+		p = alloc_page(PA_STANDARD);
+		if (IS_ERR(p))
+			return ERR_VAL(p);
 
-		page = (void *)0xC0800000;
-		s = (struct slab_desc *)page;
+		s = p->mem;
+
 		/* first object placed directly after the free object array */
 		first = (uintptr_t)(s + 1) + cache->count * sizeof (uint16_t);
 		s->first = (void *)ALIGN(first, cache->align);
 	} else {
+		s = NULL;
 		/* s = kmalloc(sizeof *s + cache->count * sizeof (uint16_t)); */
 		/* s->first = alloc_page(); */
 	}

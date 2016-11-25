@@ -199,7 +199,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 			virt = 0;
 		}
 
-		/* map_pages(page_to_phys(p), virt, POW2(ord)); */
+		map_pages(virt, page_to_phys(p), POW2(ord));
 		p->mem = (void *)virt;
 		p->status |= PM_PAGE_MAPPED;
 	}

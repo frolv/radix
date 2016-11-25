@@ -65,7 +65,7 @@ int map_page(addr_t virt, addr_t phys)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
-	void *new;
+	struct page *new;
 
 	/* addresses must be page-aligned */
 	if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
@@ -81,14 +81,26 @@ int map_page(addr_t virt, addr_t phys)
 			return EINVAL;
 	} else {
 		/* allocate a new page table */
-		new = alloc_page(PA_STANDARD);
+		new = alloc_page(PA_PAGETABLE);
 		if (IS_ERR(new))
 			panic("Out of memory\n");
 
-		pgdir[pdi] = make_pde(phys_addr(new) | PAGE_RW | PAGE_PRESENT);
+		pgdir[pdi] = make_pde(page_to_phys(new)
+				| PAGE_RW | PAGE_PRESENT);
 	}
 	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
 
+	return 0;
+}
+
+int map_pages(addr_t virt, addr_t phys, size_t n)
+{
+	int err;
+
+	for (; n; --n, virt += PAGE_SIZE, phys += PAGE_SIZE) {
+		if ((err = map_page(virt, phys)) != 0)
+			return err;
+	}
 	return 0;
 }
 

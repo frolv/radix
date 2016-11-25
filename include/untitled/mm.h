@@ -60,6 +60,7 @@ void buddy_init(struct multiboot_info *mbt);
 #define PA_STANDARD	(__PA_ZONE_REG)
 #define PA_DMA		(__PA_ZONE_DMA | __PA_NO_MAP)
 #define PA_USER		(__PA_ZONE_USR | __PA_NO_MAP)
+#define PA_PAGETABLE	(__PA_ZONE_REG | __PA_NO_MAP)
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);
@@ -95,6 +96,7 @@ static __always_inline addr_t page_to_phys(struct page *p)
 
 void __create_pgtbl(addr_t virt, pde_t pde);
 int map_page(addr_t virt, addr_t phys);
+int map_pages(addr_t virt, addr_t phys, size_t n);
 int unmap_page(addr_t virt);
 int unmap_page_pgdir(addr_t virt);
 
