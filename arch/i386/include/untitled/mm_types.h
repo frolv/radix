@@ -49,7 +49,7 @@ typedef struct {
  * I	- invalid bit. 1: not located in valid memory, 0: in valid memory
  * R	- reserved bit. 1: reserved for kernel use, 0: can be allocated
  * A	- allocated bit. 1: allocated, 0: free (only in valid, unreserved pages)
- * Z	- zone bit. 1: DMA zone, 0: regular zone
+ * Z	- zone bit. 1: user zone, 0: regular zone
  * F	- offset of page within its maximum block
  */
 #define __ORDER_MASK		0x0000000F
@@ -70,7 +70,7 @@ typedef struct {
 #define PM_PAGE_INVALID		(1 << 9)
 #define PM_PAGE_RESERVED	(1 << 10)
 #define PM_PAGE_ALLOCATED	(1 << 11)
-#define PM_PAGE_ZONE_DMA	(1 << 12)
+#define PM_PAGE_ZONE_USR	(1 << 12)
 
 struct page {
 	void		*slab_cache;	/* address of slab cache */
