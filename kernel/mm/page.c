@@ -24,8 +24,6 @@
 
 #include "buddy.h"
 
-#define PAGE_UNINIT_MAGIC	0xDEADFEED
-
 struct page *page_map = (struct page *)PAGE_MAP_BASE;
 addr_t page_map_end = PAGE_MAP_BASE;
 

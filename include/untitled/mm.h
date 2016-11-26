@@ -62,6 +62,8 @@ void buddy_init(struct multiboot_info *mbt);
 #define PA_USER		(__PA_ZONE_USR | __PA_NO_MAP)
 #define PA_PAGETABLE	(__PA_ZONE_REG | __PA_NO_MAP)
 
+#define PAGE_UNINIT_MAGIC	0xDEADFEED
+
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);
 
