@@ -105,9 +105,9 @@ void buddy_init(struct multiboot_info *mbt)
 		list_init(&zone_usr.ord[i]);
 		zone_usr.len[i] = 0;
 	}
-	zone_dma.max_ord = 0;
-	zone_reg.max_ord = 0;
-	zone_usr.max_ord = 0;
+	zone_dma.max_ord = zone_dma.total_pages = zone_dma.alloc_pages = 0;
+	zone_reg.max_ord = zone_reg.total_pages = zone_reg.alloc_pages = 0;
+	zone_usr.max_ord = zone_usr.total_pages = zone_usr.alloc_pages = 0;
 
 	buddy_populate();
 }
@@ -160,9 +160,13 @@ void free_pages(struct page *p)
 	p->slab_desc = (void *)PAGE_UNINIT_MAGIC;
 	p->status &= ~PM_PAGE_ALLOCATED;
 
-	if (PM_PAGE_BLOCK_ORDER(p) < PM_PAGE_MAX_ORDER(p))
-		p = buddy_coalesce(zone, p);
 	ord = PM_PAGE_BLOCK_ORDER(p);
+	zone->alloc_pages -= POW2(ord);
+
+	if (ord < PM_PAGE_MAX_ORDER(p)) {
+		p = buddy_coalesce(zone, p);
+		ord = PM_PAGE_BLOCK_ORDER(p);
+	}
 
 	list_add(&zone->ord[ord], &p->list);
 	zone->len[ord]++;
@@ -190,6 +194,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 		while (!zone->len[zone->max_ord])
 			zone->max_ord--;
 	}
+	zone->alloc_pages += POW2(ord);
 
 	if (!(flags & __PA_NO_MAP) && !(p->status & PM_PAGE_MAPPED)) {
 		if (zone == &zone_reg) {
@@ -326,16 +331,6 @@ static int next_phys_region(struct multiboot_info *mbt,
 	*len = l;
 	totalmem += l;
 	return 1;
-}
-
-static size_t order(size_t n)
-{
-	size_t ord = 0;
-
-	while ((n >>= 1))
-		++ord;
-
-	return ord;
 }
 
 /*
@@ -484,6 +479,7 @@ static size_t zone_init(size_t pfn, size_t section_end,
 			list_add(&zone->ord[ord], &page_map[pfn].list);
 			zone->len[ord]++;
 			zone->max_ord = MAX(ord, zone->max_ord);
+			zone->total_pages += POW2(ord);
 		}
 		start = pfn;
 		for (; pfn < end; ++pfn) {
