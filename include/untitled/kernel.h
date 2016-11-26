@@ -42,7 +42,20 @@
 		(b) = __tmp; \
 	} while (0)
 
+
+#include <untitled/compiler.h>
+
 #define POW2(x) (1U << (x))
+
+static __always_inline size_t order(size_t n)
+{
+	size_t ord = 0;
+
+	while ((n >>= 1))
+		++ord;
+
+	return ord;
+}
 
 #define _K(n)	((n)   * 1024UL)
 #define _M(n)	(_K(n) * 1024UL)
