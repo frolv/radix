@@ -1,5 +1,5 @@
 /*
- * lib/libc/stdio/vprintf.c
+ * lib/libc/stdio/vsprintf.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,99 +18,106 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <untitled/tty.h>
 #include <untitled/kernel.h>
-
 #include "printf.h"
 
-static int print_str(const char *s, struct printf_format *p);
-static int print_char(int c, struct printf_format *p);
-static int print_int(long long i, struct printf_format *p);
-static int print_uint(unsigned long long u, struct printf_format *p);
+static int write_str(char *str, const char *s, struct printf_format *p);
+static int write_char(char *str, int c, struct printf_format *p);
+static int write_int(char *str, long long i, struct printf_format *p);
+static int write_uint(char *str, unsigned long long u, struct printf_format *p);
 
 /*
- * vprintf: write a formatted string to default TTY.
+ * vsprintf: write a formatted string to buffer str.
  *
  * Supports:
  * %c and %s,
  * %d, %u, %o, %x, %X (in regular, short (h) and long (l, ll) forms),
  * field width and zero-padding.
  */
-int vprintf(const char *format, va_list ap)
+int vsprintf(char *str, const char *format, va_list ap)
 {
 	struct printf_format p;
 	unsigned long long u;
 	long long i;
-	int n = 0;
+	int n, tmp;
 
+	n = 0;
 	while (*format) {
 		if (*format != '%') {
 			++n;
-			tty_putchar(*format++);
+			*str++ = *format++;
 			continue;
 		}
 
 		format += get_format(format, &p);
 		switch (p.type) {
 		case FORMAT_CHAR:
-			n += print_char(va_arg(ap, int), &p);
+			tmp = write_char(str, va_arg(ap, int), &p);
+			str += tmp;
+			n += tmp;
 			break;
 		case FORMAT_STR:
-			n += print_str(va_arg(ap, const char *), &p);
+			tmp = write_str(str, va_arg(ap, const char *), &p);
+			str += tmp;
+			n += tmp;
 			break;
 		case FORMAT_INT:
 			va_int_type(i, ap, p, signed);
-			n += print_int(i, &p);
+			tmp = write_int(str, i, &p);
+			str += tmp;
+			n += tmp;
 			break;
 		case FORMAT_UINT:
 			va_int_type(u, ap, p, unsigned);
-			n += print_uint(u, &p);
+			tmp = write_uint(str, u, &p);
+			str += tmp;
+			n += tmp;
 			break;
 		case FORMAT_PERCENT:
-			putchar('%');
+			*str++ = '%';
 			++n;
 			break;
 		}
 	}
+	*str = '\0';
 
-	return n;
+	return n + 1;
 }
 
-static int print_str(const char *s, struct printf_format *p)
+static int write_str(char *str, const char *s, struct printf_format *p)
 {
 	int len, pad;
 
 	len = strlen(s);
 	if ((pad = p->width - len) > 0) {
 		while (pad--)
-			tty_putchar(' ');
+			*str++ = ' ';
 	}
 
-	tty_write(s, len);
+	strcpy(str, s);
 	return MAX(p->width, len);
 }
 
-static int print_char(int c, struct printf_format *p)
+static int write_char(char *str, int c, struct printf_format *p)
 {
 	int pad;
 
 	pad = p->width;
 	while (pad-- > 1)
-		tty_putchar(' ');
-	tty_putchar(c);
+		*str++ = ' ';
+	*str++ = c;
 
 	return MAX(p->width, 1);
 }
 
-/* print_int: print a signed integer */
-static int print_int(long long i, struct printf_format *p)
+static int write_int(char *str, long long i, struct printf_format *p)
 {
 	int pad, len, n;
 	char buf[32];
 
 	len = 0;
 	if (i < 0) {
-		tty_putchar('-');
+		*str++ = '-';
 		++len;
 		i = -i;
 	}
@@ -121,14 +128,13 @@ static int print_int(long long i, struct printf_format *p)
 	if ((pad = p->width - len) > 0) {
 		i = (p->flags & FLAGS_ZERO) ? '0': ' ';
 		while (pad--)
-			tty_putchar(i);
+			*str++ = i;
 	}
-	tty_write(buf, n);
+	strcpy(str, buf);
 	return MAX(p->width, len);
 }
 
-/* print_uint: print an unsigned integer in octal, decimal or hex format */
-static int print_uint(unsigned long long u, struct printf_format *p)
+static int write_uint(char *str, unsigned long long u, struct printf_format *p)
 {
 	int pad, len;
 	char buf[32];
@@ -148,8 +154,8 @@ static int print_uint(unsigned long long u, struct printf_format *p)
 	if ((pad = p->width - len) > 0) {
 		u = (p->flags & FLAGS_ZERO) ? '0': ' ';
 		while (pad--)
-			tty_putchar(u);
+			*str++ = u;
 	}
-	tty_write(buf, len);
+	strcpy(str, buf);
 	return MAX(p->width, len);
 }
