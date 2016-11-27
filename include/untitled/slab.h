@@ -32,6 +32,7 @@ struct slab_cache {
 	size_t		align;			/* object alignment */
 	size_t		offset;			/* byte offset between objects */
 	int		count;			/* number of objects per slab */
+	size_t		slab_ord;		/* order of pages per slab */
 	unsigned long	flags;			/* allocator options */
 	char		cache_name[NAME_LEN];	/* human-readable cache name */
 	struct list	list;			/* list of caches */
@@ -58,5 +59,8 @@ void free_cache(struct slab_cache *cache, void *obj);
 #define MIN_OBJ_SIZE (sizeof (unsigned long long))
 
 #define KMALLOC_MAX_SIZE 0x2000
+
+void *kmalloc(size_t size);
+void kfree(void *ptr);
 
 #endif /* UNTITLED_SLAB_H */

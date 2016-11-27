@@ -20,5 +20,6 @@
 #define KERNEL_MM_SLAB_H
 
 void slab_init(void);
+void kmalloc_init(void);
 
 #endif /* KERNEL_MM_SLAB_H */

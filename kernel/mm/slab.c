@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <untitled/compiler.h>
 #include <untitled/cpu.h>
@@ -50,8 +51,11 @@ void slab_init(void)
 			MIN_ALIGN, SLAB_HW_CACHE_ALIGN);
 	list_add(&slab_caches, &cache_cache.list);
 
+	/* preemptively allocate space for some caches */
 	grow_cache(&cache_cache);
 	grow_cache(&cache_cache);
+
+	kmalloc_init();
 }
 
 /*
@@ -79,9 +83,9 @@ struct slab_cache *create_cache(const char *name, size_t size, size_t align,
 /* Allocates a single object from the given cache. */
 void *alloc_cache(struct slab_cache *cache)
 {
-	int err;
 	struct slab_desc *s;
 	void *obj;
+	int err;
 
 	if (unlikely(!cache))
 		return NULL;
@@ -94,14 +98,15 @@ void *alloc_cache(struct slab_cache *cache)
 		}
 
 		s = list_first_entry(&cache->free_slabs,
-				struct slab_desc, list);
+				     struct slab_desc, list);
 		list_del(&s->list);
 		list_add(&cache->partial_slabs, &s->list);
 	} else {
 		s = list_first_entry(&cache->partial_slabs,
-				struct slab_desc, list);
+				     struct slab_desc, list);
 	}
 
+	/* find first free object at the index of s->next and update s->next */
 	obj = (void *)((uintptr_t)s->first + s->next * cache->offset);
 	s->next = FREE_OBJ_ARR(s)[s->next];
 	s->in_use++;
@@ -123,16 +128,10 @@ void free_cache(struct slab_cache *cache, void *obj)
 	if (unlikely(!cache || !obj))
 		return;
 
-	if (cache->flags & SLAB_DESC_ON_SLAB) {
-		/* slab descriptor is at the start of the slab */
-		s = (struct slab_desc *)((uintptr_t)obj & PAGE_MASK);
-	} else {
-		/* s = find_slab(cache, obj); */
-		s = NULL;
-	}
+	s = virt_to_page(obj)->slab_desc;
 
 	diff = obj - s->first;
-	if (unlikely(diff % cache->offset != 0)) {
+	if (unlikely(!ALIGNED(diff, cache->offset))) {
 		/* klog("attempt to free non-allocated address %lu\n", obj); */
 		return;
 	}
@@ -176,10 +175,13 @@ int grow_cache(struct slab_cache *cache)
 		first = (uintptr_t)(s + 1) + cache->count * sizeof (uint16_t);
 		s->first = (void *)ALIGN(first, cache->align);
 	} else {
-		s = NULL;
-		/* s = kmalloc(sizeof *s + cache->count * sizeof (uint16_t)); */
-		/* s->first = alloc_page(); */
+		p = alloc_pages(PA_STANDARD, cache->slab_ord);
+		s = kmalloc(sizeof *s + cache->count * sizeof (uint16_t));
+		s->first = p->mem;
 	}
+
+	p->slab_cache = cache;
+	p->slab_desc = s;
 
 	list_init(&s->list);
 	s->in_use = 0;
@@ -218,12 +220,13 @@ static size_t calculate_align(unsigned long flags, size_t align, size_t size)
  * Calculate how many object will fit on a slab with the given
  * offset between objects.
  */
-static int calculate_count(size_t offset, size_t align, unsigned long flags)
+static int calculate_count(size_t npages, size_t offset, size_t align,
+			   unsigned long flags)
 {
 	size_t space;
 	int n;
 
-	space = PAGE_SIZE;
+	space = npages * PAGE_SIZE;
 	if (flags & SLAB_DESC_ON_SLAB) {
 		space -= sizeof (struct slab_desc);
 		/*
@@ -258,11 +261,91 @@ static void __init_cache(struct slab_cache *cache, const char *name,
 	if (size < ON_SLAB_LIMIT)
 		cache->flags |= SLAB_DESC_ON_SLAB;
 
-	cache->count = calculate_count(cache->offset,
-			cache->align, cache->flags);
+	/* since the maximum object size is 8192 (2 pages) */
+	cache->slab_ord = (size > PAGE_SIZE) ? 1 : 0;
+	cache->count = calculate_count(POW2(cache->slab_ord), cache->offset,
+				       cache->align, cache->flags);
 
 	cache->cache_name[0] = '\0';
 	strncat(cache->cache_name, name, NAME_LEN - 1);
 
 	list_init(&cache->list);
+}
+
+/*
+ * There are a total of 30 caches used by the kmalloc function.
+ * They are split into two groups, small and large.
+ * The small group consists of caches for all multiples of 8 from 8-192.
+ * The large group then contains the remaining powers of 2 from 256 to
+ * KMALLOC_MAX_SIZE (8192).
+ */
+static struct slab_cache *kmalloc_sm_caches[24];
+static struct slab_cache *kmalloc_lg_caches[6];
+
+static int kmalloc_active = 0;
+
+/*
+ * Initialize all caches used by kmalloc.
+ */
+void kmalloc_init(void)
+{
+	struct slab_cache *cache;
+	char name[NAME_LEN];
+	size_t i, j, sz;
+
+	if (kmalloc_active)
+		return;
+
+	for (i = 1; i <= 24; ++i) {
+		sz = i * 8;
+		sprintf(name, "kmalloc-%u", sz);
+		cache = create_cache(name, sz, MIN_ALIGN, 0);
+
+		for (j = 0; j < 32; ++j)
+			grow_cache(cache);
+		kmalloc_sm_caches[i - 1] = cache;
+	}
+
+	for (i = 0; i < 6; ++i) {
+		sz = 256 * POW2(i);
+		sprintf(name, "kmalloc-%u", sz);
+		cache = create_cache(name, sz, MIN_ALIGN, 0);
+		grow_cache(cache);
+		grow_cache(cache);
+		kmalloc_lg_caches[i] = cache;
+	}
+
+	kmalloc_active = 1;
+}
+
+static __always_inline struct slab_cache *kmalloc_get_cache(size_t sz)
+{
+	if (sz <= 192)
+		return kmalloc_sm_caches[(sz - 1) / 8];
+	else
+		return kmalloc_lg_caches[order(sz - 1) - 7];
+}
+
+void *kmalloc(size_t size)
+{
+	struct slab_cache *cache;
+
+	if (unlikely(!size || size > KMALLOC_MAX_SIZE))
+		return NULL;
+
+	cache = kmalloc_get_cache(size);
+	return alloc_cache(cache);
+}
+
+void kfree(void *ptr)
+{
+	struct slab_cache *cache;
+
+	cache = virt_to_page(ptr)->slab_cache;
+	if ((uintptr_t)cache == PAGE_UNINIT_MAGIC) {
+		/* klog("attempt to free non-allocated address %lu\n", obj); */
+		return;
+	}
+
+	free_cache(cache, ptr);
 }
