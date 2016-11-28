@@ -20,15 +20,6 @@
 #include <untitled/mm.h>
 #include <untitled/page.h>
 
-/*
- * The final entry in the page directory is mapped to the page directory itself.
- * The virtual address 0xFFC00000 is therefore the starting address of the page
- * directory, interpreted as a page table.
- * Virtual address 0xFFFFF000 is the page containing the actual page directory.
- */
-#define PGDIR_BASE	0xFFC00000UL
-#define PGDIR_VADDR	0xFFFFF000UL
-
 #define PGTBL(x) 	(pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
 
 /*

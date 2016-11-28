@@ -69,8 +69,23 @@ static __always_inline pte_t make_pte(pteval_t val)
 	return (pte_t){ val };
 }
 
-#define __pa(x) __virt_to_phys(x)
+/*
+ * The final entry in the page directory is mapped to the page directory itself.
+ * The virtual address 0xFFC00000 is therefore the starting address of the page
+ * directory, interpreted as a page table.
+ * Virtual address 0xFFFFF000 is the page containing the actual page directory.
+ */
+#define PGDIR_BASE	0xFFC00000UL
+#define PGDIR_VADDR	0xFFFFF000UL
 
 addr_t __virt_to_phys(addr_t addr);
+
+static __always_inline addr_t __pa(addr_t v)
+{
+	if (v < __ARCH_KERNEL_VIRT_BASE || v >= PGDIR_BASE)
+		return __virt_to_phys(v);
+	else
+		return v - __ARCH_KERNEL_VIRT_BASE;
+}
 
 #endif /* ARCH_I386_UNTITLED_PAGE_H */
