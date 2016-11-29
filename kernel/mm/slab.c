@@ -67,7 +67,7 @@ struct slab_cache *create_cache(const char *name, size_t size, size_t align,
 {
 	struct slab_cache *cache;
 
-	if (!name || size < MIN_OBJ_SIZE || size > KMALLOC_MAX_SIZE)
+	if (unlikely(!name || size < MIN_OBJ_SIZE || size > KMALLOC_MAX_SIZE))
 		return ERR_PTR(EINVAL);
 
 	cache = alloc_cache(&cache_cache);
@@ -125,10 +125,16 @@ void free_cache(struct slab_cache *cache, void *obj)
 	struct slab_desc *s;
 	size_t diff, ind;
 
+	/* TODO: objects can be freed multiple times */
+
 	if (unlikely(!cache || !obj))
 		return;
 
 	s = virt_to_page(obj)->slab_desc;
+	if (unlikely((uintptr_t)s == PAGE_UNINIT_MAGIC)) {
+		/* klog("attempt to free non-allocated address %lu\n", obj); */
+		return;
+	}
 
 	diff = obj - s->first;
 	if (unlikely(!ALIGNED(diff, cache->offset))) {
@@ -180,12 +186,12 @@ int grow_cache(struct slab_cache *cache)
 		s->first = p->mem;
 	}
 
-	p->slab_cache = cache;
-	p->slab_desc = s;
-
 	list_init(&s->list);
 	s->in_use = 0;
 	s->next = 0;
+
+	p->slab_cache = cache;
+	p->slab_desc = s;
 
 	for (i = 0; i < cache->count; ++i)
 		FREE_OBJ_ARR(s)[i] = i + 1;
@@ -256,15 +262,15 @@ static void __init_cache(struct slab_cache *cache, const char *name,
 	cache->objsize = size;
 	cache->align = calculate_align(flags, align, size);
 	cache->offset = ALIGN(size, cache->align);
-	cache->flags = flags;
-
-	if (size < ON_SLAB_LIMIT)
-		cache->flags |= SLAB_DESC_ON_SLAB;
-
 	/* since the maximum object size is 8192 (2 pages) */
 	cache->slab_ord = (size > PAGE_SIZE) ? 1 : 0;
 	cache->count = calculate_count(POW2(cache->slab_ord), cache->offset,
 				       cache->align, cache->flags);
+
+	cache->flags = flags;
+
+	if (size < ON_SLAB_LIMIT)
+		cache->flags |= SLAB_DESC_ON_SLAB;
 
 	cache->cache_name[0] = '\0';
 	strncat(cache->cache_name, name, NAME_LEN - 1);
@@ -342,8 +348,8 @@ void kfree(void *ptr)
 	struct slab_cache *cache;
 
 	cache = virt_to_page(ptr)->slab_cache;
-	if ((uintptr_t)cache == PAGE_UNINIT_MAGIC) {
-		/* klog("attempt to free non-allocated address %lu\n", obj); */
+	if (unlikely((uintptr_t)cache == PAGE_UNINIT_MAGIC)) {
+		/* klog("attempt to free non-allocated address %lu\n", ptr); */
 		return;
 	}
 
