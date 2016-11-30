@@ -90,9 +90,9 @@ void buddy_init(struct multiboot_info *mbt)
 			zone_reg_end = _M(20);
 		else
 			zone_reg_end = 0;
+	} else if (zone_reg_end > PGDIR_BASE - KERNEL_VIRTUAL_BASE) {
+		zone_reg_end = PGDIR_BASE - KERNEL_VIRTUAL_BASE;
 	}
-	else if (zone_reg_end > _G(1))
-		zone_reg_end = _G(1);
 
 	/* initialize buddy zones */
 	for (i = 0; i < PA_MAX_ORDER; ++i) {
