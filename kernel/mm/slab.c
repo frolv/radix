@@ -41,7 +41,8 @@ static void __init_cache(struct slab_cache *cache, const char *name,
  */
 #define ON_SLAB_LIMIT		0x200
 
-#define SLAB_DESC_ON_SLAB	(1 << 20)
+#define SLAB_DESC_ON_SLAB	(1 << 0)
+#define SLAB_IS_GROWING		(1 << 1)
 
 void slab_init(void)
 {
@@ -159,21 +160,64 @@ void free_cache(struct slab_cache *cache, void *obj)
 	s->in_use--;
 }
 
+static struct slab_desc *init_slab(struct slab_cache *cache);
+static int destroy_slab(struct slab_cache *cache, struct slab_desc *s);
+
 /* Allocate a new slab for the given cache. */
 int grow_cache(struct slab_cache *cache)
 {
-	struct page *p;
 	struct slab_desc *s;
-	uintptr_t first;
-	int i;
 
 	if (unlikely(!cache))
 		return 0;
 
+	s = init_slab(cache);
+	if (IS_ERR(s))
+		return ERR_VAL(s);
+	/*
+	 * Mark the cache as growing to prevent the new slabs
+	 * from being deallocated before they are used.
+	 */
+	cache->flags |= SLAB_IS_GROWING;
+
+	list_add(&cache->free_slabs, &s->list);
+	return 0;
+}
+
+/*
+ * Remove (and deallocate) all free slabs from the given cache.
+ * Return the number of pages freed.
+ */
+int shrink_cache(struct slab_cache *cache)
+{
+	struct list *l, *tmp;
+	int n;
+
+	if (cache->flags & SLAB_IS_GROWING) {
+		cache->flags &= ~SLAB_IS_GROWING;
+		return 0;
+	}
+
+	list_for_each_safe(l, tmp, &cache->free_slabs) {
+		n += destroy_slab(cache, list_entry(l, struct slab_desc, list));
+		list_del(l);
+	}
+
+	return n;
+}
+
+/* Initialize a new slab and its objects from the given cache. */
+static struct slab_desc *init_slab(struct slab_cache *cache)
+{
+	struct slab_desc *s;
+	struct page *p;
+	uintptr_t first;
+	int i;
+
 	if (cache->flags & SLAB_DESC_ON_SLAB) {
 		p = alloc_page(PA_STANDARD);
 		if (IS_ERR(p))
-			return ERR_VAL(p);
+			return (void *)p;
 
 		s = p->mem;
 
@@ -190,14 +234,32 @@ int grow_cache(struct slab_cache *cache)
 	s->in_use = 0;
 	s->next = 0;
 
-	p->slab_cache = cache;
-	p->slab_desc = s;
-
 	for (i = 0; i < cache->count; ++i)
 		FREE_OBJ_ARR(s)[i] = i + 1;
 
-	list_add(&cache->free_slabs, &s->list);
-	return 0;
+	p->slab_cache = cache;
+	p->slab_desc = s;
+
+	return s;
+}
+
+/* Destroy all objects on a slab and deallocate all used pages. */
+static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
+{
+	struct page *p;
+	int n;
+
+	if (cache->flags & SLAB_DESC_ON_SLAB) {
+		p = (struct page *)s;
+		n = 1;
+	} else {
+		p = s->first;
+		n = POW2(PM_PAGE_BLOCK_ORDER(p));
+		kfree(s);
+	}
+	free_pages(p);
+
+	return n;
 }
 
 /*

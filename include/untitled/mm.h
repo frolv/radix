@@ -64,6 +64,14 @@ void buddy_init(struct multiboot_info *mbt);
 
 #define PAGE_UNINIT_MAGIC	0xDEADFEED
 
+/*
+ * The first page in a block stores the order of the whole block.
+ * The rest are assigned the PAGE_ORDER_INNER value.
+ */
+#define PM_PAGE_ORDER_INNER		__ARCH_INNER_ORDER
+#define PM_PAGE_BLOCK_ORDER(p)		__PAGE_BLOCK_ORDER(p)
+#define PM_PAGE_MAX_ORDER(p)		__PAGE_MAX_ORDER(p)
+
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);
 
