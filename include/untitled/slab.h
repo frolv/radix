@@ -25,31 +25,36 @@
 #define NAME_LEN	0x40
 
 struct slab_cache {
-	struct list	full_slabs;		/* full slabs */
-	struct list	partial_slabs;		/* partially full slabs */
-	struct list	free_slabs;		/* empty slabs */
 	size_t		objsize;		/* size of each cached object */
 	size_t		align;			/* object alignment */
 	size_t		offset;			/* byte offset between objects */
-	int		count;			/* number of objects per slab */
+	size_t		count;			/* number of objects per slab */
 	size_t		slab_ord;		/* order of pages per slab */
 	unsigned long	flags;			/* allocator options */
-	char		cache_name[NAME_LEN];	/* human-readable cache name */
+	void		(*ctor)(void *);	/* object constructor */
+	void		(*dtor)(void *);	/* object destructor */
+
+	struct list	full_slabs;		/* full slabs */
+	struct list	partial_slabs;		/* partially full slabs */
+	struct list	free_slabs;		/* empty slabs */
 	struct list	list;			/* list of caches */
+
+	char		cache_name[NAME_LEN];	/* human-readable cache name */
 };
 
 struct slab_desc {
 	struct list	list;		/* list to which slab belongs */
 	void		*first;		/* address of first object on slab */
-	int		in_use;		/* number of objects allocated */
+	size_t		in_use;		/* number of objects allocated */
 	unsigned int	next;		/* index of next object to allocate */
 };
 
 /* Cache flags */
 #define SLAB_HW_CACHE_ALIGN	(1 << 16)
 
-struct slab_cache *create_cache(const char *name, size_t size, size_t align,
-				unsigned long flags);
+struct slab_cache *create_cache(const char *name, size_t size,
+				size_t align, unsigned long flags,
+				void (*ctor)(void *), void (*dtor)(void *));
 int grow_cache(struct slab_cache *cache);
 int shrink_cache(struct slab_cache *cache);
 

@@ -33,7 +33,8 @@ struct list slab_caches;
 static struct slab_cache cache_cache;
 
 static void __init_cache(struct slab_cache *cache, const char *name,
-			 size_t size, size_t align, unsigned long flags);
+			 size_t size, size_t align, unsigned long flags,
+			 void (*ctor)(void *), void (*dtor)(void *));
 
 /*
  * Slabs with objects less than this size
@@ -49,7 +50,7 @@ void slab_init(void)
 	list_init(&slab_caches);
 
 	__init_cache(&cache_cache, "cache_cache", sizeof (struct slab_cache),
-			MIN_ALIGN, SLAB_HW_CACHE_ALIGN);
+			MIN_ALIGN, SLAB_HW_CACHE_ALIGN, NULL, NULL);
 	list_add(&slab_caches, &cache_cache.list);
 
 	/* preemptively allocate space for some caches */
@@ -63,8 +64,9 @@ void slab_init(void)
  * Create a new cache containing elements of size specified by size.
  * The cache is inserted into the cache list.
  */
-struct slab_cache *create_cache(const char *name, size_t size, size_t align,
-				unsigned long flags)
+struct slab_cache *create_cache(const char *name, size_t size,
+				size_t align, unsigned long flags,
+				void (*ctor)(void *), void (*dtor)(void *))
 {
 	struct slab_cache *cache;
 
@@ -73,7 +75,7 @@ struct slab_cache *create_cache(const char *name, size_t size, size_t align,
 
 	cache = alloc_cache(&cache_cache);
 
-	__init_cache(cache, name, size, align, flags);
+	__init_cache(cache, name, size, align, flags, ctor, dtor);
 	list_ins(&slab_caches, &cache->list);
 
 	return cache;
@@ -144,6 +146,9 @@ void free_cache(struct slab_cache *cache, void *obj)
 	}
 	ind = diff / cache->offset;
 
+	if (cache->dtor)
+		cache->dtor(obj);
+
 	/* update s->next to the index of the freed object */
 	FREE_OBJ_ARR(s)[ind] = s->next;
 	s->next = ind;
@@ -193,11 +198,7 @@ int shrink_cache(struct slab_cache *cache)
 	struct list *l, *tmp;
 	int n;
 
-	if (cache->flags & SLAB_IS_GROWING) {
-		cache->flags &= ~SLAB_IS_GROWING;
-		return 0;
-	}
-
+	n = 0;
 	list_for_each_safe(l, tmp, &cache->free_slabs) {
 		n += destroy_slab(cache, list_entry(l, struct slab_desc, list));
 		list_del(l);
@@ -212,7 +213,7 @@ static struct slab_desc *init_slab(struct slab_cache *cache)
 	struct slab_desc *s;
 	struct page *p;
 	uintptr_t first;
-	int i;
+	size_t i;
 
 	if (cache->flags & SLAB_DESC_ON_SLAB) {
 		p = alloc_page(PA_STANDARD);
@@ -237,6 +238,12 @@ static struct slab_desc *init_slab(struct slab_cache *cache)
 	for (i = 0; i < cache->count; ++i)
 		FREE_OBJ_ARR(s)[i] = i + 1;
 
+	/* initiliaze all cached objects */
+	if (cache->ctor) {
+		for (i = 0; i < cache->count; ++i)
+			cache->ctor(s->first + i * cache->offset);
+	}
+
 	p->slab_cache = cache;
 	p->slab_desc = s;
 
@@ -247,6 +254,7 @@ static struct slab_desc *init_slab(struct slab_cache *cache)
 static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
 {
 	struct page *p;
+	size_t i;
 	int n;
 
 	if (cache->flags & SLAB_DESC_ON_SLAB) {
@@ -257,6 +265,13 @@ static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
 		n = POW2(PM_PAGE_BLOCK_ORDER(p));
 		kfree(s);
 	}
+
+	/* destroy all cached objects */
+	if (cache->dtor) {
+		for (i = 0; i < cache->count; ++i)
+			cache->dtor(s->first + i * cache->offset);
+	}
+
 	free_pages(p);
 
 	return n;
@@ -315,29 +330,32 @@ static int calculate_count(size_t npages, size_t offset, size_t align,
 }
 
 static void __init_cache(struct slab_cache *cache, const char *name,
-			 size_t size, size_t align, unsigned long flags)
+			 size_t size, size_t align, unsigned long flags,
+			 void (*ctor)(void *), void (*dtor)(void *))
 {
-	list_init(&cache->full_slabs);
-	list_init(&cache->partial_slabs);
-	list_init(&cache->free_slabs);
-
 	cache->objsize = size;
 	cache->align = calculate_align(flags, align, size);
 	cache->offset = ALIGN(size, cache->align);
 	/* since the maximum object size is 8192 (2 pages) */
 	cache->slab_ord = (size > PAGE_SIZE) ? 1 : 0;
-	cache->count = calculate_count(POW2(cache->slab_ord), cache->offset,
-				       cache->align, cache->flags);
 
 	cache->flags = flags;
-
 	if (size < ON_SLAB_LIMIT)
 		cache->flags |= SLAB_DESC_ON_SLAB;
 
+	cache->count = calculate_count(POW2(cache->slab_ord), cache->offset,
+				       cache->align, cache->flags);
+
+	cache->ctor = ctor;
+	cache->dtor = dtor;
+
+	list_init(&cache->full_slabs);
+	list_init(&cache->partial_slabs);
+	list_init(&cache->free_slabs);
+	list_init(&cache->list);
+
 	cache->cache_name[0] = '\0';
 	strncat(cache->cache_name, name, NAME_LEN - 1);
-
-	list_init(&cache->list);
 }
 
 /*
@@ -367,7 +385,7 @@ void kmalloc_init(void)
 	for (i = 1; i <= 24; ++i) {
 		sz = i * 8;
 		sprintf(name, "kmalloc-%u", sz);
-		cache = create_cache(name, sz, MIN_ALIGN, 0);
+		cache = create_cache(name, sz, MIN_ALIGN, 0, NULL, NULL);
 
 		for (j = 0; j < 32; ++j)
 			grow_cache(cache);
@@ -377,7 +395,7 @@ void kmalloc_init(void)
 	for (i = 0; i < 6; ++i) {
 		sz = 256 * POW2(i);
 		sprintf(name, "kmalloc-%u", sz);
-		cache = create_cache(name, sz, MIN_ALIGN, 0);
+		cache = create_cache(name, sz, MIN_ALIGN, 0, NULL, NULL);
 		grow_cache(cache);
 		grow_cache(cache);
 		kmalloc_lg_caches[i] = cache;
