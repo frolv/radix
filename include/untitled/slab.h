@@ -55,6 +55,8 @@ struct slab_desc {
 struct slab_cache *create_cache(const char *name, size_t size,
 				size_t align, unsigned long flags,
 				void (*ctor)(void *), void (*dtor)(void *));
+void destroy_cache(struct slab_cache *cache);
+
 int grow_cache(struct slab_cache *cache);
 int shrink_cache(struct slab_cache *cache);
 

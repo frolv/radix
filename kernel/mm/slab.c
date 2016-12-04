@@ -60,6 +60,9 @@ void slab_init(void)
 	kmalloc_init();
 }
 
+static struct slab_desc *init_slab(struct slab_cache *cache);
+static int destroy_slab(struct slab_cache *cache, struct slab_desc *s);
+
 /*
  * Create a new cache containing elements of size specified by size.
  * The cache is inserted into the cache list.
@@ -79,6 +82,28 @@ struct slab_cache *create_cache(const char *name, size_t size,
 	list_ins(&slab_caches, &cache->list);
 
 	return cache;
+}
+
+/* Frees all slabs from a cache and removes the cache from the system. */
+void destroy_cache(struct slab_cache *cache)
+{
+	struct list *l, *tmp;
+
+	list_for_each_safe(l, tmp, &cache->full_slabs) {
+		destroy_slab(cache, list_entry(l, struct slab_desc, list));
+		list_del(l);
+	}
+	list_for_each_safe(l, tmp, &cache->partial_slabs) {
+		destroy_slab(cache, list_entry(l, struct slab_desc, list));
+		list_del(l);
+	}
+	list_for_each_safe(l, tmp, &cache->free_slabs) {
+		destroy_slab(cache, list_entry(l, struct slab_desc, list));
+		list_del(l);
+	}
+
+	list_del(&cache->list);
+	free_cache(&cache_cache, cache);
 }
 
 #define FREE_OBJ_ARR(s) ((uint16_t *)(s + 1))
@@ -164,9 +189,6 @@ void free_cache(struct slab_cache *cache, void *obj)
 	}
 	s->in_use--;
 }
-
-static struct slab_desc *init_slab(struct slab_cache *cache);
-static int destroy_slab(struct slab_cache *cache, struct slab_desc *s);
 
 /* Allocate a new slab for the given cache. */
 int grow_cache(struct slab_cache *cache)
