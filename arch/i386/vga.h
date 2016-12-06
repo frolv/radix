@@ -19,7 +19,7 @@
 #ifndef ARCH_I386_VGA_H
 #define ARCH_I386_VGA_H
 
-#include <stdint.h>
+#include <untitled/types.h>
 
 enum vga_color {
 	VGA_COLOR_BLACK,

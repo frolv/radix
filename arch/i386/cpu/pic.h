@@ -19,7 +19,7 @@
 #ifndef ARCH_I386_PIC_H
 #define ARCH_I386_PIC_H
 
-#include <stdint.h>
+#include <untitled/types.h>
 
 void pic_eoi(uint32_t irq);
 void pic_remap(uint32_t offset1, uint32_t offset2);

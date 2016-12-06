@@ -16,9 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stddef.h>
-#include <stdint.h>
 #include <string.h>
+#include <untitled/types.h>
 
 /* Global Descriptor Table */
 static uint64_t gdt[6];

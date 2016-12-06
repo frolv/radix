@@ -19,7 +19,7 @@
 #ifndef UNTITLED_KERNEL_H
 #define UNTITLED_KERNEL_H
 
-#include <stddef.h>
+#include <untitled/types.h>
 
 #define HALT()  asm volatile("hlt")
 #define DIE() \

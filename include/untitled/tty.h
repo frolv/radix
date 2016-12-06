@@ -19,7 +19,7 @@
 #ifndef UNTITLED_TTY_H
 #define UNTITLED_TTY_H
 
-#include <stddef.h>
+#include <untitled/types.h>
 
 #define TTY_TAB_STOP 8
 

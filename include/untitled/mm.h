@@ -19,12 +19,11 @@
 #ifndef UNTITLED_MM_H
 #define UNTITLED_MM_H
 
-#include <stddef.h>
-#include <stdint.h>
 #include <untitled/error.h>
 #include <untitled/mm_types.h>
 #include <untitled/multiboot.h>
 #include <untitled/page.h>
+#include <untitled/types.h>
 
 #define KERNEL_VIRTUAL_BASE	__ARCH_KERNEL_VIRT_BASE
 #define KERNEL_SIZE		0x00400000

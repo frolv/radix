@@ -19,8 +19,8 @@
 #ifndef ARCH_I386_UNTITLED_ASM_IO_H
 #define ARCH_I386_UNTITLED_ASM_IO_H
 
-#include <stdint.h>
 #include <untitled/compiler.h>
+#include <untitled/types.h>
 
 #define __arch_outb x86_outb
 #define __arch_outw x86_outw

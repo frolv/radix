@@ -38,7 +38,7 @@ void interrupt_enable(void);
 void install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
 void uninstall_interrupt_handler(uint32_t intno);
 
-#include <stdint.h>
+#include <untitled/types.h>
 
 static __always_inline int interrupts_active(void)
 {

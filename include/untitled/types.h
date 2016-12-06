@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/untitled/sys.h
+ * include/untitled/types.h
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,30 +16,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_UNTITLED_SYS_H
-#define ARCH_I386_UNTITLED_SYS_H
+#ifndef UNTITLED_TYPES_H
+#define UNTITLED_TYPES_H
 
-#include <untitled/types.h>
+#include <stdint.h>
 
-struct regs {
-	/* gprs */
-	uint32_t di;
-	uint32_t si;
-	uint32_t bp;
-	uint32_t sp;
-	uint32_t bx;
-	uint32_t dx;
-	uint32_t cx;
-	uint32_t ax;
+#define NULL ((void *)0UL)
 
-	/* segment registers */
-	uint32_t gs;
-	uint32_t fs;
-	uint32_t es;
-	uint32_t ds;
+typedef unsigned long	size_t;
 
-	uint32_t intno;
-	uint32_t errno;
-};
+typedef int		pid_t;
+typedef unsigned int	uid_t;
+typedef unsigned int	gid_t;
+typedef unsigned int	mode_t;
 
-#endif /* ARCH_I386_UNTITLED_SYS_H */
+#endif /* UNTITLED_TYPES_H */

@@ -19,7 +19,7 @@
 #ifndef UNTITLED_STRING_H
 #define UNTITLED_STRING_H
 
-#include <stddef.h>
+#include <untitled/types.h>
 
 int memcmp(const void *s1, const void *s2, size_t n);
 void *memcpy(void *__restrict dst, const void *__restrict src, size_t n);

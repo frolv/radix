@@ -19,8 +19,8 @@
 #ifndef UNTITLED_SLAB_H
 #define UNTITLED_SLAB_H
 
-#include <stddef.h>
 #include <untitled/list.h>
+#include <untitled/types.h>
 
 #define NAME_LEN	0x40
 
