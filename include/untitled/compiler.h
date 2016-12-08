@@ -26,4 +26,6 @@
 
 #define __aligned(x) __attribute__((aligned(x)))
 
+#define offsetof(type, member) __builtin_offsetof(type, member)
+
 #endif /* UNTITLED_COMPILER_H */

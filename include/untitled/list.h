@@ -19,7 +19,6 @@
 #ifndef UNTITLED_LIST_H
 #define UNTITLED_LIST_H
 
-#include <stddef.h>
 #include <untitled/compiler.h>
 
 struct list {
