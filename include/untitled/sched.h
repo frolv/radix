@@ -19,6 +19,8 @@
 #ifndef UNTITLED_SCHED_H
 #define UNTITLED_SCHED_H
 
+#include <untitled/list.h>
+#include <untitled/sys.h>
 #include <untitled/types.h>
 
 struct task {
