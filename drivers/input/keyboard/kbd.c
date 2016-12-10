@@ -27,9 +27,6 @@ void kbd_handler(struct regs *r)
 	uint8_t c;
 
 	c = inb(0x60);
-
-	/* just for fun */
-	r->errno = c;
 }
 
 void kbd_install(void)

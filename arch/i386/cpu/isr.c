@@ -150,15 +150,15 @@ static const char *exceptions[] = {
 void interrupt_handler(struct regs r)
 {
 	if (isr_handlers[r.intno]) {
-		isr_handlers[r.intno](&r);
+		if (r.intno > IRQ_BASE)
+			isr_handlers[r.intno](&r);
+		else
+			isr_handlers[r.intno](&r);
 	} else if (r.intno < 0x20) {
 		panic("unhandled CPU exception 0x%02X `%s'\n",
 				r.intno, exceptions[r.intno]);
 	}
 }
-
-#include <stdio.h>
-#include <untitled/mm_types.h>
 
 static void irq_generic(struct regs *r)
 {
@@ -166,37 +166,6 @@ static void irq_generic(struct regs *r)
 
 	if (irq_handlers[r->intno - IRQ_BASE])
 		irq_handlers[r->intno - IRQ_BASE](r);
-
-	/* temp debugging stuff */
-	if (r->errno >= 0x23 && r->errno <= 0x26) {
-		extern struct page *page_map;
-		static int pfn = -1;
-
-		if (pfn != -1) {
-			switch (r->errno) {
-			case 0x23:
-				pfn -= 128;
-				break;
-			case 0x24:
-				++pfn;
-				break;
-			case 0x25:
-				--pfn;
-				break;
-			case 0x26:
-				pfn += 128;
-				break;
-			}
-		}
-		if (pfn < 0)
-			pfn = 0;
-
-		printf("pfn: %u\n", pfn);
-		printf("\tslab_cache:\t0x%08X\n", page_map[pfn].slab_cache);
-		printf("\tslab_desc:\t0x%08X\n", page_map[pfn].slab_desc);
-		printf("\tmem:\t\t0x%08X\n", page_map[pfn].mem);
-		printf("\tstatus:\t\t0x%08X\n", page_map[pfn].status);
-	}
 
 	pic_eoi(r->intno - 0x20);
 	irq_enable();

@@ -37,9 +37,14 @@ struct regs {
 	uint32_t fs;
 	uint32_t es;
 	uint32_t ds;
+	uint32_t ss;
 
-	uint32_t intno;
-	uint32_t errno;
+	int32_t intno;
+	int32_t errno;
+
+	uint32_t ip;
+	uint32_t cs;
+	uint32_t flags;
 };
 
 #endif /* ARCH_I386_UNTITLED_SYS_H */

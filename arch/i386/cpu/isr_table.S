@@ -84,9 +84,12 @@ sysc:
 	push $0x80
 	jmp isr_common
 
-# push all registers onto the stack as part of the struct regs
+# Push all registers onto the stack as part of a struct regs.
+# The order in which these are pushed is important; see
+# arch/i386/include/untitled/sys.h for the struct definition.
 isr_common:
 	# segment registers
+	push %ss
 	push %ds
 	push %es
 	push %fs
@@ -103,6 +106,7 @@ isr_common:
 	pop %fs
 	pop %es
 	pop %ds
+	pop %ss
 
 	# for error code and interrupt number
 	addl $8, %esp
