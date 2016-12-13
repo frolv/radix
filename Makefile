@@ -12,7 +12,7 @@ CC =  $(HOST)-gcc
 RM := rm -f
 
 ASFLAGS ?=
-CFLAGS ?= -O2 -g
+CFLAGS ?= -O2
 LDFLAGS ?=
 LIBS ?=
 
