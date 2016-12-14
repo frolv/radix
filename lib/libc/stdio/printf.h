@@ -19,11 +19,11 @@
 #ifndef LIB_LIBC_STDIO_PRINTF_H
 #define LIB_LIBC_STDIO_PRINTF_H
 
-#define FLAGS_ZERO	0x01	/* pad with zeros */
-#define FLAGS_LOWER	0x02	/* lowercase in hex */
-#define FLAGS_SHORT	0x04	/* short int */
-#define FLAGS_LONG	0x08	/* long int */
-#define FLAGS_LLONG	0x10	/* long long int */
+#define FLAGS_ZERO      0x01    /* pad with zeros */
+#define FLAGS_LOWER     0x02    /* lowercase in hex */
+#define FLAGS_SHORT     0x04    /* short int */
+#define FLAGS_LONG      0x08    /* long int */
+#define FLAGS_LLONG     0x10    /* long long int */
 
 enum format_type {
 	FORMAT_NONE,
@@ -36,11 +36,11 @@ enum format_type {
 };
 
 struct printf_format {
-	unsigned int	type:8;
-	unsigned int	base:8;
-	unsigned int	flags:8;
-	signed int	width:24;
-	signed int	precision:16;
+	unsigned int    type:8;
+	unsigned int    base:8;
+	unsigned int    flags:8;
+	signed int      width:24;
+	signed int      precision:16;
 } __attribute__((packed));
 
 #define va_int_type(i, ap, p, sign) \
