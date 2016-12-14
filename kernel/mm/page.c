@@ -40,7 +40,7 @@ uint64_t totalmem = 0;
 uint64_t zone_reg_end = 0;
 
 static int next_phys_region(struct multiboot_info *mbt,
-			    uint64_t *base, uint64_t *len);
+                            uint64_t *base, uint64_t *len);
 static void init_region(addr_t base, uint64_t len, unsigned int flags);
 static void buddy_populate(void);
 
@@ -111,7 +111,7 @@ void buddy_init(struct multiboot_info *mbt)
 }
 
 static struct page *__alloc_pages(struct buddy *zone,
-				  unsigned int flags, size_t ord);
+                                  unsigned int flags, size_t ord);
 static void buddy_split(struct buddy *zone, size_t req_ord);
 static struct page *buddy_coalesce(struct buddy *zone, struct page *p);
 
@@ -173,7 +173,7 @@ void free_pages(struct page *p)
 
 /* Allocate 2^{ord} pages from zone. */
 static struct page *__alloc_pages(struct buddy *zone,
-				  unsigned int flags, size_t ord)
+                                  unsigned int flags, size_t ord)
 {
 	struct page *p;
 	addr_t virt;
@@ -296,7 +296,7 @@ static struct memory_map *mmap = NULL;
  * Return 0 when all memory has been read.
  */
 static int next_phys_region(struct multiboot_info *mbt,
-			    uint64_t *base, uint64_t *len)
+                            uint64_t *base, uint64_t *len)
 {
 	uint64_t b, l, orig_base;
 
@@ -394,7 +394,7 @@ static void check_space(size_t pfn)
 		if (req_len > tbl_off) {
 			memset((void *)curr_pgtbl, 0, PGTBL_SIZE);
 			__create_pgtbl(PAGE_MAP_BASE + tbl_off,
-				       make_pde(phys_addr(curr_pgtbl) | flags));
+			               make_pde(phys_addr(curr_pgtbl) | flags));
 			curr_pgtbl -= PGTBL_SIZE;
 			++ntables;
 		}
@@ -407,7 +407,7 @@ static void check_space(size_t pfn)
 }
 
 static size_t zone_init(size_t pfn, size_t section_end,
-			struct buddy *zone, unsigned int flags);
+                        struct buddy *zone, unsigned int flags);
 
 #define M_TO_PAGES(m) (_M(m) / PAGE_SIZE)
 
@@ -459,7 +459,7 @@ static void split_block(size_t pfn, size_t lim)
 }
 
 static size_t zone_init(size_t pfn, size_t section_end,
-			struct buddy *zone, unsigned int flags)
+                        struct buddy *zone, unsigned int flags)
 {
 	size_t ord, end, start;
 
