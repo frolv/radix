@@ -36,7 +36,7 @@ static __always_inline void list_init(struct list *list)
  * This is internal for the two functions below.
  */
 static __always_inline void __insert(struct list *elem, struct list *prev,
-				     struct list *next)
+                                     struct list *next)
 {
 	elem->next = next;
 	elem->prev = prev;

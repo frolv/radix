@@ -27,10 +27,10 @@
 		HALT(); \
 	} while (1)
 
-#define ALIGN(x, a)		__ALIGN_MASK(x, (typeof (x))(a) - 1)
-#define __ALIGN_MASK(x, mask)	(((x) + (mask)) & ~(mask))
+#define ALIGN(x, a)             __ALIGN_MASK(x, (typeof (x))(a) - 1)
+#define __ALIGN_MASK(x, mask)   (((x) + (mask)) & ~(mask))
 
-#define ALIGNED(x, a)		(((x) & ((a) - 1)) == 0)
+#define ALIGNED(x, a)           (((x) & ((a) - 1)) == 0)
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -57,9 +57,9 @@ static __always_inline size_t order(size_t n)
 	return ord;
 }
 
-#define _K(n)	((n)   * 1024UL)
-#define _M(n)	(_K(n) * 1024UL)
-#define _G(n)	(_M(n) * 1024UL)
+#define _K(n)   ((n)   * 1024UL)
+#define _M(n)   (_K(n) * 1024UL)
+#define _G(n)   (_M(n) * 1024UL)
 
 void panic(const char *err, ...);
 

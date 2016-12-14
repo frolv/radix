@@ -23,17 +23,17 @@
 #include <untitled/mm.h>
 #include <untitled/mm_types.h>
 
-#define PM_PAGE_BLOCK_OFFSET(p)		__PAGE_BLOCK_OFFSET(p)
-#define PM_SET_BLOCK_ORDER(p, ord)	__SET_BLOCK_ORDER(p, ord)
-#define PM_SET_MAX_ORDER(p, ord)	__SET_MAX_ORDER(p, ord)
-#define PM_SET_PAGE_OFFSET(p, off)	__SET_PAGE_OFFSET(p, off)
+#define PM_PAGE_BLOCK_OFFSET(p)         __PAGE_BLOCK_OFFSET(p)
+#define PM_SET_BLOCK_ORDER(p, ord)      __SET_BLOCK_ORDER(p, ord)
+#define PM_SET_MAX_ORDER(p, ord)        __SET_MAX_ORDER(p, ord)
+#define PM_SET_PAGE_OFFSET(p, off)      __SET_PAGE_OFFSET(p, off)
 
 struct buddy {
-	struct list	ord[PA_MAX_ORDER];	/* lists of 2^i size blocks */
-	size_t		len[PA_MAX_ORDER];	/* length of each list */
-	size_t		max_ord;		/* maximum available order */
-	size_t		total_pages;		/* total pages in this zone */
-	size_t		alloc_pages;		/* number of allocated pages */
+	struct list     ord[PA_MAX_ORDER];      /* lists of 2^i size blocks */
+	size_t          len[PA_MAX_ORDER];      /* length of each list */
+	size_t          max_ord;                /* maximum available order */
+	size_t          total_pages;            /* total pages in this zone */
+	size_t          alloc_pages;            /* number of allocated pages */
 };
 
 #endif /* KERNEL_MM_BUDDY_H */

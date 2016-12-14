@@ -33,8 +33,8 @@ struct list slab_caches;
 static struct slab_cache cache_cache;
 
 static void __init_cache(struct slab_cache *cache, const char *name,
-			 size_t size, size_t align, unsigned long flags,
-			 void (*ctor)(void *), void (*dtor)(void *));
+                         size_t size, size_t align, unsigned long flags,
+                         void (*ctor)(void *), void (*dtor)(void *));
 
 /*
  * Slabs with objects less than this size
@@ -50,7 +50,7 @@ void slab_init(void)
 	list_init(&slab_caches);
 
 	__init_cache(&cache_cache, "cache_cache", sizeof (struct slab_cache),
-			MIN_ALIGN, SLAB_HW_CACHE_ALIGN, NULL, NULL);
+	             MIN_ALIGN, SLAB_HW_CACHE_ALIGN, NULL, NULL);
 	list_add(&slab_caches, &cache_cache.list);
 
 	/* preemptively allocate space for some caches */
@@ -68,8 +68,8 @@ static int destroy_slab(struct slab_cache *cache, struct slab_desc *s);
  * The cache is inserted into the cache list.
  */
 struct slab_cache *create_cache(const char *name, size_t size,
-				size_t align, unsigned long flags,
-				void (*ctor)(void *), void (*dtor)(void *))
+                                size_t align, unsigned long flags,
+                                void (*ctor)(void *), void (*dtor)(void *))
 {
 	struct slab_cache *cache;
 
@@ -126,7 +126,7 @@ void *alloc_cache(struct slab_cache *cache)
 		}
 
 		s = list_first_entry(&cache->free_slabs,
-				     struct slab_desc, list);
+		                     struct slab_desc, list);
 		list_del(&s->list);
 		list_add(&cache->partial_slabs, &s->list);
 	} else {
@@ -326,7 +326,7 @@ static size_t calculate_align(unsigned long flags, size_t align, size_t size)
  * offset between objects.
  */
 static int calculate_count(size_t npages, size_t offset, size_t align,
-			   unsigned long flags)
+                           unsigned long flags)
 {
 	size_t space;
 	int n;
@@ -352,8 +352,8 @@ static int calculate_count(size_t npages, size_t offset, size_t align,
 }
 
 static void __init_cache(struct slab_cache *cache, const char *name,
-			 size_t size, size_t align, unsigned long flags,
-			 void (*ctor)(void *), void (*dtor)(void *))
+                         size_t size, size_t align, unsigned long flags,
+                         void (*ctor)(void *), void (*dtor)(void *))
 {
 	cache->objsize = size;
 	cache->align = calculate_align(flags, align, size);
@@ -366,7 +366,7 @@ static void __init_cache(struct slab_cache *cache, const char *name,
 		cache->flags |= SLAB_DESC_ON_SLAB;
 
 	cache->count = calculate_count(POW2(cache->slab_ord), cache->offset,
-				       cache->align, cache->flags);
+	                               cache->align, cache->flags);
 
 	cache->ctor = ctor;
 	cache->dtor = dtor;
