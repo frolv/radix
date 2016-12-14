@@ -21,13 +21,13 @@
 
 #include <untitled/compiler.h>
 
-#define __ARCH_SYSCALL_VECTOR	0x30
+#define __ARCH_SYSCALL_VECTOR   0x80
 
-#define __arch_irq_active	interrupts_active
-#define __arch_irq_disable	interrupt_disable
-#define __arch_irq_enable	interrupt_enable
-#define __arch_irq_install	install_interrupt_handler
-#define __arch_irq_uninstall	uninstall_interrupt_handler
+#define __arch_irq_active       interrupts_active
+#define __arch_irq_disable      interrupt_disable
+#define __arch_irq_enable       interrupt_enable
+#define __arch_irq_install      install_interrupt_handler
+#define __arch_irq_uninstall    uninstall_interrupt_handler
 
 #define __INTERRUPT_BIT (1 << 9)
 
@@ -45,8 +45,8 @@ static __always_inline int interrupts_active(void)
 	uint32_t flags;
 
 	asm volatile("pushf;"
-		     "pop %0;"
-		     :"=g"(flags));
+	             "pop %0;"
+	             :"=g"(flags));
 	return flags & __INTERRUPT_BIT;
 }
 

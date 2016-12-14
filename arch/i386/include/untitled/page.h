@@ -19,38 +19,38 @@
 #ifndef ARCH_I386_UNTITLED_PAGE_H
 #define ARCH_I386_UNTITLED_PAGE_H
 
-#define PTRS_PER_PGDIR		0x400
-#define PTRS_PER_PGTBL		0x400
-#define	PGDIR_SIZE		(PTRS_PER_PGDIR * sizeof (void *))
-#define	PGTBL_SIZE		(PTRS_PER_PGTBL * sizeof (void *))
+#define PTRS_PER_PGDIR          0x400
+#define PTRS_PER_PGTBL          0x400
+#define	PGDIR_SIZE              (PTRS_PER_PGDIR * sizeof (void *))
+#define	PGTBL_SIZE              (PTRS_PER_PGTBL * sizeof (void *))
 
-#define PGDIR_SHIFT		22
-#define PAGE_SHIFT		12
-#define PAGE_SIZE		(1UL << PAGE_SHIFT)
-#define PAGE_MASK		(~(PAGE_SIZE - 1))
+#define PGDIR_SHIFT             22
+#define PAGE_SHIFT              12
+#define PAGE_SIZE               (1UL << PAGE_SHIFT)
+#define PAGE_MASK               (~(PAGE_SIZE - 1))
 
-#define PGDIR_INDEX(x)		((x) >> PGDIR_SHIFT)
-#define PGTBL_INDEX(x)		(((x) >> PAGE_SHIFT) & 0x3FF)
+#define PGDIR_INDEX(x)          ((x) >> PGDIR_SHIFT)
+#define PGTBL_INDEX(x)          (((x) >> PAGE_SHIFT) & 0x3FF)
 
-#define _PAGE_BIT_PRESENT	0
-#define _PAGE_BIT_RW		1
-#define _PAGE_BIT_USER		2
-#define _PAGE_BIT_WT		3
-#define _PAGE_BIT_CD		4
-#define _PAGE_BIT_ACCESSED	5
-#define _PAGE_BIT_DIRTY		6
-#define _PAGE_BIT_PSE		7
-#define _PAGE_BIT_GLOBAL	8
+#define _PAGE_BIT_PRESENT       0
+#define _PAGE_BIT_RW            1
+#define _PAGE_BIT_USER          2
+#define _PAGE_BIT_WT            3
+#define _PAGE_BIT_CD            4
+#define _PAGE_BIT_ACCESSED      5
+#define _PAGE_BIT_DIRTY         6
+#define _PAGE_BIT_PSE           7
+#define _PAGE_BIT_GLOBAL        8
 
-#define PAGE_PRESENT	(((pteval_t)1) << _PAGE_BIT_PRESENT)
-#define PAGE_RW		(((pteval_t)1) << _PAGE_BIT_RW)
-#define PAGE_USER	(((pteval_t)1) << _PAGE_BIT_USER)
-#define PAGE_WT		(((pteval_t)1) << _PAGE_BIT_WT)
-#define PAGE_CD		(((pteval_t)1) << _PAGE_BIT_CD)
-#define PAGE_ACCESSED	(((pteval_t)1) << _PAGE_BIT_ACCESSED)
-#define PAGE_DIRTY	(((pteval_t)1) << _PAGE_BIT_DIRTY)
-#define PAGE_PSE	(((pteval_t)1) << _PAGE_BIT_PSE)
-#define PAGE_GLOBAL	(((pteval_t)1) << _PAGE_BIT_GLOBAL)
+#define PAGE_PRESENT    (((pteval_t)1) << _PAGE_BIT_PRESENT)
+#define PAGE_RW         (((pteval_t)1) << _PAGE_BIT_RW)
+#define PAGE_USER       (((pteval_t)1) << _PAGE_BIT_USER)
+#define PAGE_WT         (((pteval_t)1) << _PAGE_BIT_WT)
+#define PAGE_CD         (((pteval_t)1) << _PAGE_BIT_CD)
+#define PAGE_ACCESSED   (((pteval_t)1) << _PAGE_BIT_ACCESSED)
+#define PAGE_DIRTY      (((pteval_t)1) << _PAGE_BIT_DIRTY)
+#define PAGE_PSE        (((pteval_t)1) << _PAGE_BIT_PSE)
+#define PAGE_GLOBAL     (((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
 #include <untitled/compiler.h>
 
@@ -75,8 +75,8 @@ static __always_inline pte_t make_pte(pteval_t val)
  * directory, interpreted as a page table.
  * Virtual address 0xFFFFF000 is the page containing the actual page directory.
  */
-#define PGDIR_BASE	0xFFC00000UL
-#define PGDIR_VADDR	0xFFFFF000UL
+#define PGDIR_BASE      0xFFC00000UL
+#define PGDIR_VADDR     0xFFFFF000UL
 
 addr_t __virt_to_phys(addr_t addr);
 

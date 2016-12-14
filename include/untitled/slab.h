@@ -22,24 +22,24 @@
 #include <untitled/list.h>
 #include <untitled/types.h>
 
-#define NAME_LEN	0x40
+#define NAME_LEN        0x40
 
 struct slab_cache {
-	size_t		objsize;		/* size of each cached object */
-	size_t		align;			/* object alignment */
-	size_t		offset;			/* byte offset between objects */
-	size_t		count;			/* number of objects per slab */
-	size_t		slab_ord;		/* order of pages per slab */
-	unsigned long	flags;			/* allocator options */
-	void		(*ctor)(void *);	/* object constructor */
-	void		(*dtor)(void *);	/* object destructor */
+	size_t          objsize;                /* size of each cached object */
+	size_t          align;                  /* object alignment */
+	size_t          offset;                 /* byte offset between objects */
+	size_t          count;                  /* number of objects per slab */
+	size_t          slab_ord;               /* order of pages per slab */
+	unsigned long   flags;                  /* allocator options */
+	void            (*ctor)(void *);        /* object constructor */
+	void            (*dtor)(void *);        /* object destructor */
 
-	struct list	full_slabs;		/* full slabs */
-	struct list	partial_slabs;		/* partially full slabs */
-	struct list	free_slabs;		/* empty slabs */
-	struct list	list;			/* list of caches */
+	struct list     full_slabs;             /* full slabs */
+	struct list     partial_slabs;          /* partially full slabs */
+	struct list     free_slabs;             /* empty slabs */
+	struct list     list;                   /* list of caches */
 
-	char		cache_name[NAME_LEN];	/* human-readable cache name */
+	char            cache_name[NAME_LEN];   /* human-readable cache name */
 };
 
 struct slab_desc {
@@ -50,7 +50,7 @@ struct slab_desc {
 };
 
 /* Cache flags */
-#define SLAB_HW_CACHE_ALIGN	(1 << 16)
+#define SLAB_HW_CACHE_ALIGN     (1 << 16)
 
 struct slab_cache *create_cache(const char *name, size_t size,
                                 size_t align, unsigned long flags,

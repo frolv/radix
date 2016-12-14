@@ -23,13 +23,13 @@
 #include "isr.h"
 #include "pic.h"
 
-#define NUM_EXCEPTIONS	32 /* CPU protected mode exceptions */
-#define NUM_IRQS	16 /* Industry Standard Architecture IRQs */
+#define NUM_EXCEPTIONS  32 /* CPU protected mode exceptions */
+#define NUM_IRQS        16 /* Industry Standard Architecture IRQs */
 
 /* +1 for syscall interrupt */
 #define NUM_INTERRUPTS (NUM_EXCEPTIONS + NUM_IRQS + 1)
 
-#define IRQ_BASE	0x20
+#define IRQ_BASE        0x20
 
 /*
  * Routines to be called on interrupt.
@@ -113,38 +113,38 @@ void interrupt_enable(void)
 }
 
 static const char *exceptions[] = {
-	"Division by zero",			/* 0x00 */
-	"Debug",				/* 0x01 */
-	"Non-maskable interrupt",		/* 0x02 */
-	"Breakpoint",				/* 0x03 */
-	"Overflow",				/* 0x04 */
-	"Out of bounds",			/* 0x05 */
-	"Invalid opcode",			/* 0x06 */
-	"Device not available",			/* 0x07 */
-	"Double fault",				/* 0x08 */
-	"Coprocessor segment overrun",		/* 0x09 */
-	"Invalid TSS",				/* 0x0A */
-	"Segment not present",			/* 0x0B */
-	"Stack fault",				/* 0x0C */
-	"General protection fault",		/* 0x0D */
-	"Page fault",				/* 0x0E */
-	"Unknown exception",			/* 0x0F */
-	"x87 floating-point exception",		/* 0x10 */
-	"Alignment check",			/* 0x11 */
-	"Machine check",			/* 0x12 */
-	"SIMD floating-point exception",	/* 0x13 */
-	"Virtualization exception",		/* 0x14 */
-	"Unknown exception",			/* 0x15 */
-	"Unknown exception",			/* 0x16 */
-	"Unknown exception",			/* 0x17 */
-	"Unknown exception",			/* 0x18 */
-	"Unknown exception",			/* 0x19 */
-	"Unknown exception",			/* 0x1A */
-	"Unknown exception",			/* 0x1B */
-	"Unknown exception",			/* 0x1C */
-	"Unknown exception",			/* 0x1D */
-	"Security exception",			/* 0x1E */
-	"Unknown exception"			/* 0x1F */
+	"Division by zero",                     /* 0x00 */
+	"Debug",                                /* 0x01 */
+	"Non-maskable interrupt",               /* 0x02 */
+	"Breakpoint",                           /* 0x03 */
+	"Overflow",                             /* 0x04 */
+	"Out of bounds",                        /* 0x05 */
+	"Invalid opcode",                       /* 0x06 */
+	"Device not available",                 /* 0x07 */
+	"Double fault",                         /* 0x08 */
+	"Coprocessor segment overrun",          /* 0x09 */
+	"Invalid TSS",                          /* 0x0A */
+	"Segment not present",                  /* 0x0B */
+	"Stack fault",                          /* 0x0C */
+	"General protection fault",             /* 0x0D */
+	"Page fault",                           /* 0x0E */
+	"Unknown exception",                    /* 0x0F */
+	"x87 floating-point exception",         /* 0x10 */
+	"Alignment check",                      /* 0x11 */
+	"Machine check",                        /* 0x12 */
+	"SIMD floating-point exception",        /* 0x13 */
+	"Virtualization exception",             /* 0x14 */
+	"Unknown exception",                    /* 0x15 */
+	"Unknown exception",                    /* 0x16 */
+	"Unknown exception",                    /* 0x17 */
+	"Unknown exception",                    /* 0x18 */
+	"Unknown exception",                    /* 0x19 */
+	"Unknown exception",                    /* 0x1A */
+	"Unknown exception",                    /* 0x1B */
+	"Unknown exception",                    /* 0x1C */
+	"Unknown exception",                    /* 0x1D */
+	"Security exception",                   /* 0x1E */
+	"Unknown exception"                     /* 0x1F */
 };
 
 void interrupt_handler(struct interrupt_regs ir)
@@ -160,7 +160,7 @@ void interrupt_handler(struct interrupt_regs ir)
 			isr_handlers[ir.intno](&r, ir.errno);
 	} else if (ir.intno < 0x20) {
 		panic("unhandled CPU exception 0x%02X `%s'\n",
-				ir.intno, exceptions[ir.intno]);
+		      ir.intno, exceptions[ir.intno]);
 	}
 
 	load_registers(&ir, &r);

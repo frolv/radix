@@ -88,7 +88,7 @@ static void tty_nextrow(void)
 	if (tty_row == VGA_HEIGHT - 1) {
 		/* move each row up by one, discarding the first */
 		memmove(tty_buf, tty_buf + VGA_WIDTH,
-				 tty_row * VGA_WIDTH * sizeof(uint16_t));
+		        tty_row * VGA_WIDTH * sizeof(uint16_t));
 		/* clear the final row */
 		for (x = 0; x < VGA_WIDTH; ++x) {
 			dst = tty_row * VGA_WIDTH + x;

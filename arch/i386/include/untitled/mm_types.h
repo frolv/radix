@@ -21,7 +21,7 @@
 
 #define __ARCH_KERNEL_VIRT_BASE 0xC0000000UL
 
-#define __ARCH_MEM_LIMIT	0x100000000ULL
+#define __ARCH_MEM_LIMIT        0x100000000ULL
 
 typedef unsigned long addr_t;
 
@@ -42,23 +42,23 @@ typedef struct {
  * x86 page status (32-bit):
  * FFFFFFFFFFFFFFFFxxxZARIMUUUUOOOO
  *
- * x	- currently unused
- * OOOO	- block order number (first page in block) or PM_PAGE_ORDER_INNER
- * UUUU	- maximum order to which pages in block can be coalesced
- * M	- mapped bit. 1: mapped to a virtual address, 0: not mapped
- * I	- invalid bit. 1: not located in valid memory, 0: in valid memory
- * R	- reserved bit. 1: reserved for kernel use, 0: can be allocated
- * A	- allocated bit. 1: allocated, 0: free (only in valid, unreserved pages)
- * Z	- zone bit. 1: user zone, 0: regular zone
- * F	- offset of page within its maximum block
+ * x    - currently unused
+ * OOOO - block order number (first page in block) or PM_PAGE_ORDER_INNER
+ * UUUU - maximum order to which pages in block can be coalesced
+ * M    - mapped bit. 1: mapped to a virtual address, 0: not mapped
+ * I    - invalid bit. 1: not located in valid memory, 0: in valid memory
+ * R    - reserved bit. 1: reserved for kernel use, 0: can be allocated
+ * A    - allocated bit. 1: allocated, 0: free (only in valid, unreserved pages)
+ * Z    - zone bit. 1: user zone, 0: regular zone
+ * F    - offset of page within its maximum block
  */
-#define __ORDER_MASK		0x0000000F
-#define __MAX_ORDER_MASK	0x000000F0
-#define __OFFSET_MASK		0xFFFF0000
-#define __ARCH_INNER_ORDER	0xF
-#define __PAGE_BLOCK_ORDER(p)	(((p)->status) & __ORDER_MASK)
-#define __PAGE_MAX_ORDER(p)	((((p)->status) & __MAX_ORDER_MASK) >> 4)
-#define __PAGE_BLOCK_OFFSET(p)	((((p)->status) & __OFFSET_MASK) >> 16)
+#define __ORDER_MASK            0x0000000F
+#define __MAX_ORDER_MASK        0x000000F0
+#define __OFFSET_MASK           0xFFFF0000
+#define __ARCH_INNER_ORDER      0xF
+#define __PAGE_BLOCK_ORDER(p)   (((p)->status) & __ORDER_MASK)
+#define __PAGE_MAX_ORDER(p)     ((((p)->status) & __MAX_ORDER_MASK) >> 4)
+#define __PAGE_BLOCK_OFFSET(p)  ((((p)->status) & __OFFSET_MASK) >> 16)
 #define __SET_BLOCK_ORDER(p, ord) \
 	(p)->status = ((((p)->status) & ~__ORDER_MASK) | (ord))
 #define __SET_MAX_ORDER(p, ord) \
@@ -66,18 +66,18 @@ typedef struct {
 #define __SET_PAGE_OFFSET(p, off) \
 	(p)->status = ((((p)->status) & ~__OFFSET_MASK) | ((off) << 16))
 
-#define PM_PAGE_MAPPED		(1 << 8)
-#define PM_PAGE_INVALID		(1 << 9)
-#define PM_PAGE_RESERVED	(1 << 10)
-#define PM_PAGE_ALLOCATED	(1 << 11)
-#define PM_PAGE_ZONE_USR	(1 << 12)
+#define PM_PAGE_MAPPED          (1 << 8)
+#define PM_PAGE_INVALID         (1 << 9)
+#define PM_PAGE_RESERVED        (1 << 10)
+#define PM_PAGE_ALLOCATED       (1 << 11)
+#define PM_PAGE_ZONE_USR        (1 << 12)
 
 struct page {
-	void		*slab_cache;	/* address of slab cache */
-	void		*slab_desc;	/* address of slab descriptor */
-	void		*mem;		/* start of the page itself */
-	unsigned int	status;		/* information about state */
-	struct list	list;		/* buddy allocator list */
+	void            *slab_cache;    /* address of slab cache */
+	void            *slab_desc;     /* address of slab descriptor */
+	void            *mem;           /* start of the page itself */
+	unsigned int    status;         /* information about state */
+	struct list     list;           /* buddy allocator list */
 };
 
 #endif /* ARCH_I386_UNTITLED_MM_TYPES_H */
