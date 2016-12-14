@@ -84,33 +84,131 @@ sysc:
 	push $0x80
 	jmp isr_common
 
+isr_common:
+	testw $0x3, 12(%esp)
+	jz stack_fix
+
 # Push all registers onto the stack as part of a struct regs.
 # The order in which these are pushed is important; see
 # arch/i386/include/untitled/sys.h for the struct definition.
-isr_common:
+register_push:
 	# segment registers
-	push %ss
 	push %ds
 	push %es
 	push %fs
 	push %gs
 
 	# general purpose registers
-	pusha
+	pushl %eax
+	pushl %ecx
+	pushl %edx
+	pushl %ebx
+	pushl %ebp
+	pushl %esi
+	pushl %edi
 
 	call interrupt_handler
 
-	popa
+register_pop:
+	popl %edi
+	popl %esi
+	popl %ebp
+	popl %ebx
+	popl %edx
+	popl %ecx
+	popl %eax
 
 	pop %gs
 	pop %fs
 	pop %es
 	pop %ds
-	pop %ss
 
 	# for error code and interrupt number
 	addl $8, %esp
+
+	testw $0x3, 4(%esp)
+	jz stack_restore
+
+iret_final:
 	iret
+
+# Interrupts from ring level 0 to level 0 do not push ss or esp.
+# Move the stack down 8 bytes and manually push them.
+# Adapted from Sortix kernel/x86/interrupt.S.
+stack_fix:
+	# Save the current value of eax.
+	movl %eax, -12(%esp)
+	# intno
+	movl 0(%esp), %eax
+	movl %eax, -8(%esp)
+	# errno
+	movl 4(%esp), %eax
+	movl %eax, -4(%esp)
+	# eip
+	movl 8(%esp), %eax
+	movl %eax, 0(%esp)
+	# cs
+	movl 12(%esp), %eax
+	movl %eax, 4(%esp)
+	# eflags
+	movl 16(%esp), %eax
+	movl %eax, 8(%esp)
+
+	# Push the values of esp and ss.
+	movl %esp, %eax
+	addl $20, %eax
+	movl %eax, 12(%esp)
+	movl %ss, %eax
+	movl %eax, 16(%esp)
+
+	# Reload eax, fix stack pointer and handle the interrupt.
+	movl -12(%esp), %eax
+	subl $8, %esp
+	jmp register_push
+
+# When returning from an interrupt, the pushed ss and esp need to be
+# loaded and the stack restored to how iret expects it to be.
+# This is accomplished by copying the eip, cs and eflags that the interrupt
+# pushed to the new location of the stack pointer and loading it.
+# Once again, taken from Sortix kernel/x86/interrupt.S.
+stack_restore:
+	# Save eax, ebx and ecx values.
+	movl %eax, -4(%esp)
+	movl %ebx, -8(%esp)
+	movl %ecx, -12(%esp)
+
+	# New stack pointer.
+	movl 12(%esp), %ebx
+	subl $12, %ebx
+	movw 16(%esp), %cx
+
+	# Copy saved eax, ebx and ecx onto the new stack.
+	movl -4(%esp), %eax
+	movl %eax, -12(%ebx)
+	movl -8(%esp), %eax
+	movl %eax, -16(%ebx)
+	movl -12(%esp), %eax
+	movl %eax, -20(%ebx)
+
+	# Copy interrupted eflags, cs and eip onto the new stack.
+	movl 8(%esp), %eax
+	movl %eax, 8(%ebx)
+	movl 4(%esp), %eax
+	movl %eax, 4(%ebx)
+	movl 0(%esp), %eax
+	movl %eax, 0(%ebx)
+
+	# Load the two values we pushed earlier.
+	mov %cx, %ss
+	movl %ebx, %esp
+
+	# Restore e{a,b,c}x.
+	movl -12(%esp), %eax
+	movl -16(%esp), %ebx
+	movl -20(%esp), %ecx
+
+	# The new stack is now set up, ready for an iret.
+	jmp iret_final
 
 .global isr_table_setup
 # load the addresses of all interrupt functions into the intr array

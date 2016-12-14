@@ -40,12 +40,12 @@ extern void (*intr[NUM_INTERRUPTS])(void);
 extern void isr_table_setup(void);
 
 /* interrupt handler functions */
-static void (*isr_handlers[256])(struct regs *);
+static void (*isr_handlers[256])(struct regs *, unsigned int);
 
 /* hardware interrupt handler functions */
 static void (*irq_handlers[NUM_IRQS])(struct regs *);
 
-static void irq_generic(struct regs *r);
+static void irq_generic(struct regs *r, unsigned int);
 
 void load_interrupt_routines(void)
 {
@@ -147,26 +147,32 @@ static const char *exceptions[] = {
 	"Unknown exception"			/* 0x1F */
 };
 
-void interrupt_handler(struct regs r)
+void interrupt_handler(struct interrupt_regs ir)
 {
-	if (isr_handlers[r.intno]) {
-		if (r.intno > IRQ_BASE)
-			isr_handlers[r.intno](&r);
+	struct regs r;
+
+	save_registers(&ir, &r);
+
+	if (isr_handlers[ir.intno]) {
+		if (ir.intno > IRQ_BASE)
+			isr_handlers[ir.intno](&r, ir.intno);
 		else
-			isr_handlers[r.intno](&r);
-	} else if (r.intno < 0x20) {
+			isr_handlers[ir.intno](&r, ir.errno);
+	} else if (ir.intno < 0x20) {
 		panic("unhandled CPU exception 0x%02X `%s'\n",
-				r.intno, exceptions[r.intno]);
+				ir.intno, exceptions[ir.intno]);
 	}
+
+	load_registers(&ir, &r);
 }
 
-static void irq_generic(struct regs *r)
+static void irq_generic(struct regs *r, unsigned int intno)
 {
 	irq_disable();
 
-	if (irq_handlers[r->intno - IRQ_BASE])
-		irq_handlers[r->intno - IRQ_BASE](r);
+	if (irq_handlers[intno])
+		irq_handlers[intno](r);
 
-	pic_eoi(r->intno - 0x20);
+	pic_eoi(intno - 0x20);
 	irq_enable();
 }

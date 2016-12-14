@@ -16,19 +16,60 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <untitled/cpu.h>
 #include <untitled/mm_types.h>
 #include <untitled/sys.h>
 
 extern void kthread_exit(void);
 
-#define PUSHL(s, x) \
-	do { \
-		(s) -= sizeof (uint32_t);\
-		*((uint32_t *)s) = (x);\
-	} while (0)
-
 #define KERNEL_CS 0x08
 #define KERNEL_DS 0x10
+
+/* save registers from interrupt into r */
+void save_registers(struct interrupt_regs *ir, struct regs *r)
+{
+	r->di = ir->di;
+	r->si = ir->si;
+	r->sp = ir->sp;
+	r->bp = ir->bp;
+	r->bx = ir->bx;
+	r->dx = ir->dx;
+	r->cx = ir->cx;
+	r->ax = ir->ax;
+
+	r->gs = ir->gs;
+	r->fs = ir->fs;
+	r->es = ir->es;
+	r->ds = ir->ds;
+	r->cs = ir->cs;
+	r->ss = ir->ss;
+
+	r->ip = ir->ip;
+	r->flags = ir->flags;
+}
+
+/* reload registers from r into interrupt form */
+void load_registers(struct interrupt_regs *ir, struct regs *r)
+{
+	ir->di = r->di;
+	ir->si = r->si;
+	ir->sp = r->sp;
+	ir->bp = r->bp;
+	ir->bx = r->bx;
+	ir->dx = r->dx;
+	ir->cx = r->cx;
+	ir->ax = r->ax;
+
+	ir->gs = r->gs;
+	ir->fs = r->fs;
+	ir->es = r->es;
+	ir->ds = r->ds;
+	ir->cs = r->cs;
+	ir->ss = r->ss;
+
+	ir->ip = r->ip;
+	ir->flags = r->flags;
+}
 
 /*
  * Setup stack and registers for a kthread to execute function func
@@ -36,13 +77,19 @@ extern void kthread_exit(void);
  */
 void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg)
 {
-	/* push argument, return address and stored ebp */
-	PUSHL(stack, arg);
-	PUSHL(stack, (addr_t)kthread_exit);
-	PUSHL(stack, 0);
+	uint32_t *s;
 
-	r->bp = stack;
-	r->sp = stack;
+	s = (uint32_t *)stack;
+
+	s[-1] = 0;
+	s[-2] = 0;
+	s[-3] = 0;
+	/* argument and return address */
+	s[-4] = arg;
+	s[-5] = (addr_t)kthread_exit;
+
+	r->bp = (addr_t)(s - 3);
+	r->sp = (addr_t)(s - 5);
 	r->ip = (addr_t)func;
 
 	r->gs = KERNEL_DS;
@@ -52,4 +99,5 @@ void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg)
 	r->ss = KERNEL_DS;
 
 	r->cs = KERNEL_CS;
+	r->flags = EFLAGS_IF | EFLAGS_ID;
 }

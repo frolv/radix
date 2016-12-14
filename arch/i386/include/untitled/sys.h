@@ -20,13 +20,38 @@
 #define ARCH_I386_UNTITLED_SYS_H
 
 #include <untitled/types.h>
+#include <untitled/mm_types.h>
+
+struct interrupt_regs {
+	uint32_t di;
+	uint32_t si;
+	uint32_t bp;
+	uint32_t bx;
+	uint32_t dx;
+	uint32_t cx;
+	uint32_t ax;
+
+	uint32_t gs;
+	uint32_t fs;
+	uint32_t es;
+	uint32_t ds;
+
+	int32_t intno;
+	int32_t errno;
+
+	uint32_t ip;
+	uint32_t cs;
+	uint32_t flags;
+	uint32_t sp;
+	uint32_t ss;
+};
 
 struct regs {
 	/* gprs */
 	uint32_t di;
 	uint32_t si;
-	uint32_t bp;
 	uint32_t sp;
+	uint32_t bp;
 	uint32_t bx;
 	uint32_t dx;
 	uint32_t cx;
@@ -37,14 +62,16 @@ struct regs {
 	uint32_t fs;
 	uint32_t es;
 	uint32_t ds;
+	uint32_t cs;
 	uint32_t ss;
 
-	int32_t intno;
-	int32_t errno;
-
 	uint32_t ip;
-	uint32_t cs;
 	uint32_t flags;
 };
+
+void save_registers(struct interrupt_regs *ir, struct regs *r);
+void load_registers(struct interrupt_regs *ir, struct regs *r);
+
+void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg);
 
 #endif /* ARCH_I386_UNTITLED_SYS_H */
