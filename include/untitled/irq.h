@@ -23,12 +23,12 @@
 
 #include <untitled/arch_irq.h>
 
-#define SYSCALL_VECTOR	__ARCH_SYSCALL_VECTOR
+#define SYSCALL_VECTOR  __ARCH_SYSCALL_VECTOR
 
-#define irq_active	__arch_irq_active
-#define irq_disable	__arch_irq_disable
-#define irq_enable	__arch_irq_enable
-#define irq_install	__arch_irq_install
-#define irq_uninstall	__arch_irq_uninstall
+#define irq_active      __arch_irq_active
+#define irq_disable     __arch_irq_disable
+#define irq_enable      __arch_irq_enable
+#define irq_install     __arch_irq_install
+#define irq_uninstall   __arch_irq_uninstall
 
 #endif /* UNTITLED_IRQ_H */

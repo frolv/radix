@@ -53,8 +53,8 @@ struct slab_desc {
 #define SLAB_HW_CACHE_ALIGN	(1 << 16)
 
 struct slab_cache *create_cache(const char *name, size_t size,
-				size_t align, unsigned long flags,
-				void (*ctor)(void *), void (*dtor)(void *));
+                                size_t align, unsigned long flags,
+                                void (*ctor)(void *), void (*dtor)(void *));
 void destroy_cache(struct slab_cache *cache);
 
 int grow_cache(struct slab_cache *cache);

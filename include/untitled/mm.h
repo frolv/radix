@@ -25,14 +25,14 @@
 #include <untitled/page.h>
 #include <untitled/types.h>
 
-#define KERNEL_VIRTUAL_BASE	__ARCH_KERNEL_VIRT_BASE
-#define KERNEL_SIZE		0x00400000
+#define KERNEL_VIRTUAL_BASE     __ARCH_KERNEL_VIRT_BASE
+#define KERNEL_SIZE             0x00400000
 
 /*
  * Page map starts at 16 MiB in physical memory, directly after the DMA zone.
  */
-#define __PAGE_MAP_PHYS_BASE	0x01000000
-#define PAGE_MAP_BASE		(KERNEL_VIRTUAL_BASE + __PAGE_MAP_PHYS_BASE)
+#define __PAGE_MAP_PHYS_BASE    0x01000000
+#define PAGE_MAP_BASE           (KERNEL_VIRTUAL_BASE + __PAGE_MAP_PHYS_BASE)
 
 
 #define MEM_LIMIT __ARCH_MEM_LIMIT
@@ -50,26 +50,26 @@ void buddy_init(struct multiboot_info *mbt);
 #define PA_MAX_ORDER 10
 
 /* Low level page allocation flags */
-#define __PA_ZONE_REG	0x0	/* allocate from regular (kernel) zone */
-#define __PA_ZONE_DMA	0x1	/* allocate from DMA zone */
-#define __PA_ZONE_USR	0x2	/* allocate from user zone */
-#define __PA_NO_MAP	0x4	/* do not map pages to a virtual address */
+#define __PA_ZONE_REG   0x0     /* allocate from regular (kernel) zone */
+#define __PA_ZONE_DMA   0x1     /* allocate from DMA zone */
+#define __PA_ZONE_USR   0x2     /* allocate from user zone */
+#define __PA_NO_MAP     0x4     /* do not map pages to a virtual address */
 
 /* Page allocation flags */
-#define PA_STANDARD	(__PA_ZONE_REG)
-#define PA_DMA		(__PA_ZONE_DMA | __PA_NO_MAP)
-#define PA_USER		(__PA_ZONE_USR | __PA_NO_MAP)
-#define PA_PAGETABLE	(__PA_ZONE_REG | __PA_NO_MAP)
+#define PA_STANDARD     (__PA_ZONE_REG)
+#define PA_DMA          (__PA_ZONE_DMA | __PA_NO_MAP)
+#define PA_USER         (__PA_ZONE_USR | __PA_NO_MAP)
+#define PA_PAGETABLE    (__PA_ZONE_REG | __PA_NO_MAP)
 
-#define PAGE_UNINIT_MAGIC	0xDEADFEED
+#define PAGE_UNINIT_MAGIC       0xDEADFEED
 
 /*
  * The first page in a block stores the order of the whole block.
  * The rest are assigned the PAGE_ORDER_INNER value.
  */
-#define PM_PAGE_ORDER_INNER		__ARCH_INNER_ORDER
-#define PM_PAGE_BLOCK_ORDER(p)		__PAGE_BLOCK_ORDER(p)
-#define PM_PAGE_MAX_ORDER(p)		__PAGE_MAX_ORDER(p)
+#define PM_PAGE_ORDER_INNER             __ARCH_INNER_ORDER
+#define PM_PAGE_BLOCK_ORDER(p)          __PAGE_BLOCK_ORDER(p)
+#define PM_PAGE_MAX_ORDER(p)            __PAGE_MAX_ORDER(p)
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);
