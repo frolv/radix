@@ -20,7 +20,7 @@
 #include <untitled/mm.h>
 #include <untitled/page.h>
 
-#define PGTBL(x) 	(pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
+#define PGTBL(x)        (pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
 
 /*
  * The page directory of a legacy 2-level x86 paging setup.
@@ -77,7 +77,7 @@ int map_page(addr_t virt, addr_t phys)
 			panic("Out of memory\n");
 
 		pgdir[pdi] = make_pde(page_to_phys(new)
-				| PAGE_RW | PAGE_PRESENT);
+		                      | PAGE_RW | PAGE_PRESENT);
 	}
 	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
 

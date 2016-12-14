@@ -16,26 +16,26 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define PIC_MASTER	0x20
-#define PIC_SLAVE	0xA0
-#define PIC_MASTER_CMD	PIC_MASTER
-#define PIC_MASTER_DATA	(PIC_MASTER + 1)
-#define PIC_SLAVE_CMD	PIC_SLAVE
-#define PIC_SLAVE_DATA	(PIC_SLAVE + 1)
+#define PIC_MASTER      0x20
+#define PIC_SLAVE       0xA0
+#define PIC_MASTER_CMD  PIC_MASTER
+#define PIC_MASTER_DATA (PIC_MASTER + 1)
+#define PIC_SLAVE_CMD   PIC_SLAVE
+#define PIC_SLAVE_DATA  (PIC_SLAVE + 1)
 
-#define PIC_EOI		0x20
+#define PIC_EOI         0x20
 
-#define ICW1_ICW4	0x01	/* ICW4 toggle */
-#define ICW1_SINGLE	0x02	/* single (cascade) mode */
-#define ICW1_INTERVAL4	0x04	/* call address interval 4 (8) */
-#define ICW1_LEVEL	0x08	/* level triggered (edge) mode */
-#define ICW1_INIT	0x10	/* initialization */
+#define ICW1_ICW4       0x01	/* ICW4 toggle */
+#define ICW1_SINGLE     0x02	/* single (cascade) mode */
+#define ICW1_INTERVAL4  0x04	/* call address interval 4 (8) */
+#define ICW1_LEVEL      0x08	/* level triggered (edge) mode */
+#define ICW1_INIT       0x10	/* initialization */
 
-#define ICW4_8086	0x01	/* 8086/88 (MCS-80/85) mode */
-#define ICW4_AUTO	0x02	/* auto EOI */
-#define ICW4_BUF_SLAVE	0x08	/* slave buffered mode */
-#define ICW4_BUF_MASTER	0x0C	/* master buffered mode */
-#define ICW4_SFNM	0x10	/* special fully nested */
+#define ICW4_8086       0x01	/* 8086/88 (MCS-80/85) mode */
+#define ICW4_AUTO       0x02	/* auto EOI */
+#define ICW4_BUF_SLAVE  0x08	/* slave buffered mode */
+#define ICW4_BUF_MASTER 0x0C	/* master buffered mode */
+#define ICW4_SFNM       0x10	/* special fully nested */
 
 #include <untitled/asm/io.h>
 

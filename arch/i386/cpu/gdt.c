@@ -21,6 +21,7 @@
 
 /* Global Descriptor Table */
 static uint64_t gdt[6];
+
 /* Task State Segment */
 static uint32_t tss[26];
 
@@ -29,7 +30,7 @@ extern void tss_load(uintptr_t gdt_offset);
 
 static void tss_init(uint32_t esp0, uint32_t ss0);
 static void gdt_set(size_t entry, uint32_t base, uint32_t lim,
-		    int8_t access, uint8_t flags);
+                    int8_t access, uint8_t flags);
 
 /* gdt_init: populate the global descriptor table */
 void gdt_init(void)
@@ -70,7 +71,7 @@ static void tss_init(uint32_t esp0, uint32_t ss0)
 
 /* gdt_set: create an entry in the global descriptor table */
 static void gdt_set(size_t entry, uint32_t base, uint32_t lim,
-		    int8_t access, uint8_t flags)
+                    int8_t access, uint8_t flags)
 {
 	/* top half of entry */
 	gdt[entry] = lim & 0x000F0000;
