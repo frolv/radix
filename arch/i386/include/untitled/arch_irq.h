@@ -21,7 +21,7 @@
 
 #include <untitled/compiler.h>
 
-#define __ARCH_SYSCALL_VECTOR   0x80
+#define __ARCH_SYSCALL_VECTOR   0x30
 
 #define __arch_irq_active       interrupts_active
 #define __arch_irq_disable      interrupt_disable
