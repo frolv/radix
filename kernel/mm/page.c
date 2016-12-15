@@ -69,10 +69,9 @@ void buddy_init(struct multiboot_info *mbt)
 
 		if (base + len >= MEM_LIMIT - PAGE_SIZE) {
 			printf("\nThis system appears to have more than the "
-					"supported limit\nof %llu MiB of "
-					"memory. Only the first %llu MiB will "
-					"be used.\n\n", MEM_LIMIT / _M(1),
-					MEM_LIMIT / _M(1));
+			       "supported limit\nof %llu MiB of memory. Only "
+			       "the first %llu MiB will be used.\n\n",
+			       MEM_LIMIT / _M(1), MEM_LIMIT / _M(1));
 			break;
 		}
 		init_region(base, len, 0);
