@@ -20,7 +20,39 @@
 #include <untitled/kernel.h>
 #include <untitled/kthread.h>
 #include <untitled/mm.h>
-#include <untitled/sched.h>
+
+#include "task.h"
+
+struct task *kthread_create(void (*func)(void *), void *arg,
+                            int page_order, char *name, ...)
+{
+	struct task *thread;
+	struct page *p;
+	addr_t stack_top;
+	void *err;
+
+	p = alloc_pages(PA_STANDARD, page_order);
+	if (IS_ERR(p))
+		return (void *)p;
+
+	thread = kthread_task();
+	if (IS_ERR(thread)) {
+		err = thread;
+		goto out_p;
+	}
+
+	stack_top = (addr_t)p->mem + POW2(page_order) * PAGE_SIZE - 16;
+	kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
+	thread->stack_base = p->mem;
+
+	/* TODO: write snprintf and set name, add thread to scheduler */
+
+	return thread;
+
+out_p:
+	free_pages(p);
+	return err;
+}
 
 /*
  * kthread_exit: clean up resources and destroy the current thread.
