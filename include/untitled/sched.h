@@ -32,6 +32,7 @@ struct task {
 	char *cwd;
 	int priority;
 	int exit_code;
+	void *stack_base;
 	struct regs regs;
 	struct list queue;
 };
