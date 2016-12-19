@@ -246,7 +246,7 @@ static struct slab_desc *init_slab(struct slab_cache *cache)
 
 		/* first object placed directly after the free object array */
 		first = (uintptr_t)(s + 1) + cache->count * sizeof (uint16_t);
-		s->first = (void *)ALIGN(first, cache->align);
+		s->first = (void *)ALIGN(first, cache->offset);
 	} else {
 		p = alloc_pages(PA_STANDARD, cache->slab_ord);
 		s = kmalloc(sizeof *s + cache->count * sizeof (uint16_t));
@@ -325,8 +325,7 @@ static size_t calculate_align(unsigned long flags, size_t align, size_t size)
  * Calculate how many object will fit on a slab with the given
  * offset between objects.
  */
-static int calculate_count(size_t npages, size_t offset, size_t align,
-                           unsigned long flags)
+static int calculate_count(size_t npages, size_t offset, unsigned long flags)
 {
 	size_t space;
 	int n;
@@ -343,7 +342,7 @@ static int calculate_count(size_t npages, size_t offset, size_t align,
 		 * the estimate.
 		 */
 		n = space / (offset + sizeof (uint16_t));
-		if (ALIGN(n * sizeof (uint16_t), align) + n * offset > space)
+		if (ALIGN(n * sizeof (uint16_t), offset) + n * offset > space)
 			--n;
 		return n;
 	} else {
@@ -365,8 +364,8 @@ static void __init_cache(struct slab_cache *cache, const char *name,
 	if (size < ON_SLAB_LIMIT)
 		cache->flags |= SLAB_DESC_ON_SLAB;
 
-	cache->count = calculate_count(POW2(cache->slab_ord), cache->offset,
-	                               cache->align, cache->flags);
+	cache->count = calculate_count(POW2(cache->slab_ord),
+				       cache->offset, cache->flags);
 
 	cache->ctor = ctor;
 	cache->dtor = dtor;
