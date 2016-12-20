@@ -20,8 +20,6 @@
 #include <untitled/mm_types.h>
 #include <untitled/sys.h>
 
-extern void kthread_exit(void);
-
 #define KERNEL_CS 0x08
 #define KERNEL_DS 0x10
 

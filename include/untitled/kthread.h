@@ -21,7 +21,7 @@
 
 #include <untitled/sched.h>
 
-#define KTHREAD_NAME_LEN 64
+#define KTHREAD_NAME_LEN 0x40
 
 struct task *kthread_create(void (*func)(void *), void *arg,
                             int page_order, char *name, ...);
@@ -31,5 +31,7 @@ struct task *kthread_run(void (*func)(void *), void *arg,
 
 void kthread_start(struct task *thread);
 void kthread_stop(struct task *thread);
+
+void kthread_exit(void);
 
 #endif /* UNTITLED_KTHREAD_H */
