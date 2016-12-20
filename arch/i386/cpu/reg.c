@@ -17,6 +17,7 @@
  */
 
 #include <untitled/cpu.h>
+#include <untitled/kthread.h>
 #include <untitled/mm_types.h>
 #include <untitled/sys.h>
 
