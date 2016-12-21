@@ -1,5 +1,5 @@
 /*
- * include/stdio.h
+ * lib/libc/stdio/snprintf.c
  * Copyright (C) 2016 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,24 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_STDIO_H
-#define UNTITLED_STDIO_H
+#include <stdio.h>
 
-#include <stdarg.h>
-#include <untitled/types.h>
+int snprintf(char *str, size_t size, const char *format, ...)
+{
+	va_list ap;
+	int ret;
 
-#define EOF (-1)
+	va_start(ap, format);
+	ret = vsnprintf(str, size, format, ap);
+	va_end(ap);
 
-int putchar(int c);
-int puts(const char *s);
-
-int printf(const char *format, ...);
-int vprintf(const char *format, va_list ap);
-
-int sprintf(char *str, const char *format, ...);
-int vsprintf(char *str, const char *format, va_list ap);
-
-int snprintf(char *str, size_t size, const char *format, ...);
-int vsnprintf(char *str, size_t size, const char *format, va_list ap);
-
-#endif /* UNTITLED_STDIO_H */
+	return ret;
+}
