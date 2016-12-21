@@ -22,8 +22,8 @@ char *strncpy(char *__restrict dst, const char *__restrict src, size_t n)
 {
 	char *start = dst;
 
-	while (n-- && (*dst++ = *src++))
-		;
+	while (n && (*dst++ = *src++))
+		--n;
 	while (n--)
 		*dst++ = '\0';
 	return start;
