@@ -20,6 +20,7 @@
 #include <untitled/kernel.h>
 #include <untitled/kthread.h>
 #include <untitled/mm.h>
+#include <untitled/slab.h>
 
 #include "task.h"
 
@@ -30,6 +31,7 @@ struct task *kthread_create(void (*func)(void *), void *arg,
 	struct page *p;
 	addr_t stack_top;
 	void *err;
+	va_list ap;
 
 	p = alloc_pages(PA_STANDARD, page_order);
 	if (IS_ERR(p))
@@ -41,11 +43,17 @@ struct task *kthread_create(void (*func)(void *), void *arg,
 		goto out_p;
 	}
 
-	stack_top = (addr_t)p->mem + POW2(page_order) * PAGE_SIZE - 16;
+	stack_top = (addr_t)p->mem + POW2(page_order) * PAGE_SIZE - 0x10;
 	kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
 	thread->stack_base = p->mem;
 
-	/* TODO: write snprintf and set name, add thread to scheduler */
+	/* TODO: add thread to scheduler */
+	thread->cmdline = kmalloc(2 * sizeof (*thread->cmdline));
+	thread->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
+	va_start(ap, name);
+	vsnprintf(thread->cmdline[0], KTHREAD_NAME_LEN, name, ap);
+	va_end(ap);
+	thread->cmdline[1] = NULL;
 
 	return thread;
 
@@ -62,9 +70,14 @@ out_p:
 void kthread_exit(void)
 {
 	struct task *thread;
+	char *s;
 
 	thread = current_task;
 	free_pages(thread->stack_base);
+
+	for (s = *thread->cmdline; *s; ++s)
+		kfree(s);
+	kfree(thread->cmdline);
 
 	/*
 	 * TODO: remove thread from scheduler queues
