@@ -1,6 +1,6 @@
 /*
  * arch/i386/tty.c
- * Copyright (C) 2016 Alexei Frolov
+ * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
