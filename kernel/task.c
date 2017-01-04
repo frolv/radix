@@ -17,6 +17,7 @@
  */
 
 #include <string.h>
+#include <untitled/kthread.h>
 #include <untitled/sched.h>
 #include <untitled/slab.h>
 
@@ -26,8 +27,24 @@ static void task_init(void *t);
 
 void tasking_init(void)
 {
+	struct task *curr;
+
 	task_cache = create_cache("task_cache", sizeof (struct task), MIN_ALIGN,
-	                          SLAB_HW_CACHE_ALIGN, task_init, NULL);
+	                          SLAB_HW_CACHE_ALIGN, task_init, task_init);
+	sched_init();
+
+	/*
+	 * Create a task stub for the currently running kernel boot and save it
+	 * as the current task. When the first context switch occurs, registers
+	 * will be saved to turn the stub into a proper task.
+	 */
+	curr = alloc_cache(task_cache);
+	curr->cmdline = kmalloc(2 * sizeof (*curr->cmdline));
+	curr->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
+	strcpy(curr->cmdline[0], "kernel_boot_thread");
+	curr->cmdline[1] = NULL;
+
+	current_task = curr;
 }
 
 /* Allocate and initialize a new task struct for a kthread. */
