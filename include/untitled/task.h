@@ -1,5 +1,5 @@
 /*
- * kernel/task.h
+ * include/untitled/task.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,7 +22,9 @@
 #include <untitled/sched.h>
 
 void tasking_init(void);
-
 struct task *kthread_task(void);
+void task_free(struct task *task);
+
+void switch_to_task(struct task *task);
 
 #endif /* KERNEL_TASK_H */
