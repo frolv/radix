@@ -36,6 +36,11 @@ struct task *kthread_task(void)
 	return alloc_cache(task_cache);
 }
 
+void task_free(struct task *task)
+{
+	free_cache(task_cache, task);
+}
+
 static void task_init(void *t)
 {
 	struct task *task;
