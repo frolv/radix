@@ -20,6 +20,7 @@
 #include <untitled/kthread.h>
 #include <untitled/sched.h>
 #include <untitled/slab.h>
+#include <untitled/task.h>
 
 static struct slab_cache *task_cache;
 
