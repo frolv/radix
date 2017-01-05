@@ -32,11 +32,16 @@ struct task {
 	char *cwd;
 	int priority;
 	int exit_code;
-	void *stack_base;
 	struct regs regs;
 	struct list queue;
+	void *stack_base;
 };
 
 extern struct task *current_task;
+
+void schedule(int preempt);
+
+void sched_init(void);
+void sched_add(struct task *t);
 
 #endif /* UNTITLED_SCHED_H */

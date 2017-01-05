@@ -17,5 +17,47 @@
  */
 
 #include <untitled/sched.h>
+#include <untitled/task.h>
 
 struct task *current_task = NULL;
+
+/* For temporary basic RR scheduler. */
+static struct list task_queue;
+
+static int sched_active = 0;
+
+void sched_init(void)
+{
+	if (!sched_active) {
+		list_init(&task_queue);
+		sched_active = 1;
+	}
+}
+
+/*
+ * schedule: select a task to run.
+ * If preempt is 1, the current running task is preempted
+ * and replaced with the new scheduled task.
+ */
+void schedule(int preempt)
+{
+	struct task *next;
+
+	next = list_first_entry(&task_queue, struct task, queue);
+	if (unlikely(next == current_task))
+		return;
+
+	if (current_task)
+		list_ins(&task_queue, &current_task->queue);
+	list_del(&next->queue);
+
+	if (preempt)
+		switch_to_task(next);
+	else
+		current_task = next;
+}
+
+void sched_add(struct task *t)
+{
+	list_ins(&task_queue, &t->queue);
+}
