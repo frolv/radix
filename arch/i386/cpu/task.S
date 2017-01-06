@@ -76,19 +76,10 @@ switch_to_task:
 load_registers:
 	movl 8(%ebp), %eax
 
-	# Copy everything stored on the current stack to the
-	# new thread's stack and switch over to it.
+	# Switch over to the new thread's stack.
+	# Make space for to store EFLAGS and EIP.
 	movl 40(%eax), %ecx
-	subl $12, %ecx
-	# EFLAGS
-	movl 4(%esp), %edx
-	movl %edx, 0(%ecx)
-	# EBP
-	movl 8(%esp), %edx
-	movl %edx, 4(%ecx)
-	# EIP
-	movl 12(%esp), %edx
-	movl %edx, 8(%ecx)
+	subl $8, %ecx
 	movl %ecx, %esp
 
 	# Store ecx and eax of new task on stack.
@@ -100,8 +91,7 @@ load_registers:
 	# Load registers from new task struct.
 	movl 36(%eax), %edi
 	movl 36(%eax), %esi
-	movl 44(%eax), %ecx
-	movl %ecx, 12(%esp)
+	movl 44(%eax), %ebp
 	movl 48(%eax), %ebx
 	movl 52(%eax), %edx
 
@@ -111,12 +101,15 @@ load_registers:
 	mov 76(%eax), %ds
 	mov 84(%eax), %ss
 
+	# Store task's EIP on the stack so that `ret` pops it and begins
+	# executing where the task left off.
 	movl 88(%eax), %ecx
-	movl %ecx, 16(%esp)
+	movl %ecx, 12(%esp)
+	# Store task's EFLAGS register on the stack.
 	movl 92(%eax), %ecx
 	movl %ecx, 8(%esp)
 
-	# Set task state to TASK_RUNNING.
+	# Change task state to TASK_RUNNING and set it as current_task.
 	movl $3, 0(%eax)
 	movl %eax, current_task
 
@@ -124,6 +117,4 @@ load_registers:
 	pop %ecx
 
 	popf
-	pop %ebp
-
 	ret
