@@ -43,12 +43,15 @@ void schedule(int preempt)
 {
 	struct task *next;
 
-	next = list_first_entry(&task_queue, struct task, queue);
-	if (unlikely(next == current_task))
+	if (unlikely(list_empty(&task_queue)))
 		return;
 
-	if (current_task)
+	next = list_first_entry(&task_queue, struct task, queue);
+
+	if (current_task) {
+		current_task->state = TASK_READY;
 		list_ins(&task_queue, &current_task->queue);
+	}
 	list_del(&next->queue);
 
 	if (preempt)

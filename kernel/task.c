@@ -40,6 +40,7 @@ void tasking_init(void)
 	 * will be saved to turn the stub into a proper task.
 	 */
 	curr = alloc_cache(task_cache);
+	curr->state = TASK_RUNNING;
 	curr->cmdline = kmalloc(2 * sizeof (*curr->cmdline));
 	curr->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
 	strcpy(curr->cmdline[0], "kernel_boot_thread");

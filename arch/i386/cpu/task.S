@@ -88,7 +88,7 @@ load_registers:
 	movl %edx, 4(%ecx)
 	# EIP
 	movl 12(%esp), %edx
-	movl %edx, 4(%ecx)
+	movl %edx, 8(%ecx)
 	movl %ecx, %esp
 
 	# Store ecx and eax of new task on stack.
@@ -116,6 +116,8 @@ load_registers:
 	movl 92(%eax), %ecx
 	movl %ecx, 8(%esp)
 
+	# Set task state to TASK_RUNNING.
+	movl $3, 0(%eax)
 	movl %eax, current_task
 
 	pop %eax

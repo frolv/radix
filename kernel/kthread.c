@@ -56,12 +56,17 @@ struct task *kthread_create(void (*func)(void *), void *arg,
 	va_end(ap);
 	thread->cmdline[1] = NULL;
 
-	sched_add(thread);
 	return thread;
 
 out_thread:
 	task_free(thread);
 	return err;
+}
+
+void kthread_start(struct task *thread)
+{
+	thread->state = TASK_READY;
+	sched_add(thread);
 }
 
 /*
