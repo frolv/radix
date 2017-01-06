@@ -23,18 +23,33 @@
 #include <untitled/sys.h>
 #include <untitled/types.h>
 
+/*
+ * A single task (process/kthread) in the system.
+ *
+ * Rearranging the members of this struct requires changes to be made to
+ * the switch_to_task function.
+ */
 struct task {
+	int state;
+	int priority;
+	int exit_code;
+	void *stack_base;
 	pid_t pid;
 	uid_t uid;
 	gid_t gid;
 	mode_t umask;
-	char **cmdline;
-	char *cwd;
-	int priority;
-	int exit_code;
 	struct regs regs;
 	struct list queue;
-	void *stack_base;
+	char **cmdline;
+	char *cwd;
+};
+
+enum {
+	TASK_STOPPED,
+	TASK_READY,
+	TASK_BLOCKED,
+	TASK_RUNNING,
+	TASK_ZOMBIE
 };
 
 extern struct task *current_task;
