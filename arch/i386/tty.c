@@ -38,25 +38,18 @@ static uint16_t *vga_buf;
 static char tty_buf[TTY_BUFSIZE];
 static char *tty_pos;
 
+static void vga_clear_screen(void);
+
 /* tty_init: initialize tty variables and populate vga buffer */
 void tty_init(void)
 {
-	size_t x, y, ind;
-
-	vga_row = 0;
-	vga_col = 0;
 	vga_fg = VGA_COLOR_WHITE;
 	vga_bg = VGA_COLOR_BLACK;
 	vga_color = vga_entry_color(vga_fg, vga_bg);
 	vga_buf = (uint16_t *)VGA_TEXT_BUFFER_ADDR;
 	tty_pos = tty_buf;
 
-	for (y = 0; y < VGA_HEIGHT; ++y) {
-		for (x = 0; x < VGA_WIDTH; ++x) {
-			ind = y * VGA_WIDTH + x;
-			vga_buf[ind] = vga_entry(' ', vga_color);
-		}
-	}
+	vga_clear_screen();
 }
 
 static void tty_nextrow(void);
@@ -141,6 +134,12 @@ static size_t process_ansi_esc(char *s)
 	cmd = get_ansi_command(s);
 
 	switch (cmd) {
+	case 'J':
+		if (*s != '2')
+			return 0;
+		vga_clear_screen();
+		++n;
+		break;
 	case 'm':
 		n += set_mode(s);
 		if (n == 2)
@@ -214,4 +213,19 @@ static void tty_put(int c, uint8_t color, size_t x, size_t y)
 
 	ind = y * VGA_WIDTH + x;
 	vga_buf[ind] = vga_entry(c, color);
+}
+
+static void vga_clear_screen(void)
+{
+	size_t x, y, ind;
+
+	for (y = 0; y < VGA_HEIGHT; ++y) {
+		for (x = 0; x < VGA_WIDTH; ++x) {
+			ind = y * VGA_WIDTH + x;
+			vga_buf[ind] = vga_entry(' ', vga_color);
+		}
+	}
+
+	vga_row = 0;
+	vga_col = 0;
 }
