@@ -145,6 +145,8 @@ static size_t process_ansi_esc(char *s)
 		if (n == 2)
 			return 0;
 		break;
+	default:
+		return 0;
 	}
 
 	return n;
