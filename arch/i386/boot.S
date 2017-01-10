@@ -162,10 +162,10 @@ kernel_start:
 .section .data
 .align 4
 gdt_msg:
-	.ascii "[GDT] success\n"
+	.ascii "[ \x1b[1;32mOK\x1b[37m ] GDT loaded\n"
 len_gdt_msg:
 	.long . - gdt_msg
 idt_msg:
-	.ascii "[IDT] success\n"
+	.ascii "[ \x1b[1;32mOK\x1b[37m ] IDT loaded\n"
 len_idt_msg:
 	.long . - idt_msg
