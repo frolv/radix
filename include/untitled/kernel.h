@@ -61,6 +61,12 @@ static __always_inline size_t order(size_t n)
 #define _M(n)   (_K(n) * 1024UL)
 #define _G(n)   (_M(n) * 1024UL)
 
+#define BOOT_OK_MSG(msg, ...) \
+	printf("[ \x1B[1;32mOK\x1B[37m ] " msg, ##__VA_ARGS__)
+
+#define BOOT_FAIL_MSG(msg, ...) \
+	printf("[ \x1B[1;34mFAILED\x1B[37m ] " msg, ##__VA_ARGS__)
+
 void panic(const char *err, ...);
 
 #endif /* UNTITLED_KERNEL_H */
