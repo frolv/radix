@@ -18,6 +18,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <untitled/kernel.h>
 #include <untitled/tty.h>
 
 #include "vga.h"
@@ -152,6 +153,12 @@ static size_t process_ansi_esc(char *s)
 	return n;
 }
 
+#define tty_nextcol() \
+	do { \
+		if (++vga_col == VGA_WIDTH) \
+			tty_nextrow(); \
+	} while (0)
+
 /* tty_flush: write tty buffer to vga text buffer */
 void tty_flush(void)
 {
@@ -162,28 +169,26 @@ void tty_flush(void)
 		switch (*s) {
 		case '\n':
 			tty_nextrow();
-			continue;
+			break;
 		case '\t':
-			while ((++vga_col) % TTY_TAB_STOP != 0) {
-				if (vga_col == VGA_WIDTH)
-					tty_nextrow();
-			}
-			continue;
+			do {
+				tty_nextcol();
+			} while (!ALIGNED(vga_col, TTY_TAB_STOP));
+			break;
 		case ASCII_ESC:
 			n = process_ansi_esc(s);
 			if (!n) {
 				tty_put(*s, vga_color, vga_col, vga_row);
-				break;
+				tty_nextcol();
 			} else {
 				s += n;
-				continue;
 			}
+			break;
 		default:
 			tty_put(*s, vga_color, vga_col, vga_row);
+			tty_nextcol();
 			break;
 		}
-		if (++vga_col == VGA_WIDTH)
-			tty_nextrow();
 	}
 	tty_pos = tty_buf;
 }
