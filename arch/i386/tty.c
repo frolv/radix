@@ -18,6 +18,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <untitled/compiler.h>
 #include <untitled/kernel.h>
 #include <untitled/tty.h>
 
@@ -54,7 +55,7 @@ void tty_init(void)
 }
 
 static void tty_nextrow(void);
-static void tty_put(int c, uint8_t color, size_t x, size_t y);
+static __always_inline void tty_put(int c, uint8_t color, size_t x, size_t y);
 
 /* tty_putchar: write character c at current tty position, and increment pos */
 void tty_putchar(int c)
@@ -203,7 +204,7 @@ static void tty_nextrow(void)
 	if (vga_row == VGA_HEIGHT - 1) {
 		/* move each row up by one, discarding the first */
 		memmove(vga_buf, vga_buf + VGA_WIDTH,
-		        vga_row * VGA_WIDTH * sizeof(uint16_t));
+		        vga_row * VGA_WIDTH * sizeof (uint16_t));
 		/* clear the final row */
 		for (x = 0; x < VGA_WIDTH; ++x) {
 			dst = vga_row * VGA_WIDTH + x;
@@ -215,12 +216,9 @@ static void tty_nextrow(void)
 }
 
 /* tty_put: write c to position x, y */
-static void tty_put(int c, uint8_t color, size_t x, size_t y)
+static __always_inline void tty_put(int c, uint8_t color, size_t x, size_t y)
 {
-	size_t ind;
-
-	ind = y * VGA_WIDTH + x;
-	vga_buf[ind] = vga_entry(c, color);
+	vga_buf[y * VGA_WIDTH + x] = vga_entry(c, color);
 }
 
 static void vga_clear_screen(void)
