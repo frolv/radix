@@ -172,6 +172,7 @@ void tty_flush(void)
 			break;
 		case '\t':
 			do {
+				tty_put(' ', vga_color, vga_col, vga_row);
 				tty_nextcol();
 			} while (!ALIGNED(vga_col, TTY_TAB_STOP));
 			break;
