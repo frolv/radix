@@ -16,7 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
 #include <untitled/asm/io.h>
+#include <untitled/irq.h>
+#include <untitled/sched.h>
+#include <untitled/sys.h>
 #include <untitled/types.h>
 
 #define PIT_0   0x40
@@ -38,9 +43,22 @@ static void pit_start(uint16_t divisor)
 	outb(PIT_0, (divisor >> 8) & 0xFF);
 }
 
+/*
+ * pit_irq0:
+ * Timer IRQ handler when PIT is used as system timer.
+ */
+void pit_irq0(struct regs *r)
+{
+	memcpy(&current_task->regs, r, sizeof *r);
+	schedule(0);
+	memcpy(r, &current_task->regs, sizeof *r);
+}
+
 void pit_init(void)
 {
+	/* Run the PIT at 1000 Hz */
 	const int freq = 1000;
 
 	pit_start(pit_divisor(freq));
+	irq_install(TIMER_IRQ, pit_irq0);
 }
