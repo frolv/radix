@@ -77,39 +77,32 @@ void install_interrupt_handler(uint32_t irqno, void (*hnd)(struct regs *))
 {
 	if (irqno >= NUM_IRQS)
 		return;
-	CLI();
 	irq_handlers[irqno] = hnd;
-	STI();
 }
 
 void uninstall_interrupt_handler(uint32_t irqno)
 {
 	if (irqno >= NUM_IRQS)
 		return;
-	CLI();
+
 	irq_handlers[irqno] = NULL;
-	STI();
 }
 
-static volatile int depth;
+static volatile int interrupt_depth = 0;
 
 void interrupt_disable(void)
 {
-	/* interrupts were already enabled; this is first disable */
-	if (irq_active())
-		depth = 1;
-	else
-		++depth;
-
+	++interrupt_depth;
 	CLI();
 }
 
 void interrupt_enable(void)
 {
-	if (depth == 0 || depth == 1)
+	if (interrupt_depth)
+		--interrupt_depth;
+
+	if (!interrupt_depth)
 		STI();
-	else
-		--depth;
 }
 
 static const char *exceptions[] = {
@@ -147,10 +140,13 @@ static const char *exceptions[] = {
 	"Unknown exception"                     /* 0x1F */
 };
 
+static int interrupt = 0;
+
 void interrupt_handler(struct interrupt_regs ir)
 {
 	struct regs r;
 
+	interrupt = 1;
 	save_registers(&ir, &r);
 
 	if (isr_handlers[ir.intno]) {
@@ -164,15 +160,18 @@ void interrupt_handler(struct interrupt_regs ir)
 	}
 
 	load_registers(&ir, &r);
+	interrupt = 0;
+}
+
+int in_interrupt(void)
+{
+	return interrupt;
 }
 
 static void irq_generic(struct regs *r, unsigned int intno)
 {
-	irq_disable();
-
 	if (irq_handlers[intno])
 		irq_handlers[intno](r);
 
 	pic_eoi(intno - 0x20);
-	irq_enable();
 }

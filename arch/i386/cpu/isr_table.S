@@ -4,7 +4,6 @@
 # inspired by toaruos
 .macro ISR_NOERR i
 isr\i:
-	cli
 	push $0
 	push $\i
 	jmp isr_common
@@ -12,14 +11,12 @@ isr\i:
 
 .macro ISR_ERR i
 isr\i:
-	cli
 	push $\i
 	jmp isr_common
 .endm
 
 .macro IRQ i
 irq\i:
-	cli
 	push $0
 	push $(\i + 32)
 	jmp isr_common
@@ -79,7 +76,6 @@ IRQ 15
 
 # system call interrupt
 sysc:
-	cli
 	push $0
 	push $0x80
 	jmp isr_common
