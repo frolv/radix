@@ -19,6 +19,7 @@
 #include <untitled/irq.h>
 #include <untitled/kernel.h>
 #include <untitled/sys.h>
+
 #include "idt.h"
 #include "isr.h"
 #include "pic.h"
@@ -70,9 +71,7 @@ void load_interrupt_routines(void)
 	pic_remap(IRQ_BASE, IRQ_BASE + 8);
 }
 
-#define CLI() asm volatile("cli")
-#define STI() asm volatile("sti")
-
+/* install_interrupt_handler: set a function to handler IRQ `irqno` */
 void install_interrupt_handler(uint32_t irqno, void (*hnd)(struct regs *))
 {
 	if (irqno >= NUM_IRQS)
@@ -80,6 +79,7 @@ void install_interrupt_handler(uint32_t irqno, void (*hnd)(struct regs *))
 	irq_handlers[irqno] = hnd;
 }
 
+/* uninstall_interrupt_handler: remove the handler function for `irqno` */
 void uninstall_interrupt_handler(uint32_t irqno)
 {
 	if (irqno >= NUM_IRQS)
@@ -88,21 +88,14 @@ void uninstall_interrupt_handler(uint32_t irqno)
 	irq_handlers[irqno] = NULL;
 }
 
-static volatile int interrupt_depth = 0;
-
 void interrupt_disable(void)
 {
-	++interrupt_depth;
-	CLI();
+	asm volatile("cli");
 }
 
 void interrupt_enable(void)
 {
-	if (interrupt_depth)
-		--interrupt_depth;
-
-	if (!interrupt_depth)
-		STI();
+	asm volatile("sti");
 }
 
 static const char *exceptions[] = {
@@ -140,8 +133,14 @@ static const char *exceptions[] = {
 	"Unknown exception"                     /* 0x1F */
 };
 
+/* TODO: with multiprocessing, this needs to exist per CPU */
 static int interrupt = 0;
 
+/*
+ * interrupt_handler:
+ * Common interrupt handler. Saves registers and calls handler
+ * for specific interrupt.
+ */
 void interrupt_handler(struct interrupt_regs ir)
 {
 	struct regs r;
