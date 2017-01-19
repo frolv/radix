@@ -19,7 +19,7 @@
 #ifndef UNTITLED_ERRNO_H
 #define UNTITLED_ERRNO_H
 
-#define E2BIG           1       /* arugment list too long */
+#define E2BIG           1       /* argument list too long */
 #define EACCES          2       /* permission denied */
 #define EADDRINUSE      3       /* address in use */
 #define EADDRNOTAVAIL   4       /* address not available */
@@ -67,7 +67,7 @@
 #define ENOEXEC         46      /* executable format error */
 #define ENOLCK          47      /* no locks available */
 #define ENOLINK         48      /* reserved */
-#define ENOMEM          49      /* not enough space */
+#define ENOMEM          49      /* out of memory */
 #define ENOMSG          50      /* no message of the desired type */
 #define ENOPROTOOPT     51      /* protocol not available */
 #define ENOSPC          52      /* no space left on device */
