@@ -89,14 +89,16 @@ void uninstall_interrupt_handler(uint32_t irqno)
 	irq_handlers[irqno] = NULL;
 }
 
+/* interrupt_disable: disable IRQs */
 void interrupt_disable(void)
 {
+	asm volatile("cli");
+
 	if (likely(current_task))
 		current_task->interrupt_depth++;
-
-	asm volatile("cli");
 }
 
+/* interrupt_enable: enable IRQs */
 void interrupt_enable(void)
 {
 	if (likely(current_task)) {
