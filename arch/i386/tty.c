@@ -20,6 +20,7 @@
 #include <string.h>
 #include <untitled/compiler.h>
 #include <untitled/kernel.h>
+#include <untitled/mutex.h>
 #include <untitled/tty.h>
 
 #include "vga.h"
@@ -42,6 +43,9 @@ static char *tty_pos;
 
 static void vga_clear_screen(void);
 
+/* The TTY buffer must be flushed fully to prevent inconsistency. */
+static struct mutex flush_lock;
+
 /* tty_init: initialize tty variables and populate vga buffer */
 void tty_init(void)
 {
@@ -50,6 +54,7 @@ void tty_init(void)
 	vga_color = vga_entry_color(vga_fg, vga_bg);
 	vga_buf = (uint16_t *)VGA_TEXT_BUFFER_ADDR;
 	tty_pos = tty_buf;
+	mutex_init(&flush_lock);
 
 	vga_clear_screen();
 }
@@ -57,11 +62,16 @@ void tty_init(void)
 static void tty_nextrow(void);
 static __always_inline void tty_put(int c, uint8_t color, size_t x, size_t y);
 
+static void __tty_flush_unlocked(void);
+
 /* tty_putchar: write character c at current tty position, and increment pos */
 void tty_putchar(int c)
 {
+	/* flush the tty buffer if it is full */
+	mutex_lock(&flush_lock);
 	if (tty_pos - tty_buf == TTY_BUFSIZE)
-		tty_flush();
+		__tty_flush_unlocked();
+	mutex_unlock(&flush_lock);
 
 	*tty_pos++ = c;
 	if (c == '\n')
@@ -154,14 +164,21 @@ static size_t process_ansi_esc(char *s)
 	return n;
 }
 
+void tty_flush(void)
+{
+	mutex_lock(&flush_lock);
+	__tty_flush_unlocked();
+	mutex_unlock(&flush_lock);
+}
+
 #define tty_nextcol() \
 	do { \
 		if (++vga_col == VGA_WIDTH) \
 			tty_nextrow(); \
 	} while (0)
 
-/* tty_flush: write tty buffer to vga text buffer */
-void tty_flush(void)
+/* __tty_flush_unlocked: write tty buffer to vga text buffer */
+static void __tty_flush_unlocked(void)
 {
 	char *s;
 	size_t n;
