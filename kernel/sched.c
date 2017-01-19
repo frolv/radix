@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <untitled/irq.h>
 #include <untitled/sched.h>
 #include <untitled/task.h>
 
@@ -46,21 +47,49 @@ void schedule(int preempt)
 	if (unlikely(list_empty(&task_queue)))
 		return;
 
+	/*
+	 * Don't allow current task to be preempted by another
+	 * source while it is yielding the CPU.
+	 */
+	if (preempt)
+		irq_disable();
+
 	next = list_first_entry(&task_queue, struct task, queue);
 
-	if (current_task) {
+	/*
+	 * The current task may be blocked, in which case it should not
+	 * be added to the ready queue.
+	 */
+	if (current_task && current_task->state == TASK_RUNNING) {
 		current_task->state = TASK_READY;
 		list_ins(&task_queue, &current_task->queue);
 	}
 	list_del(&next->queue);
 
-	if (preempt)
+	if (preempt) {
 		switch_to_task(next);
-	else
+		irq_enable();
+	} else {
 		current_task = next;
+		current_task->state = TASK_RUNNING;
+	}
 }
 
 void sched_add(struct task *t)
 {
+	t->state = TASK_READY;
+	list_ins(&task_queue, &t->queue);
+}
+
+/*
+ * sched_unblock:
+ * Called when a resource held by `t` becomes available.
+ * Scheduler decides whether to preempt the current thread and run `t`
+ * or to add `t` to the queue of waiting threads.
+ */
+void sched_unblock(struct task *t)
+{
+	/* TODO: since we don't have priorities yet, just add to wait queue */
+	t->state = TASK_READY;
 	list_ins(&task_queue, &t->queue);
 }

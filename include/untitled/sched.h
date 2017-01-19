@@ -57,6 +57,10 @@ extern struct task *current_task;
 void schedule(int preempt);
 
 void sched_init(void);
+
 void sched_add(struct task *t);
+void sched_del(struct task *t);
+
+void sched_unblock(struct task *t);
 
 #endif /* UNTITLED_SCHED_H */
