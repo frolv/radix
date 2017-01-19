@@ -125,13 +125,16 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 	if (ord > PA_MAX_ORDER - 1)
 		return ERR_PTR(EINVAL);
 
-	/* TODO: if zone is full, allocate from another */
 	if (flags & __PA_ZONE_DMA)
 		zone = &zone_dma;
 	else if (flags & __PA_ZONE_USR)
 		zone = &zone_usr;
 	else
 		zone = &zone_reg;
+
+	/* TODO: if zone is full, allocate from another */
+	if (zone->alloc_pages == zone->total_pages)
+		return ERR_PTR(ENOMEM);
 
 	return __alloc_pages(zone, flags, ord);
 }
