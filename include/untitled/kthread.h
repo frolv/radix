@@ -32,6 +32,6 @@ struct task *kthread_run(void (*func)(void *), void *arg,
 void kthread_start(struct task *thread);
 void kthread_stop(struct task *thread);
 
-void kthread_exit(void);
+__noreturn void kthread_exit(void);
 
 #endif /* UNTITLED_KTHREAD_H */

@@ -69,7 +69,7 @@ void kthread_start(struct task *thread)
  * This function is called from within a thread to request termination.
  * All created threads set this function as their base return address.
  */
-void kthread_exit(void)
+__noreturn void kthread_exit(void)
 {
 	struct task *thread;
 	char *s;
@@ -84,4 +84,5 @@ void kthread_exit(void)
 	task_free(current_task);
 	current_task = NULL;
 	schedule(1);
+	__builtin_unreachable();
 }
