@@ -60,7 +60,6 @@ struct task *kthread_create(void (*func)(void *), void *arg,
 
 void kthread_start(struct task *thread)
 {
-	thread->state = TASK_READY;
 	sched_add(thread);
 }
 
