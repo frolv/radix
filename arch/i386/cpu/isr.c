@@ -18,6 +18,7 @@
 
 #include <untitled/irq.h>
 #include <untitled/kernel.h>
+#include <untitled/sched.h>
 #include <untitled/sys.h>
 
 #include "idt.h"
@@ -90,12 +91,23 @@ void uninstall_interrupt_handler(uint32_t irqno)
 
 void interrupt_disable(void)
 {
+	if (likely(current_task))
+		current_task->interrupt_depth++;
+
 	asm volatile("cli");
 }
 
 void interrupt_enable(void)
 {
-	asm volatile("sti");
+	if (likely(current_task)) {
+		if (current_task->interrupt_depth)
+			current_task->interrupt_depth--;
+
+		if (!current_task->interrupt_depth)
+			asm volatile("sti");
+	} else {
+		asm volatile("sti");
+	}
 }
 
 static const char *exceptions[] = {

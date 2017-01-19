@@ -33,13 +33,14 @@ struct task {
 	int state;
 	int priority;
 	int exit_code;
-	void *stack_base;
+	int interrupt_depth;
 	pid_t pid;
 	uid_t uid;
 	gid_t gid;
 	mode_t umask;
 	struct regs regs;
 	struct list queue;
+	void *stack_base;
 	char **cmdline;
 	char *cwd;
 };
