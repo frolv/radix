@@ -26,6 +26,7 @@
 #define __ARCH_TIMER_IRQ        0x0
 #define __ARCH_KBD_IRQ          0x1
 
+#define __arch_in_irq           in_interrupt
 #define __arch_irq_active       interrupts_active
 #define __arch_irq_disable      interrupt_disable
 #define __arch_irq_enable       interrupt_enable
@@ -36,6 +37,7 @@
 
 #include <untitled/sys.h>
 
+int in_interrupt(void);
 void interrupt_disable(void);
 void interrupt_enable(void);
 void install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
