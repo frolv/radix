@@ -21,6 +21,8 @@
 
 #include <untitled/list.h>
 
+#define MUTEX_INIT(name) { 0, LIST_INIT((name).queue) }
+
 struct mutex {
 	int             count;
 	struct list     queue;

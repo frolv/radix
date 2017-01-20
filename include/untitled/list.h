@@ -26,6 +26,8 @@ struct list {
 	struct list *prev;
 };
 
+#define LIST_INIT(name) { &(name), &(name) }
+
 static __always_inline void list_init(struct list *list)
 {
 	list->next = list->prev = list;
