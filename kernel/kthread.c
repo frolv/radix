@@ -23,38 +23,54 @@
 #include <untitled/slab.h>
 #include <untitled/task.h>
 
+static struct task *__kthread_create(void (*func)(void *), void *arg,
+                                     int page_order);
+static void kthread_set_name(struct task *thread, char *name, va_list ap);
+
+/*
+ * kthread_create:
+ * Create a kernel thread to run function `func` with argument `arg`,
+ * and a kernel stack size specified by `page_order`.
+ */
 struct task *kthread_create(void (*func)(void *), void *arg,
                             int page_order, char *name, ...)
 {
 	struct task *thread;
-	struct page *p;
-	addr_t stack_top;
 	va_list ap;
 
 	if (unlikely(!name))
 		return ERR_PTR(EINVAL);
 
-	thread = kthread_task();
+	thread = __kthread_create(func, arg, page_order);
 	if (IS_ERR(thread))
 		return thread;
 
-	p = alloc_pages(PA_STANDARD, page_order);
-	if (IS_ERR(p)) {
-		task_free(thread);
-		return (void *)p;
-	}
-
-	stack_top = (addr_t)p->mem + POW2(page_order) * PAGE_SIZE - 0x10;
-	kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
-	thread->stack_base = p->mem;
-
-	thread->cmdline = kmalloc(2 * sizeof *thread->cmdline);
-	thread->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
 	va_start(ap, name);
-	vsnprintf(thread->cmdline[0], KTHREAD_NAME_LEN, name, ap);
+	kthread_set_name(thread, name, ap);
 	va_end(ap);
-	thread->cmdline[1] = NULL;
 
+	return thread;
+}
+
+/* kthread_run: create a kernel thread and immediately start running it */
+struct task *kthread_run(void (*func)(void *), void *arg,
+                         int page_order, char *name, ...)
+{
+	struct task *thread;
+	va_list ap;
+
+	if (unlikely(!name))
+		return ERR_PTR(EINVAL);
+
+	thread = __kthread_create(func, arg, page_order);
+	if (IS_ERR(thread))
+		return thread;
+
+	va_start(ap, name);
+	kthread_set_name(thread, name, ap);
+	va_end(ap);
+
+	kthread_start(thread);
 	return thread;
 }
 
@@ -84,4 +100,36 @@ __noreturn void kthread_exit(void)
 	current_task = NULL;
 	schedule(1);
 	__builtin_unreachable();
+}
+
+static struct task *__kthread_create(void (*func)(void *), void *arg,
+                                     int page_order)
+{
+	struct task *thread;
+	struct page *p;
+	addr_t stack_top;
+
+	thread = kthread_task();
+	if (IS_ERR(thread))
+		return thread;
+
+	p = alloc_pages(PA_STANDARD, page_order);
+	if (IS_ERR(p)) {
+		task_free(thread);
+		return (void *)p;
+	}
+
+	stack_top = (addr_t)p->mem + POW2(page_order) * PAGE_SIZE - 0x10;
+	kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
+	thread->stack_base = p->mem;
+
+	return thread;
+}
+
+static void kthread_set_name(struct task *thread, char *name, va_list ap)
+{
+	thread->cmdline = kmalloc(2 * sizeof *thread->cmdline);
+	thread->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
+	vsnprintf(thread->cmdline[0], KTHREAD_NAME_LEN, name, ap);
+	thread->cmdline[1] = NULL;
 }
