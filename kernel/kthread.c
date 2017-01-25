@@ -87,12 +87,12 @@ void kthread_start(struct task *thread)
 __noreturn void kthread_exit(void)
 {
 	struct task *thread;
-	char *s;
+	char **s;
 
 	thread = current_task;
 	free_pages(thread->stack_base);
 
-	for (s = *thread->cmdline; *s; ++s)
+	for (s = thread->cmdline; *s; ++s)
 		kfree(s);
 	kfree(thread->cmdline);
 
