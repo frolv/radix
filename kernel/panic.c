@@ -18,6 +18,7 @@
 
 #include <untitled/irq.h>
 #include <untitled/kernel.h>
+#include <untitled/tty.h>
 #include <stdio.h>
 
 /*
@@ -36,6 +37,7 @@ void panic(const char *err, ...)
 	va_start(ap, err);
 	vprintf(err, ap);
 	va_end(ap);
+	tty_flush();
 
 	DIE();
 }
