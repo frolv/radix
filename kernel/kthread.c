@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <untitled/irq.h>
 #include <untitled/kernel.h>
 #include <untitled/kthread.h>
 #include <untitled/mm.h>
@@ -87,16 +88,17 @@ void kthread_start(struct task *thread)
 __noreturn void kthread_exit(void)
 {
 	struct task *thread;
-	char *s;
+	char **s;
 
+	irq_disable();
 	thread = current_task;
 	free_pages(thread->stack_base);
 
-	for (s = *thread->cmdline; *s; ++s)
+	for (s = thread->cmdline; *s; ++s)
 		kfree(s);
 	kfree(thread->cmdline);
 
-	task_free(current_task);
+	task_free(thread);
 	current_task = NULL;
 	schedule(1);
 	__builtin_unreachable();
