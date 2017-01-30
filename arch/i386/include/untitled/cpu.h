@@ -39,4 +39,25 @@
 #define EFLAGS_VIP      (1 << 20)
 #define EFLAGS_ID       (1 << 21)
 
+#include <untitled/compiler.h>
+
+static __always_inline unsigned long cpuid_supported(void)
+{
+	unsigned long res;
+
+	asm volatile("pushf;"
+		     "pop %%eax;"
+		     "movl %%eax, %%ecx;"
+		     "xorl $0x200000, %%eax;"
+		     "push %%eax;"
+		     "popf;"
+		     "pushf;"
+		     "pop %%eax;"
+		     "xorl %%ecx, %%eax;"
+		     : "=a"(res)
+		     :
+		     : "%ecx");
+	return res;
+}
+
 #endif /* ARCH_I386_UNTITLED_CPU_H */
