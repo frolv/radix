@@ -53,11 +53,18 @@ static __always_inline unsigned long cpuid_supported(void)
 		     "popf;"
 		     "pushf;"
 		     "pop %%eax;"
-		     "xorl %%ecx, %%eax;"
+		     "xorl %%ecx, %%eax"
 		     : "=a"(res)
 		     :
 		     : "%ecx");
 	return res;
 }
+
+#define cpuid(n, a, b, c, d) \
+	asm volatile("xchg %%ebx, %1;" \
+		     "cpuid;" \
+		     "xchg %%ebx, %1" \
+		     : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
+		     : "0"(n))
 
 #endif /* ARCH_I386_UNTITLED_CPU_H */
