@@ -39,6 +39,24 @@
 #define EFLAGS_VIP      (1 << 20)
 #define EFLAGS_ID       (1 << 21)
 
+#define CPU_VENDOR_AMD          "AuthenticAMD"
+#define CPU_VENDOR_CENTAUR      "CentaurHauls"
+#define CPU_VENDOR_CYRIX        "CyrixInstead"
+#define CPU_VENDOR_INTEL        "GenuineIntel"
+#define CPU_VENDOR_TRANSMETA    "GenuineTMx86"
+#define CPU_VENDOR_NEXGEN       "NexGenDriven"
+#define CPU_VENDOR_RISE         "RiseRiseRise"
+#define CPU_VENDOR_SIS          "SiS SiS SiS "
+#define CPU_VENDOR_UMC          "UMC UMC UMC "
+#define CPU_VENDOR_VIA          "VIA VIA VIA "
+#define CPU_VENDOR_VORTEX       "Vortex86 SoC"
+
+#define CPU_VENDOR_KVM          "KVMKVMKVM"
+#define CPU_VENDOR_HYPERV       "Microsoft Hv"
+#define CPU_VENDOR_VMWARE       "VMwareWMware"
+#define CPU_VENDOR_PARALLELS    " lrpepyh vr"
+#define CPU_VENDOR_XENHVM       "XenVMMXenVMM"
+
 #include <untitled/compiler.h>
 
 static __always_inline unsigned long cpuid_supported(void)
