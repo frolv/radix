@@ -122,6 +122,9 @@ higher_half_start:
 	# Intitialize the TTY.
 	call tty_init
 
+	# Find out information about the CPU.
+	call read_cpu_info
+
 # Load the global descriptor table.
 load_gdt:
 	call gdt_init
