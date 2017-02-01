@@ -57,6 +57,38 @@
 #define CPU_VENDOR_PARALLELS    " lrpepyh vr"
 #define CPU_VENDOR_XENHVM       "XenVMMXenVMM"
 
+/* cpuid 0x1 EDX bits */
+#define CPUID_FPU       (1 << 0)
+#define CPUID_VME       (1 << 1)
+#define CPUID_DE        (1 << 2)
+#define CPUID_PSE       (1 << 3)
+#define CPUID_TSC       (1 << 4)
+#define CPUID_MSR       (1 << 5)
+#define CPUID_PAE       (1 << 6)
+#define CPUID_MCE       (1 << 7)
+#define CPUID_CX8       (1 << 8)
+#define CPUID_APIC      (1 << 9)
+#define CPUID_SEP       (1 << 11)
+#define CPUID_MTRR      (1 << 12)
+#define CPUID_PGE       (1 << 13)
+#define CPUID_MCA       (1 << 14)
+#define CPUID_CMOV      (1 << 15)
+#define CPUID_PAT       (1 << 16)
+#define CPUID_PSE36     (1 << 17)
+#define CPUID_PSN       (1 << 18)
+#define CPUID_CLFSH     (1 << 19)
+#define CPUID_DS        (1 << 21)
+#define CPUID_ACPI      (1 << 22)
+#define CPUID_MMX       (1 << 23)
+#define CPUID_FXSR      (1 << 24)
+#define CPUID_SSE       (1 << 25)
+#define CPUID_SSE2      (1 << 26)
+#define CPUID_SS        (1 << 27)
+#define CPUID_HTT       (1 << 28)
+#define CPUID_TM        (1 << 29)
+#define CPUID_IA64      (1 << 30)
+#define CPUID_PBE       (1 << 31)
+
 #include <untitled/compiler.h>
 
 static __always_inline unsigned long cpuid_supported(void)
@@ -84,5 +116,7 @@ static __always_inline unsigned long cpuid_supported(void)
 		     "xchg %%ebx, %1" \
 		     : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
 		     : "0"(n))
+
+int cpu_has_apic(void);
 
 #endif /* ARCH_I386_UNTITLED_CPU_H */
