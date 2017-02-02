@@ -71,6 +71,7 @@ enum {
 #define PAGE_SIZE_1G     (1 << 4)
 
 static void read_cache_info(void);
+static void extended_processor_info(void);
 
 void read_cpu_info(void)
 {
@@ -114,6 +115,7 @@ void read_cpu_info(void)
 	}
 
 	cache_str();
+	extended_processor_info();
 }
 
 int cpu_has_apic(void)
@@ -773,6 +775,33 @@ static void read_cache_info(void)
 	} while (--nreads);
 }
 
+/* full name of processor */
+static char processor_name[64];
+
+/*
+ * extended_processor_info:
+ * Read and extract information from the extended (0x80000000+)
+ * cpuid instructions.
+ */
+static void extended_processor_info(void)
+{
+	unsigned long buf[4];
+	char *pos;
+	unsigned int i;
+
+	cpuid(0x80000000, buf[0], buf[1], buf[2], buf[3]);
+
+	/* read full processor name */
+	if (buf[0] >= 0x80000004) {
+		pos = processor_name;
+		for (i = 0x80000002; i < 0x80000005; ++i) {
+			cpuid(i, buf[0], buf[1], buf[2], buf[3]);
+			memcpy(pos, buf, sizeof buf);
+			pos += 0x10;
+		}
+	}
+}
+
 /*
  * Nothing but silly printing functions below.
  * Turn around now.
@@ -809,7 +838,7 @@ static char *print_tlb(char *pos)
 	int printed = 0;
 
 	if (cache_info.tlbi_page_size) {
-		pos += sprintf(pos, "TLBi:\t");
+		pos += sprintf(pos, "TLBi:\t\t");
 		if (cache_info.tlbi_page_size & PAGE_SIZE_4K) {
 			pos += sprintf(pos, "4K");
 			printed = 1;
@@ -845,7 +874,7 @@ static char *print_tlb(char *pos)
 
 	printed = 0;
 	if (cache_info.tlbd_page_size) {
-		pos += sprintf(pos, "TLBd:\t");
+		pos += sprintf(pos, "TLBd:\t\t");
 		if (cache_info.tlbd_page_size & PAGE_SIZE_4K) {
 			pos += sprintf(pos, "4K");
 			printed = 1;
@@ -885,28 +914,28 @@ static char *print_tlb(char *pos)
 char *print_caches(char *pos)
 {
 	if (cache_info.l1i_size) {
-		pos += sprintf(pos, "L1i:\t%lu KiB, %lu byte lines, "
+		pos += sprintf(pos, "L1i:\t\t%lu KiB, %lu byte lines, "
 			       "%s associativity\n",
 			       cache_info.l1i_size / _K(1),
 			       cache_info.l1i_line_size,
 			       cache_assoc_str(cache_info.l1i_assoc));
 	}
 	if (cache_info.l1d_size) {
-		pos += sprintf(pos, "L1d:\t%lu KiB, %lu byte lines, "
+		pos += sprintf(pos, "L1d:\t\t%lu KiB, %lu byte lines, "
 			       "%s associativity\n",
 			       cache_info.l1d_size / _K(1),
 			       cache_info.l1d_line_size,
 			       cache_assoc_str(cache_info.l1d_assoc));
 	}
 	if (cache_info.l2_size) {
-		pos += sprintf(pos, "L2:\t%lu KiB, %lu byte lines, "
+		pos += sprintf(pos, "L2:\t\t%lu KiB, %lu byte lines, "
 			       "%s associativity\n",
 			       cache_info.l2_size / _K(1),
 			       cache_info.l2_line_size,
 			       cache_assoc_str(cache_info.l2_assoc));
 	}
 	if (cache_info.l3_size) {
-		pos += sprintf(pos, "L3:\t%lu KiB, %lu byte lines, "
+		pos += sprintf(pos, "L3:\t\t%lu KiB, %lu byte lines, "
 			       "%s associativity\n",
 			       cache_info.l3_size / _K(1),
 			       cache_info.l3_line_size,
@@ -929,7 +958,7 @@ char *cache_str(void)
 		pos = print_tlb(pos);
 		pos = print_caches(pos);
 		if (cache_info.prefetching)
-			pos += sprintf(pos, "%lu byte prefetching",
+			pos += sprintf(pos, "Prefetch:\t%lu bytes",
 				       cache_info.prefetching);
 		if (*--pos == '\n')
 			*pos = '\0';
