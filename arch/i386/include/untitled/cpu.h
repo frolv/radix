@@ -19,26 +19,6 @@
 #ifndef ARCH_I386_UNTITLED_CPU_H
 #define ARCH_I386_UNTITLED_CPU_H
 
-#define CACHE_LINE_SIZE 64
-
-#define EFLAGS_CF       (1 << 0)
-#define EFLAGS_PF       (1 << 2)
-#define EFLAGS_AF       (1 << 4)
-#define EFLAGS_ZF       (1 << 6)
-#define EFLAGS_SF       (1 << 7)
-#define EFLAGS_TF       (1 << 8)
-#define EFLAGS_IF       (1 << 9)
-#define EFLAGS_DF       (1 << 10)
-#define EFLAGS_OF       (1 << 11)
-#define EFLAGS_IOPL     ((1 << 12) | (1 << 13))
-#define EFLAGS_NT       (1 << 14)
-#define EFLAGS_RF       (1 << 16)
-#define EFLAGS_VM       (1 << 17)
-#define EFLAGS_AC       (1 << 18)
-#define EFLAGS_VIF      (1 << 19)
-#define EFLAGS_VIP      (1 << 20)
-#define EFLAGS_ID       (1 << 21)
-
 #define CPU_VENDOR_AMD          "AuthenticAMD"
 #define CPU_VENDOR_CENTAUR      "CentaurHauls"
 #define CPU_VENDOR_CYRIX        "CyrixInstead"
@@ -89,6 +69,25 @@
 #define CPUID_IA64      (1 << 30)
 #define CPUID_PBE       (1 << 31)
 
+/* EFLAGS register bits */
+#define EFLAGS_CF       (1 << 0)
+#define EFLAGS_PF       (1 << 2)
+#define EFLAGS_AF       (1 << 4)
+#define EFLAGS_ZF       (1 << 6)
+#define EFLAGS_SF       (1 << 7)
+#define EFLAGS_TF       (1 << 8)
+#define EFLAGS_IF       (1 << 9)
+#define EFLAGS_DF       (1 << 10)
+#define EFLAGS_OF       (1 << 11)
+#define EFLAGS_IOPL     ((1 << 12) | (1 << 13))
+#define EFLAGS_NT       (1 << 14)
+#define EFLAGS_RF       (1 << 16)
+#define EFLAGS_VM       (1 << 17)
+#define EFLAGS_AC       (1 << 18)
+#define EFLAGS_VIF      (1 << 19)
+#define EFLAGS_VIP      (1 << 20)
+#define EFLAGS_ID       (1 << 21)
+
 #include <untitled/compiler.h>
 
 static __always_inline unsigned long cpuid_supported(void)
@@ -110,13 +109,16 @@ static __always_inline unsigned long cpuid_supported(void)
 	return res;
 }
 
-#define cpuid(n, a, b, c, d) \
+#define cpuid(eax, a, b, c, d) \
 	asm volatile("xchg %%ebx, %1;" \
 		     "cpuid;" \
 		     "xchg %%ebx, %1" \
 		     : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
-		     : "0"(n))
+		     : "0"(eax))
 
 int cpu_has_apic(void);
+char *cache_str(void);
+
+#define CACHE_LINE_SIZE 64
 
 #endif /* ARCH_I386_UNTITLED_CPU_H */

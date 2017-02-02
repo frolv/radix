@@ -123,6 +123,8 @@ int cpu_has_apic(void)
 	return cpu_info[3] & CPUID_APIC;
 }
 
+static void read_cpuid4(void);
+
 /*
  * read_cache_info:
  * Parse CPU cache and TLB information from cpuid 0x2.
@@ -768,11 +770,106 @@ static void read_cache_info(void)
 			case 0xF1:
 				cache_info.prefetching = 128;
 				break;
+			case 0xFF:
+				/*
+				 * Special descriptor indicating to use
+				 * cpuid 0x4 to determine cache information.
+				 */
+				read_cpuid4();
+				break;
 			default:
 				break;
 			}
 		}
 	} while (--nreads);
+}
+
+static __always_inline unsigned long to_assoc(unsigned long n)
+{
+	switch(n) {
+	case 2:
+		return CACHE_ASSOC_2WAY;
+	case 4:
+		return CACHE_ASSOC_4WAY;
+	case 6:
+		return CACHE_ASSOC_6WAY;
+	case 8:
+		return CACHE_ASSOC_8WAY;
+	case 12:
+		return CACHE_ASSOC_12WAY;
+	case 16:
+		return CACHE_ASSOC_16WAY;
+	case 24:
+		return CACHE_ASSOC_24WAY;
+	default:
+		return CACHE_ASSOC_FULL;
+	}
+}
+
+/*
+ * read_cpuid4:
+ * Extract cache information from cpuid 0x4.
+ */
+static void read_cpuid4(void)
+{
+	unsigned long buf[4];
+	unsigned long cache_level, cache_type;
+	unsigned long *size, *line_size, *assoc;
+	unsigned int i;
+
+	i = 0;
+	while (1) {
+		/*
+		 * The value of register ECX tells cpuid 0x4 which cache
+		 * information to return.
+		 * This is typically 0: L1d, 1: L1i, 2: L2, 3: L3.
+		 * We keep trying until we run out of caches.
+		 */
+		asm volatile("movl %0, %%ecx;" : : "r"(i) : "%ecx");
+		cpuid(4, buf[0], buf[1], buf[2], buf[3]);
+
+		/* Identify the actual level of the cache. */
+		cache_level = (buf[0] >> 5) & 0x7;
+		if (!cache_level)
+			break;
+
+		/* type of cache; 1: data, 2: instruction, 3: unified */
+		cache_type = buf[0] & 0x1F;
+
+		switch (cache_level) {
+		case 1:
+			if (cache_type == 1) {
+				size = &cache_info.l1d_size;
+				line_size = &cache_info.l1d_line_size;
+				assoc = &cache_info.l1d_assoc;
+			} else if (cache_type == 2) {
+				size = &cache_info.l1i_size;
+				line_size = &cache_info.l1i_line_size;
+				assoc = &cache_info.l1i_assoc;
+			} else {
+				continue;
+			}
+			break;
+		case 2:
+			size = &cache_info.l2_size;
+			line_size = &cache_info.l2_line_size;
+			assoc = &cache_info.l2_assoc;
+			break;
+		case 3:
+			size = &cache_info.l3_size;
+			line_size = &cache_info.l3_line_size;
+			assoc = &cache_info.l3_assoc;
+			break;
+		default:
+			continue;
+		}
+
+		*size = _K(buf[2] + 1);
+		*line_size = (buf[1] & 0xFFF) + 1;
+		*assoc = to_assoc((buf[1] >> 22) + 1);
+
+		++i;
+	}
 }
 
 /* full name of processor */
