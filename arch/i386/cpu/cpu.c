@@ -813,7 +813,7 @@ static __always_inline unsigned long to_assoc(unsigned long n)
 static void read_cpuid4(void)
 {
 	unsigned long buf[4];
-	unsigned long cache_level, cache_type;
+	unsigned long cache_level, cache_type, a;
 	unsigned long *size, *line_size, *assoc;
 	unsigned int i;
 
@@ -864,9 +864,16 @@ static void read_cpuid4(void)
 			continue;
 		}
 
-		*size = _K(buf[2] + 1);
+		a = (buf[1] >> 22) + 1;
+		*assoc = to_assoc(a);
 		*line_size = (buf[1] & 0xFFF) + 1;
-		*assoc = to_assoc((buf[1] >> 22) + 1);
+
+		/*
+		 * cache size = ways * partitions * line size * sets
+		 *            = a * (EBX[21:12] + 1) * line_size * (ECX + 1)
+		 */
+		*size = a * (((buf[1] >> 12) & 0x3FF) + 1) *
+			*line_size * (buf[2] + 1);
 
 		++i;
 	}
