@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <untitled/cpu.h>
 #include <untitled/kernel.h>
@@ -111,6 +112,8 @@ void read_cpu_info(void)
 		cache_info.tlbd_entries = 64;
 		cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 	}
+
+	cache_str();
 }
 
 int cpu_has_apic(void)
@@ -768,4 +771,169 @@ static void read_cache_info(void)
 			}
 		}
 	} while (--nreads);
+}
+
+/*
+ * Nothing but silly printing functions below.
+ * Turn around now.
+ */
+
+static char cache_info_buf[512];
+
+static char *cache_assoc_str(int assoc)
+{
+	switch(assoc) {
+	case CACHE_ASSOC_2WAY:
+		return "2-way";
+	case CACHE_ASSOC_4WAY:
+		return "4-way";
+	case CACHE_ASSOC_6WAY:
+		return "6-way";
+	case CACHE_ASSOC_8WAY:
+		return "8-way";
+	case CACHE_ASSOC_12WAY:
+		return "12-way";
+	case CACHE_ASSOC_16WAY:
+		return "16-way";
+	case CACHE_ASSOC_24WAY:
+		return "24-way";
+	case CACHE_ASSOC_FULL:
+		return "full";
+	default:
+		return "";
+	}
+}
+
+static char *print_tlb(char *pos)
+{
+	int printed = 0;
+
+	if (cache_info.tlbi_page_size) {
+		pos += sprintf(pos, "TLBi:\t");
+		if (cache_info.tlbi_page_size & PAGE_SIZE_4K) {
+			pos += sprintf(pos, "4K");
+			printed = 1;
+		}
+		if (cache_info.tlbi_page_size & PAGE_SIZE_2M) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "2M");
+			printed = 1;
+		}
+		if (cache_info.tlbi_page_size & PAGE_SIZE_4M) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "4M");
+			printed = 1;
+		}
+		if (cache_info.tlbi_page_size & PAGE_SIZE_256M) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "256M");
+			printed = 1;
+		}
+		if (cache_info.tlbi_page_size & PAGE_SIZE_1G) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "1G");
+			printed = 1;
+		}
+		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
+			       cache_info.tlbi_entries,
+			       cache_assoc_str(cache_info.tlbi_assoc));
+	}
+
+	printed = 0;
+	if (cache_info.tlbd_page_size) {
+		pos += sprintf(pos, "TLBd:\t");
+		if (cache_info.tlbd_page_size & PAGE_SIZE_4K) {
+			pos += sprintf(pos, "4K");
+			printed = 1;
+		}
+		if (cache_info.tlbd_page_size & PAGE_SIZE_2M) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "2M");
+			printed = 1;
+		}
+		if (cache_info.tlbd_page_size & PAGE_SIZE_4M) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "4M");
+			printed = 1;
+		}
+		if (cache_info.tlbd_page_size & PAGE_SIZE_256M) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "256M");
+			printed = 1;
+		}
+		if (cache_info.tlbd_page_size & PAGE_SIZE_1G) {
+			if (printed)
+				*pos++ = '/';
+			pos += sprintf(pos, "1G");
+			printed = 1;
+		}
+		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
+			       cache_info.tlbd_entries,
+			       cache_assoc_str(cache_info.tlbd_assoc));
+	}
+
+	return pos;
+}
+
+char *print_caches(char *pos)
+{
+	if (cache_info.l1i_size) {
+		pos += sprintf(pos, "L1i:\t%lu KiB, %lu byte lines, "
+			       "%s associativity\n",
+			       cache_info.l1i_size / _K(1),
+			       cache_info.l1i_line_size,
+			       cache_assoc_str(cache_info.l1i_assoc));
+	}
+	if (cache_info.l1d_size) {
+		pos += sprintf(pos, "L1d:\t%lu KiB, %lu byte lines, "
+			       "%s associativity\n",
+			       cache_info.l1d_size / _K(1),
+			       cache_info.l1d_line_size,
+			       cache_assoc_str(cache_info.l1d_assoc));
+	}
+	if (cache_info.l2_size) {
+		pos += sprintf(pos, "L2:\t%lu KiB, %lu byte lines, "
+			       "%s associativity\n",
+			       cache_info.l2_size / _K(1),
+			       cache_info.l2_line_size,
+			       cache_assoc_str(cache_info.l2_assoc));
+	}
+	if (cache_info.l3_size) {
+		pos += sprintf(pos, "L3:\t%lu KiB, %lu byte lines, "
+			       "%s associativity\n",
+			       cache_info.l3_size / _K(1),
+			       cache_info.l3_line_size,
+			       cache_assoc_str(cache_info.l3_assoc));
+	}
+	return pos;
+}
+
+/*
+ * cache_str:
+ * Return a beautifully formatted string detailing CPU cache information.
+ */
+char *cache_str(void)
+{
+	char *pos;
+
+	if (!cache_info_buf[0]) {
+		pos = cache_info_buf;
+		pos += sprintf(pos, "CPU cache information:\n");
+		pos = print_tlb(pos);
+		pos = print_caches(pos);
+		if (cache_info.prefetching)
+			pos += sprintf(pos, "%lu byte prefetching",
+				       cache_info.prefetching);
+		if (*--pos == '\n')
+			*pos = '\0';
+	}
+
+	return cache_info_buf;
 }
