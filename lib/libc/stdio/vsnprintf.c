@@ -85,7 +85,7 @@ int vsnprintf(char *str, size_t size, const char *format, va_list ap)
 	}
 	*str = '\0';
 
-	return n + 1;
+	return n;
 }
 
 static int write_str(char *str, size_t n, const char *s, struct printf_format *p)
