@@ -40,19 +40,6 @@ struct cpu_cache {
 #define MAX_CACHES 10
 
 static struct cache_info {
-	unsigned long l1i_size;
-	unsigned long l1i_line_size;
-	unsigned long l1i_assoc;
-	unsigned long l1d_size;
-	unsigned long l1d_line_size;
-	unsigned long l1d_assoc;
-	unsigned long l2_size;
-	unsigned long l2_line_size;
-	unsigned long l2_assoc;
-	unsigned long l3_size;
-	unsigned long l3_line_size;
-	unsigned long l3_assoc;
-
 	struct cpu_cache        caches[MAX_CACHES];
 	unsigned int            ncaches;
 	unsigned long           line_size;
@@ -134,7 +121,6 @@ void read_cpu_info(void)
 		cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 	}
 
-	printf("%u %u\n", sizeof (struct cpu_cache), sizeof cache_info);
 	cache_str();
 	extended_processor_info();
 }
@@ -838,7 +824,7 @@ static void extended_processor_info(void)
 
 static char cache_info_buf[512];
 
-static char *cache_assoc_str(int assoc)
+static char *assoc_str(int assoc)
 {
 	switch(assoc) {
 	case CACHE_ASSOC_2WAY:
@@ -898,7 +884,7 @@ static char *print_tlb(char *pos)
 		}
 		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
 			       cache_info.tlbi_entries,
-			       cache_assoc_str(cache_info.tlbi_assoc));
+			       assoc_str(cache_info.tlbi_assoc));
 	}
 
 	printed = 0;
@@ -934,41 +920,26 @@ static char *print_tlb(char *pos)
 		}
 		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
 			       cache_info.tlbd_entries,
-			       cache_assoc_str(cache_info.tlbd_assoc));
+			       assoc_str(cache_info.tlbd_assoc));
 	}
 
 	return pos;
 }
 
+#define assoc_char(a) (((a) == 1) ? 'd' : ((a) == 2 ? 'i' : 'u'))
+
 char *print_caches(char *pos)
 {
-	if (cache_info.l1i_size) {
-		pos += sprintf(pos, "L1i:\t\t%lu KiB, %lu byte lines, "
-			       "%s associativity\n",
-			       cache_info.l1i_size / _K(1),
-			       cache_info.l1i_line_size,
-			       cache_assoc_str(cache_info.l1i_assoc));
-	}
-	if (cache_info.l1d_size) {
-		pos += sprintf(pos, "L1d:\t\t%lu KiB, %lu byte lines, "
-			       "%s associativity\n",
-			       cache_info.l1d_size / _K(1),
-			       cache_info.l1d_line_size,
-			       cache_assoc_str(cache_info.l1d_assoc));
-	}
-	if (cache_info.l2_size) {
-		pos += sprintf(pos, "L2:\t\t%lu KiB, %lu byte lines, "
-			       "%s associativity\n",
-			       cache_info.l2_size / _K(1),
-			       cache_info.l2_line_size,
-			       cache_assoc_str(cache_info.l2_assoc));
-	}
-	if (cache_info.l3_size) {
-		pos += sprintf(pos, "L3:\t\t%lu KiB, %lu byte lines, "
-			       "%s associativity\n",
-			       cache_info.l3_size / _K(1),
-			       cache_info.l3_line_size,
-			       cache_assoc_str(cache_info.l3_assoc));
+	unsigned int i;
+
+	for (i = 0; i < cache_info.ncaches; ++i) {
+		pos += sprintf(pos, "L%u%c:\t\t%lu KiB, %lu byte lines, "
+		               "%s associativity\n",
+		               cache_info.caches[i].id & 0xF,
+		               assoc_char(cache_info.caches[i].id >> 4),
+		               cache_info.caches[i].size / _K(1),
+		               cache_info.caches[i].line_size,
+		               assoc_str(cache_info.caches[i].associativity));
 	}
 	return pos;
 }
