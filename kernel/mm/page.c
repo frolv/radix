@@ -16,7 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <string.h>
 #include <untitled/kernel.h>
 #include <untitled/mm.h>
@@ -37,7 +36,7 @@ static struct buddy zone_usr;
 /* total amount of usable memory in the system */
 uint64_t totalmem = 0;
 
-uint64_t zone_reg_end = 0;
+static uint64_t zone_reg_end = 0;
 
 static int next_phys_region(struct multiboot_info *mbt,
                             uint64_t *base, uint64_t *len);
@@ -67,16 +66,14 @@ void buddy_init(struct multiboot_info *mbt)
 		if (base != next)
 			init_region(next, base - next, PM_PAGE_INVALID);
 
-		if (base + len >= MEM_LIMIT - PAGE_SIZE) {
-			printf("\nThis system appears to have more than the "
-			       "supported limit\nof %llu MiB of memory. Only "
-			       "the first %llu MiB will be used.\n\n",
-			       MEM_LIMIT / _M(1), MEM_LIMIT / _M(1));
+		if (base + len >= MEM_LIMIT - PAGE_SIZE)
 			break;
-		}
+
 		init_region(base, len, 0);
 		next = base + len;
 	}
+	/* map and invalidate all remaining memory */
+	init_region(next, ALIGN(totalmem, PAGE_SIZE) - next, PM_PAGE_INVALID);
 
 	/*
 	 * The regular zone is the memory that is set aside for kernel usage.
@@ -84,14 +81,10 @@ void buddy_init(struct multiboot_info *mbt)
 	 * or a maximum of 1 GiB.
 	 */
 	zone_reg_end = totalmem / 4;
-	if (zone_reg_end < _M(20)) {
-		if (totalmem > _M(16))
-			zone_reg_end = _M(20);
-		else
-			zone_reg_end = 0;
-	} else if (zone_reg_end > PGDIR_BASE - KERNEL_VIRTUAL_BASE) {
+	if (zone_reg_end < _M(20))
+		zone_reg_end = totalmem > _M(16) ? _M(20) : 0;
+	else if (zone_reg_end > PGDIR_BASE - KERNEL_VIRTUAL_BASE)
 		zone_reg_end = PGDIR_BASE - KERNEL_VIRTUAL_BASE;
-	}
 
 	/* initialize buddy zones */
 	for (i = 0; i < PA_MAX_ORDER; ++i) {
@@ -343,7 +336,7 @@ static size_t ntables = 0;
 /* Number of pages used for the page_map */
 static size_t npages = 0;
 
-static void check_space(size_t pfn);
+static void check_space(size_t pfn, size_t pages);
 
 /* Populate struct pages for a region of physical memory starting at base. */
 static void init_region(addr_t base, uint64_t len, unsigned int flags)
@@ -364,10 +357,9 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 
 		/* initialize all pages in the block */
 		start = base >> PAGE_SHIFT;
+		check_space(start, pages);
 		for (; base < end; base += PAGE_SIZE) {
 			pfn = base >> PAGE_SHIFT;
-
-			check_space(pfn);
 
 			page_map[pfn].slab_cache = (void *)PAGE_UNINIT_MAGIC;
 			page_map[pfn].slab_desc = (void *)PAGE_UNINIT_MAGIC;
@@ -381,30 +373,45 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 	}
 }
 
-/* Ensure that page table is set up for page map entries. */
-static void check_space(size_t pfn)
+/* check_table_space:
+ * Ensure sufficient page tables to map pages from
+ * PAGE_MAP_BASE to PAGE_MAP_BASE + `req_len`.
+ */
+static void check_table_space(size_t req_len)
 {
-	size_t req_len, off, tbl_off;
+	size_t off;
 	const unsigned int flags = PAGE_RW | PAGE_PRESENT;
 
-	req_len = (pfn + 1) * sizeof (struct page);
-
-	/* Check if a new virtual page needs to be mapped */
-	if (req_len > npages * PAGE_SIZE) {
-		/* Check if a new page table is required */
-		tbl_off = ntables * PAGE_SIZE * PTRS_PER_PGTBL;
-		if (req_len > tbl_off) {
+	off = ntables * PAGE_SIZE * PTRS_PER_PGTBL;
+	if (req_len > off) {
+		for (; off < req_len; off += PAGE_SIZE * PTRS_PER_PGTBL) {
 			memset((void *)curr_pgtbl, 0, PGTBL_SIZE);
-			__create_pgtbl(PAGE_MAP_BASE + tbl_off,
-			               make_pde(phys_addr(curr_pgtbl) | flags));
+			__create_pgtbl(PAGE_MAP_BASE + off,
+				       make_pde(phys_addr(curr_pgtbl) | flags));
 			curr_pgtbl -= PGTBL_SIZE;
 			++ntables;
 		}
+	}
+}
 
-		off = npages * PAGE_SIZE;
-		map_page(PAGE_MAP_BASE + off, __PAGE_MAP_PHYS_BASE + off);
-		++npages;
-		page_map_end += PAGE_SIZE;
+/* check_space: ensure sufficient space in page map */
+static void check_space(size_t pfn, size_t pages)
+{
+	size_t req_len, off;
+
+	req_len = (pfn + pages) * sizeof (struct page);
+	off = npages * PAGE_SIZE;
+
+	/* check if pages need to be mapped */
+	if (req_len > off) {
+		check_table_space(req_len);
+
+		for (; off < req_len; off += PAGE_SIZE) {
+			map_page(PAGE_MAP_BASE + off,
+			         __PAGE_MAP_PHYS_BASE + off);
+			++npages;
+			page_map_end += PAGE_SIZE;
+		}
 	}
 }
 
