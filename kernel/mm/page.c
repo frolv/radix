@@ -108,6 +108,7 @@ static void buddy_split(struct buddy *zone, size_t req_ord);
 static struct page *buddy_coalesce(struct buddy *zone, struct page *p);
 
 /*
+ * alloc_pages:
  * Allocate a contiguous block of pages in memory.
  * Behaviour of the allocator is managed by flags.
  */
@@ -132,7 +133,7 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 	return __alloc_pages(zone, flags, ord);
 }
 
-/* Free the block of pages starting at p. */
+/* free_pages: free the block of pages starting at `p` */
 void free_pages(struct page *p)
 {
 	struct buddy *zone;
@@ -166,7 +167,7 @@ void free_pages(struct page *p)
 	zone->max_ord = MAX(zone->max_ord, ord);
 }
 
-/* Allocate 2^{ord} pages from zone. */
+/* __alloc_pages: allocate 2^{ord} pages from `zone` */
 static struct page *__alloc_pages(struct buddy *zone,
                                   unsigned int flags, size_t ord)
 {
@@ -206,7 +207,10 @@ static struct page *__alloc_pages(struct buddy *zone,
 	return p;
 }
 
-/* Split a block of pages in zone to get a block of size req_ord. */
+/*
+ * buddy_split:
+ * Split a block of pages in `zone` to get a block of size `req_ord`.
+ */
 static void buddy_split(struct buddy *zone, size_t req_ord)
 {
 	size_t ord;
@@ -236,7 +240,8 @@ static void buddy_split(struct buddy *zone, size_t req_ord)
 }
 
 /*
- * Merge page block starting at p with its buddies as far as possible.
+ * buddy_coalesce:
+ * Merge page block starting at `p` with its buddies as far as possible.
  * Return pointer to the start of new merged page block.
  */
 static struct page *buddy_coalesce(struct buddy *zone, struct page *p)
@@ -286,6 +291,7 @@ static struct memory_map *mmap = NULL;
 #define make64(low, high) ((uint64_t)(high) << 32 | (low))
 
 /*
+ * next_phys_region:
  * Find the next physical region in the multiboot memory map.
  * Store its base address and length.
  * Return 0 when all memory has been read.
@@ -338,7 +344,10 @@ static size_t npages = 0;
 
 static void check_space(size_t pfn, size_t pages);
 
-/* Populate struct pages for a region of physical memory starting at base. */
+/*
+ * init_region:
+ * Populate struct pages for a region of physical memory starting at base.
+ */
 static void init_region(addr_t base, uint64_t len, unsigned int flags)
 {
 	size_t ord, pfn, start, pages;
@@ -373,7 +382,8 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 	}
 }
 
-/* check_table_space:
+/*
+ * check_table_space:
  * Ensure sufficient page tables to map pages from
  * PAGE_MAP_BASE to PAGE_MAP_BASE + `req_len`.
  */
@@ -420,7 +430,7 @@ static size_t zone_init(size_t pfn, size_t section_end,
 
 #define M_TO_PAGES(m) (_M(m) / PAGE_SIZE)
 
-/* Initialize all buddy allocator lists. */
+/* buddy_populate: initialize all buddy allocator lists */
 static void buddy_populate(void)
 {
 	size_t pfn;
@@ -436,7 +446,10 @@ static void buddy_populate(void)
 	pfn = zone_init(pfn, totalmem / PAGE_SIZE, &zone_usr, PM_PAGE_ZONE_USR);
 }
 
-/* Split block of pages starting at pfn into two blocks around PFN lim. */
+/*
+ * split_block:
+ * Split block of pages starting at `pfn` into two blocks around PFN `lim`.
+ */
 static void split_block(size_t pfn, size_t lim)
 {
 	size_t ord, rem, end;
@@ -467,6 +480,11 @@ static void split_block(size_t pfn, size_t lim)
 	}
 }
 
+/*
+ * zone_init:
+ * Add all struct pages between `pfn` and `section_end` to `zone`
+ * and set specified page flags.
+ */
 static size_t zone_init(size_t pfn, size_t section_end,
                         struct buddy *zone, unsigned int flags)
 {
@@ -476,12 +494,17 @@ static size_t zone_init(size_t pfn, size_t section_end,
 		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
 		end = pfn + POW2(ord);
 
+		/*
+		 * The current block of pages exceeds the remaining space in
+		 * this zone. Split it into two parts add the first to the zone.
+		 */
 		if (end > section_end) {
 			split_block(pfn, section_end);
 			ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
 			end = pfn + POW2(ord);
 		}
 
+		/* ignore invalid pages */
 		if (zone && !(page_map[pfn].status & PM_PAGE_INVALID)) {
 			list_add(&zone->ord[ord], &page_map[pfn].list);
 			zone->len[ord]++;
