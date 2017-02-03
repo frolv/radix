@@ -29,6 +29,16 @@ static char vendor_id[16];
 /* cpuid 0x1 information */
 static long cpu_info[4];
 
+struct cpu_cache {
+	/* id[0..3]: level; id[4..7]: type */
+	unsigned char   id;
+	unsigned char   associativity;
+	unsigned short  line_size;
+	unsigned long   size;
+};
+
+#define MAX_CACHES 10
+
 static struct cache_info {
 	unsigned long l1i_size;
 	unsigned long l1i_line_size;
@@ -43,25 +53,38 @@ static struct cache_info {
 	unsigned long l3_line_size;
 	unsigned long l3_assoc;
 
-	unsigned long tlbi_page_size;
-	unsigned long tlbi_entries;
-	unsigned long tlbi_assoc;
-	unsigned long tlbd_page_size;
-	unsigned long tlbd_entries;
-	unsigned long tlbd_assoc;
+	struct cpu_cache        caches[MAX_CACHES];
+	unsigned int            ncaches;
+	unsigned long           line_size;
+	unsigned long           prefetching;
 
-	unsigned long prefetching;
+	/* Instruction TLB */
+	unsigned long           tlbi_page_size;
+	unsigned long           tlbi_entries;
+	unsigned long           tlbi_assoc;
+
+	/* Data TLB */
+	unsigned long           tlbd_page_size;
+	unsigned long           tlbd_entries;
+	unsigned long           tlbd_assoc;
 } cache_info;
 
 enum {
-	CACHE_ASSOC_2WAY,
-	CACHE_ASSOC_4WAY,
-	CACHE_ASSOC_6WAY,
-	CACHE_ASSOC_8WAY,
-	CACHE_ASSOC_12WAY,
-	CACHE_ASSOC_16WAY,
-	CACHE_ASSOC_24WAY,
-	CACHE_ASSOC_FULL
+	CACHE_ASSOC_FULL = 1,
+	CACHE_ASSOC_2WAY = 2,
+	CACHE_ASSOC_4WAY = 4,
+	CACHE_ASSOC_6WAY = 6,
+	CACHE_ASSOC_8WAY = 8,
+	CACHE_ASSOC_12WAY = 12,
+	CACHE_ASSOC_16WAY = 16,
+	CACHE_ASSOC_24WAY = 24
+};
+
+/* Same as cpuid 0x4 cache type values. */
+enum {
+	CACHE_TYPE_DATA = 1,
+	CACHE_TYPE_INSTRUCTION,
+	CACHE_TYPE_UNIFIED
 };
 
 #define PAGE_SIZE_4K     (1 << 0)
@@ -70,6 +93,9 @@ enum {
 #define PAGE_SIZE_256M   (1 << 3)
 #define PAGE_SIZE_1G     (1 << 4)
 
+static void add_cache(unsigned char level, unsigned char type,
+                      unsigned long size, unsigned long line_size,
+                      unsigned long assoc);
 static void read_cache_info(void);
 static void extended_processor_info(void);
 
@@ -96,15 +122,9 @@ void read_cpu_info(void)
 		 * If cache information cannot be read, assume
 		 * default values from Intel Pentium P5.
 		 */
-		cache_info.l1i_size = _K(8);
-		cache_info.l1i_line_size = 32;
-		cache_info.l1i_assoc = CACHE_ASSOC_4WAY;
-		cache_info.l1d_size = _K(8);
-		cache_info.l1d_line_size = 32;
-		cache_info.l1d_assoc = CACHE_ASSOC_2WAY;
-		cache_info.l2_size = _K(256);
-		cache_info.l2_line_size = 32;
-		cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+		add_cache(1, CACHE_TYPE_DATA, _K(8), 32, CACHE_ASSOC_2WAY);
+		add_cache(1, CACHE_TYPE_INSTRUCTION, _K(8), 32, CACHE_ASSOC_4WAY);
+		add_cache(2, CACHE_TYPE_UNIFIED, _K(256), 32, CACHE_ASSOC_4WAY);
 
 		cache_info.tlbi_page_size = PAGE_SIZE_4K;
 		cache_info.tlbi_entries = 32;
@@ -114,6 +134,7 @@ void read_cpu_info(void)
 		cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 	}
 
+	printf("%u %u\n", sizeof (struct cpu_cache), sizeof cache_info);
 	cache_str();
 	extended_processor_info();
 }
@@ -121,6 +142,20 @@ void read_cpu_info(void)
 int cpu_has_apic(void)
 {
 	return cpu_info[3] & CPUID_APIC;
+}
+
+static void add_cache(unsigned char level, unsigned char type,
+                      unsigned long size, unsigned long line_size,
+                      unsigned long assoc)
+{
+	if (cache_info.ncaches == MAX_CACHES)
+		return;
+
+	cache_info.caches[cache_info.ncaches].id = level | (type << 4);
+	cache_info.caches[cache_info.ncaches].associativity = assoc;
+	cache_info.caches[cache_info.ncaches].line_size = line_size;
+	cache_info.caches[cache_info.ncaches].size = size;
+	cache_info.ncaches++;
 }
 
 static void read_cpuid4(void);
@@ -175,24 +210,20 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0x06:
-				cache_info.l1i_size = _K(8);
-				cache_info.l1i_line_size = 32;
-				cache_info.l1i_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(8),
+				          32, CACHE_ASSOC_2WAY);
 				break;
 			case 0x08:
-				cache_info.l1i_size = _K(16);
-				cache_info.l1i_line_size = 32;
-				cache_info.l1i_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(16),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x09:
-				cache_info.l1i_size = _K(32);
-				cache_info.l1i_line_size = 64;
-				cache_info.l1i_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(32),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x0A:
-				cache_info.l1d_size = _K(8);
-				cache_info.l1d_line_size = 32;
-				cache_info.l1d_assoc = CACHE_ASSOC_2WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(8),
+				          32, CACHE_ASSOC_2WAY);
 				break;
 			case 0x0B:
 				cache_info.tlbi_page_size = PAGE_SIZE_4M;
@@ -200,180 +231,145 @@ static void read_cache_info(void)
 				cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0x0C:
-				cache_info.l1d_size = _K(16);
-				cache_info.l1d_line_size = 32;
-				cache_info.l1d_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x0D:
-				cache_info.l1d_size = _K(16);
-				cache_info.l1d_line_size = 64;
-				cache_info.l1d_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x0E:
-				cache_info.l1d_size = _K(24);
-				cache_info.l1d_line_size = 64;
-				cache_info.l1d_assoc = CACHE_ASSOC_6WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(24),
+				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x10:
-				cache_info.l1d_size = _K(16);
-				cache_info.l1d_line_size = 32;
-				cache_info.l1d_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x15:
-				cache_info.l1i_size = _K(16);
-				cache_info.l1i_line_size = 32;
-				cache_info.l1i_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(16),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x1A:
-				cache_info.l2_size = _K(96);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_6WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(96),
+				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x1D:
-				cache_info.l2_size = _K(128);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_2WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				          64, CACHE_ASSOC_2WAY);
 				break;
 			case 0x21:
-				cache_info.l2_size = _K(256);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x22:
-				cache_info.l3_size = _K(512);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _K(512),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x23:
-				cache_info.l3_size = _M(1);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_8WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(1),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x24:
-				cache_info.l2_size = _M(1);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_16WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x25:
-				cache_info.l3_size = _M(2);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_8WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x29:
-				cache_info.l3_size = _M(4);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_8WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x2C:
-				cache_info.l1d_size = _K(32);
-				cache_info.l1d_line_size = 64;
-				cache_info.l1d_assoc = CACHE_ASSOC_8WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(32),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x30:
-				cache_info.l1i_size = _K(32);
-				cache_info.l1i_line_size = 64;
-				cache_info.l1i_assoc = CACHE_ASSOC_8WAY;
+				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(32),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x39:
-				cache_info.l2_size = _K(128);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x3A:
-				cache_info.l2_size = _K(192);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_6WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(192),
+				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x3B:
-				cache_info.l2_size = _K(128);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_2WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				          64, CACHE_ASSOC_2WAY);
 				break;
 			case 0x3C:
-				cache_info.l2_size = _K(256);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x3D:
-				cache_info.l2_size = _K(384);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_6WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(384),
+				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x3E:
-				cache_info.l2_size = _K(512);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x41:
-				cache_info.l2_size = _K(128);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x42:
-				cache_info.l2_size = _K(256);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x43:
-				cache_info.l2_size = _K(512);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x44:
-				cache_info.l2_size = _M(1);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x45:
-				cache_info.l2_size = _M(2);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(2),
+				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x46:
-				cache_info.l3_size = _M(4);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x47:
-				cache_info.l3_size = _M(8);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_8WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x48:
-				cache_info.l2_size = _M(3);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_12WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(3),
+				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0x49:
 				/* TODO: L3 on P4, L2 on Core 2 */
-				cache_info.l3_size = _M(4);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_16WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x4A:
-				cache_info.l3_size = _M(6);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_12WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(6),
+				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0x4B:
-				cache_info.l3_size = _M(8);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_16WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x4C:
-				cache_info.l3_size = _M(12);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_12WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(12),
+				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0x4D:
-				cache_info.l3_size = _M(16);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_16WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(16),
+				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x4E:
-				cache_info.l2_size = _M(6);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_24WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(6),
+				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0x4F:
 				cache_info.tlbi_page_size = PAGE_SIZE_4K;
@@ -447,9 +443,8 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
 				break;
 			case 0x60:
-				cache_info.l1d_size = _K(16);
-				cache_info.l1d_line_size = 64;
-				cache_info.l1d_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x61:
 				cache_info.tlbi_page_size = PAGE_SIZE_4K;
@@ -468,19 +463,16 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0x66:
-				cache_info.l1d_size = _K(8);
-				cache_info.l1d_line_size = 64;
-				cache_info.l1d_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(8),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x67:
-				cache_info.l1d_size = _K(16);
-				cache_info.l1d_line_size = 64;
-				cache_info.l1d_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x68:
-				cache_info.l1d_size = _K(32);
-				cache_info.l1d_line_size = 64;
-				cache_info.l1d_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_DATA, _K(32),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x6A:
 				cache_info.tlbd_page_size = PAGE_SIZE_4K;
@@ -510,109 +502,88 @@ static void read_cache_info(void)
 				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
 				break;
 			case 0x77:
-				cache_info.l1i_size = _K(16);
-				cache_info.l1i_line_size = 64;
-				cache_info.l1i_assoc = CACHE_ASSOC_4WAY;
+				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(16),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x78:
-				cache_info.l2_size = _M(1);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x79:
-				cache_info.l2_size = _K(128);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7A:
-				cache_info.l2_size = _K(256);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7B:
-				cache_info.l2_size = _K(512);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7C:
-				cache_info.l2_size = _M(1);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7D:
-				cache_info.l2_size = _M(2);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(2),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7E:
-				cache_info.l2_size = _K(256);
-				cache_info.l2_line_size = 128;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				          128, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7F:
-				cache_info.l2_size = _K(512);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_2WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				          64, CACHE_ASSOC_2WAY);
 				break;
 			case 0x80:
-				cache_info.l2_size = _K(512);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x81:
-				cache_info.l2_size = _K(128);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x82:
-				cache_info.l2_size = _K(256);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x83:
-				cache_info.l2_size = _K(512);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x84:
-				cache_info.l2_size = _M(1);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x85:
-				cache_info.l2_size = _M(2);
-				cache_info.l2_line_size = 32;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(2),
+				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x86:
-				cache_info.l2_size = _K(512);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_4WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x87:
-				cache_info.l2_size = _M(1);
-				cache_info.l2_line_size = 64;
-				cache_info.l2_assoc = CACHE_ASSOC_8WAY;
+				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x88:
-				cache_info.l3_size = _M(2);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x89:
-				cache_info.l3_size = _M(4);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x8A:
-				cache_info.l3_size = _M(8);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x8D:
-				cache_info.l3_size = _M(3);
-				cache_info.l3_line_size = 128;
-				cache_info.l3_assoc = CACHE_ASSOC_12WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(3),
+				          128, CACHE_ASSOC_12WAY);
 				break;
 			case 0x90:
 				cache_info.tlbi_page_size = PAGE_SIZE_4K |
@@ -690,79 +661,64 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0xD0:
-				cache_info.l3_size = _K(512);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _K(512),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0xD1:
-				cache_info.l3_size = _M(1);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(1),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0xD2:
-				cache_info.l3_size = _M(2);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_4WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0xD6:
-				cache_info.l3_size = _M(1);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_8WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(1),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0xD7:
-				cache_info.l3_size = _M(2);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_8WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0xD8:
-				cache_info.l3_size = _M(4);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_8WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0xDC:
-				cache_info.l3_size = _K(1536);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_12WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _K(1536),
+				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0xDD:
-				cache_info.l3_size = _M(3);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_12WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(3),
+				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0xDE:
-				cache_info.l3_size = _M(6);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_12WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(6),
+				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0xE2:
-				cache_info.l3_size = _M(2);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_16WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0xE3:
-				cache_info.l3_size = _M(4);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_16WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0xE4:
-				cache_info.l3_size = _M(8);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_16WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0xEA:
-				cache_info.l3_size = _M(12);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_24WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(12),
+				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0xEB:
-				cache_info.l3_size = _M(18);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_24WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(18),
+				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0xEC:
-				cache_info.l3_size = _M(24);
-				cache_info.l3_line_size = 64;
-				cache_info.l3_assoc = CACHE_ASSOC_24WAY;
+				add_cache(3, CACHE_TYPE_UNIFIED, _M(24),
+				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0xF0:
 				cache_info.prefetching = 64;
@@ -813,8 +769,7 @@ static __always_inline unsigned long to_assoc(unsigned long n)
 static void read_cpuid4(void)
 {
 	unsigned long buf[4];
-	unsigned long cache_level, cache_type, a;
-	unsigned long *size, *line_size, *assoc;
+	unsigned long cache_level, assoc, line_size, size;
 	unsigned int i;
 
 	i = 0;
@@ -833,47 +788,17 @@ static void read_cpuid4(void)
 		if (!cache_level)
 			break;
 
-		/* type of cache; 1: data, 2: instruction, 3: unified */
-		cache_type = buf[0] & 0x1F;
-
-		switch (cache_level) {
-		case 1:
-			if (cache_type == 1) {
-				size = &cache_info.l1d_size;
-				line_size = &cache_info.l1d_line_size;
-				assoc = &cache_info.l1d_assoc;
-			} else if (cache_type == 2) {
-				size = &cache_info.l1i_size;
-				line_size = &cache_info.l1i_line_size;
-				assoc = &cache_info.l1i_assoc;
-			} else {
-				continue;
-			}
-			break;
-		case 2:
-			size = &cache_info.l2_size;
-			line_size = &cache_info.l2_line_size;
-			assoc = &cache_info.l2_assoc;
-			break;
-		case 3:
-			size = &cache_info.l3_size;
-			line_size = &cache_info.l3_line_size;
-			assoc = &cache_info.l3_assoc;
-			break;
-		default:
-			continue;
-		}
-
-		a = (buf[1] >> 22) + 1;
-		*assoc = to_assoc(a);
-		*line_size = (buf[1] & 0xFFF) + 1;
-
+		assoc = (buf[1] >> 22) + 1;
+		line_size = (buf[1] & 0xFFF) + 1;
 		/*
 		 * cache size = ways * partitions * line size * sets
-		 *            = a * (EBX[21:12] + 1) * line_size * (ECX + 1)
+		 *            = assoc * (EBX[21:12] + 1) * line_size * (ECX + 1)
 		 */
-		*size = a * (((buf[1] >> 12) & 0x3FF) + 1) *
-			*line_size * (buf[2] + 1);
+		size = assoc * (((buf[1] >> 12) & 0x3FF) + 1) *
+		       line_size * (buf[2] + 1);
+
+		add_cache(cache_level, buf[0] & 0x1F, size,
+		          line_size, to_assoc(assoc));
 
 		++i;
 	}
