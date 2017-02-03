@@ -112,6 +112,7 @@ void read_cpu_info(void)
 		add_cache(1, CACHE_TYPE_DATA, _K(8), 32, CACHE_ASSOC_2WAY);
 		add_cache(1, CACHE_TYPE_INSTRUCTION, _K(8), 32, CACHE_ASSOC_4WAY);
 		add_cache(2, CACHE_TYPE_UNIFIED, _K(256), 32, CACHE_ASSOC_4WAY);
+		cache_info.line_size = 32;
 
 		cache_info.tlbi_page_size = PAGE_SIZE_4K;
 		cache_info.tlbi_entries = 32;
@@ -121,13 +122,18 @@ void read_cpu_info(void)
 		cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 	}
 
-	cache_str();
+	cpu_cache_str();
 	extended_processor_info();
 }
 
 int cpu_has_apic(void)
 {
 	return cpu_info[3] & CPUID_APIC;
+}
+
+unsigned long cpu_cache_line_size(void)
+{
+	return cache_info.line_size;
 }
 
 static void add_cache(unsigned char level, unsigned char type,
@@ -724,6 +730,11 @@ static void read_cache_info(void)
 			}
 		}
 	} while (--nreads);
+
+	/* set overall line size to line size of L1 cache */
+	for (i = 0; (cache_info.caches[i].id & 0xF) != 1; ++i)
+		;
+	cache_info.line_size = cache_info.caches[i].line_size;
 }
 
 static __always_inline unsigned long to_assoc(unsigned long n)
@@ -948,10 +959,10 @@ char *print_caches(char *pos)
 }
 
 /*
- * cache_str:
+ * cpu_cache_str:
  * Return a beautifully formatted string detailing CPU cache information.
  */
-char *cache_str(void)
+char *cpu_cache_str(void)
 {
 	char *pos;
 
