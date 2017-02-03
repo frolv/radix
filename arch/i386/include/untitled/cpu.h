@@ -117,8 +117,8 @@ static __always_inline unsigned long cpuid_supported(void)
 		     : "0"(eax))
 
 int cpu_has_apic(void);
-char *cache_str(void);
+unsigned long cpu_cache_line_size(void);
 
-#define CACHE_LINE_SIZE 64
+char *cpu_cache_str(void);
 
 #endif /* ARCH_I386_UNTITLED_CPU_H */
