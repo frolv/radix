@@ -40,10 +40,10 @@ static void __init_cache(struct slab_cache *cache, const char *name,
  * Slabs with objects less than this size
  * have their descriptors stored on-slab.
  */
-#define ON_SLAB_LIMIT		0x200
+#define ON_SLAB_LIMIT           0x200
 
-#define SLAB_DESC_ON_SLAB	(1 << 0)
-#define SLAB_IS_GROWING		(1 << 1)
+#define SLAB_DESC_ON_SLAB       (1 << 0)
+#define SLAB_IS_GROWING         (1 << 1)
 
 void slab_init(void)
 {
@@ -77,6 +77,8 @@ struct slab_cache *create_cache(const char *name, size_t size,
 		return ERR_PTR(EINVAL);
 
 	cache = alloc_cache(&cache_cache);
+	if (IS_ERR(cache))
+		return (void *)cache;
 
 	__init_cache(cache, name, size, align, flags, ctor, dtor);
 	list_ins(&slab_caches, &cache->list);
@@ -131,7 +133,7 @@ void *alloc_cache(struct slab_cache *cache)
 		list_add(&cache->partial_slabs, &s->list);
 	} else {
 		s = list_first_entry(&cache->partial_slabs,
-				     struct slab_desc, list);
+		                     struct slab_desc, list);
 	}
 
 	/* find first free object at the index of s->next and update s->next */
@@ -152,8 +154,6 @@ void free_cache(struct slab_cache *cache, void *obj)
 {
 	struct slab_desc *s;
 	size_t diff, ind;
-
-	/* TODO: objects can be freed multiple times */
 
 	if (unlikely(!cache || !obj))
 		return;
@@ -249,6 +249,8 @@ static struct slab_desc *init_slab(struct slab_cache *cache)
 		s->first = (void *)ALIGN(first, cache->offset);
 	} else {
 		p = alloc_pages(PA_STANDARD, cache->slab_ord);
+		if (IS_ERR(p))
+			return (void *)p;
 		s = kmalloc(sizeof *s + cache->count * sizeof (uint16_t));
 		s->first = p->mem;
 	}
@@ -365,7 +367,7 @@ static void __init_cache(struct slab_cache *cache, const char *name,
 		cache->flags |= SLAB_DESC_ON_SLAB;
 
 	cache->count = calculate_count(POW2(cache->slab_ord),
-				       cache->offset, cache->flags);
+	                               cache->offset, cache->flags);
 
 	cache->ctor = ctor;
 	cache->dtor = dtor;
@@ -399,6 +401,7 @@ void kmalloc_init(void)
 	struct slab_cache *cache;
 	char name[NAME_LEN];
 	size_t i, j, sz;
+	int err;
 
 	if (kmalloc_active)
 		return;
@@ -408,8 +411,10 @@ void kmalloc_init(void)
 		sprintf(name, "kmalloc-%u", sz);
 		cache = create_cache(name, sz, MIN_ALIGN, 0, NULL, NULL);
 
-		for (j = 0; j < 32; ++j)
-			grow_cache(cache);
+		for (j = 0; j < 32; ++j) {
+			if ((err = grow_cache(cache)))
+				goto err_grow;
+		}
 		kmalloc_sm_caches[i - 1] = cache;
 	}
 
@@ -417,12 +422,19 @@ void kmalloc_init(void)
 		sz = 256 * POW2(i);
 		sprintf(name, "kmalloc-%u", sz);
 		cache = create_cache(name, sz, MIN_ALIGN, 0, NULL, NULL);
-		grow_cache(cache);
-		grow_cache(cache);
+		if ((err = grow_cache(cache)))
+			goto err_grow;
+		if ((err = grow_cache(cache)))
+			goto err_grow;
 		kmalloc_lg_caches[i] = cache;
 	}
 
 	kmalloc_active = 1;
+	return;
+
+err_grow:
+	panic("failed to grow required cache %s: %s\n",
+	      cache->cache_name, strerror(err));
 }
 
 static __always_inline struct slab_cache *kmalloc_get_cache(size_t sz)
