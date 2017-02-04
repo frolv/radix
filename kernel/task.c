@@ -17,6 +17,8 @@
  */
 
 #include <string.h>
+#include <untitled/error.h>
+#include <untitled/kernel.h>
 #include <untitled/kthread.h>
 #include <untitled/sched.h>
 #include <untitled/slab.h>
@@ -32,6 +34,10 @@ void tasking_init(void)
 
 	task_cache = create_cache("task_cache", sizeof (struct task), MIN_ALIGN,
 	                          SLAB_HW_CACHE_ALIGN, task_init, task_init);
+	if (IS_ERR(task_cache)) {
+		panic("failed to allocate cache for tasks: %s\n",
+		      strerror(ERR_VAL(task_cache)));
+	}
 	sched_init();
 
 	/*
@@ -40,6 +46,10 @@ void tasking_init(void)
 	 * will be saved to turn the stub into a proper task.
 	 */
 	curr = alloc_cache(task_cache);
+	if (IS_ERR(curr)) {
+		panic("failed to allocate task for main kernel thread: %s\n",
+		      strerror(ERR_VAL(curr)));
+	}
 	curr->state = TASK_RUNNING;
 	curr->cmdline = kmalloc(2 * sizeof (*curr->cmdline));
 	curr->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
