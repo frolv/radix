@@ -95,26 +95,26 @@ static __always_inline unsigned long cpuid_supported(void)
 	unsigned long res;
 
 	asm volatile("pushf;"
-		     "pop %%eax;"
-		     "movl %%eax, %%ecx;"
-		     "xorl $0x200000, %%eax;"
-		     "push %%eax;"
-		     "popf;"
-		     "pushf;"
-		     "pop %%eax;"
-		     "xorl %%ecx, %%eax"
-		     : "=a"(res)
-		     :
-		     : "%ecx");
+	             "pop %%eax;"
+	             "movl %%eax, %%ecx;"
+	             "xorl $0x200000, %%eax;"
+	             "push %%eax;"
+	             "popf;"
+	             "pushf;"
+	             "pop %%eax;"
+	             "xorl %%ecx, %%eax"
+	             : "=a"(res)
+	             :
+	             : "%ecx");
 	return res;
 }
 
 #define cpuid(eax, a, b, c, d) \
 	asm volatile("xchg %%ebx, %1;" \
-		     "cpuid;" \
-		     "xchg %%ebx, %1" \
-		     : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
-		     : "0"(eax))
+	             "cpuid;" \
+	             "xchg %%ebx, %1" \
+	             : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
+	             : "0"(eax))
 
 int cpu_has_apic(void);
 unsigned long cpu_cache_line_size(void);

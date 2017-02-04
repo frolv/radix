@@ -894,8 +894,8 @@ static char *print_tlb(char *pos)
 			printed = 1;
 		}
 		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
-			       cache_info.tlbi_entries,
-			       assoc_str(cache_info.tlbi_assoc));
+		               cache_info.tlbi_entries,
+		               assoc_str(cache_info.tlbi_assoc));
 	}
 
 	printed = 0;
@@ -930,8 +930,8 @@ static char *print_tlb(char *pos)
 			printed = 1;
 		}
 		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
-			       cache_info.tlbd_entries,
-			       assoc_str(cache_info.tlbd_assoc));
+		               cache_info.tlbd_entries,
+		               assoc_str(cache_info.tlbd_assoc));
 	}
 
 	return pos;
@@ -973,7 +973,7 @@ char *cpu_cache_str(void)
 		pos = print_caches(pos);
 		if (cache_info.prefetching)
 			pos += sprintf(pos, "Prefetch:\t%lu bytes",
-				       cache_info.prefetching);
+			               cache_info.prefetching);
 		if (*--pos == '\n')
 			*pos = '\0';
 	}
