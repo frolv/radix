@@ -69,7 +69,7 @@ int map_page(addr_t virt, addr_t phys)
 	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
 		/* page is already mapped */
 		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
-			return EINVAL;
+			return 0;
 	} else {
 		/* allocate a new page table */
 		new = alloc_page(PA_PAGETABLE);
@@ -78,6 +78,7 @@ int map_page(addr_t virt, addr_t phys)
 
 		pgdir[pdi] = make_pde(page_to_phys(new)
 		                      | PAGE_RW | PAGE_PRESENT);
+		memset(pgtbl, 0, PGTBL_SIZE);
 	}
 	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
 
