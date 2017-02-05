@@ -76,3 +76,10 @@ void pic_remap(uint32_t offset1, uint32_t offset2)
 	outb(PIC_MASTER_DATA, a1);
 	outb(PIC_SLAVE_DATA,  a2);
 }
+
+/* pic_disable: prevent the PIC from sending interrupts */
+void pic_disable(void)
+{
+	outb(PIC_SLAVE_DATA, 0xFF);
+	outb(PIC_MASTER_DATA, 0xFF);
+}

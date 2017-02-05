@@ -23,5 +23,6 @@
 
 void pic_eoi(uint32_t irq);
 void pic_remap(uint32_t offset1, uint32_t offset2);
+void pic_disable(void);
 
 #endif /* ARCH_I386_PIC_H */
