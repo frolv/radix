@@ -1,5 +1,5 @@
 /*
- * drivers/acpi/sdt.c
+ * include/acpi/tables/sdt.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,17 +16,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <acpi/acpi.h>
-#include <acpi/sdt.h>
+#ifndef ACPI_TABLES_SDT_H
+#define ACPI_TABLES_SDT_H
 
-int acpi_valid_checksum(struct acpi_sdt_header *header)
-{
-	size_t i;
-	int sum;
+#include <untitled/types.h>
 
-	sum = 0;
-	for (i = 0; i < header->length; ++i)
-		sum += ((char *)header)[i];
+/* Header of an ACPI System Description Table. */
+struct acpi_sdt_header {
+	char            signature[4];
+	uint32_t        length;
+	uint8_t         revision;
+	uint8_t         checksum;
+	char            oem_id[6];
+	char            oem_table_id[8];
+	uint32_t        oem_revision;
+	uint32_t        creator_id;
+	uint32_t        creator_revision;
+};
 
-	return sum == 0;
-}
+int acpi_valid_checksum(struct acpi_sdt_header *header);
+
+#endif /* ACPI_TABLES_SDT_H */
