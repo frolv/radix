@@ -16,11 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <acpi/acpi.h>
 #include <acpi/sdt.h>
 
 int acpi_valid_checksum(struct acpi_sdt_header *header)
 {
-	size_t i, sum;
+	size_t i;
+	int sum;
 
 	sum = 0;
 	for (i = 0; i < header->length; ++i)
