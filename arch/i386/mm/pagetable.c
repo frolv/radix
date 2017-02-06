@@ -23,9 +23,7 @@
 
 #define PGTBL(x)        (pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
 
-/*
- * The page directory of a legacy 2-level x86 paging setup.
- */
+/* The page directory of a legacy 2-level x86 paging setup. */
 pde_t * const pgdir = (pde_t *)PGDIR_VADDR;
 
 addr_t __virt_to_phys(addr_t addr)
@@ -51,7 +49,27 @@ void __create_pgtbl(addr_t virt, pde_t pde)
 }
 
 /*
- * Map a page with base virtual address virt to physical address phys.
+ * addr_mapped:
+ * Return 1 if address `virt` has been mapped to a physical address.
+ */
+int addr_mapped(addr_t virt)
+{
+	size_t pdi, pti;
+	pte_t *pgtbl;
+
+	pdi = PGDIR_INDEX(virt);
+	pti = PGTBL_INDEX(virt);
+	pgtbl = PGTBL(pdi);
+
+	if (PDE(pgdir[pdi]) & PAGE_PRESENT)
+		return PTE(pgtbl[pti]) & PAGE_PRESENT;
+	else
+		return 0;
+}
+
+/*
+ * map_page:
+ * Map a page with base virtual address `virt` to physical address `phys`.
  */
 int map_page(addr_t virt, addr_t phys)
 {
@@ -99,17 +117,18 @@ int map_pages(addr_t virt, addr_t phys, size_t n)
 
 static int __unmap(addr_t virt, int freetable);
 
-/* Unmap the page with base address virt. */
+/* unmap_page: unmap the page with base address `virt` */
 int unmap_page(addr_t virt)
 {
 	return __unmap(virt, 0);
 }
 
 /*
- * Unmap the page with base address virt. If the rest of its
+ * unmap_page_pgtbl:
+ * Unmap the page with base address `virt`. If the rest of its
  * page table is empty, unmap and free the page table too.
  */
-int unmap_page_pgdir(addr_t virt)
+int unmap_page_pgtbl(addr_t virt)
 {
 	return __unmap(virt, 1);
 }
@@ -118,6 +137,7 @@ static int __unmap(addr_t virt, int freetable)
 {
 	size_t pdi, pti, i;
 	pte_t *pgtbl;
+	addr_t phys;
 
 	if (!ALIGNED(virt, PAGE_SIZE))
 		return EINVAL;
@@ -136,12 +156,13 @@ static int __unmap(addr_t virt, int freetable)
 
 	if (freetable) {
 		/* check if any other pages exist in the table */
-		for (i = 0; i < PGTBL_SIZE; ++i) {
+		for (i = 0; i < PTRS_PER_PGTBL; ++i) {
 			if (PTE(pgtbl[i]) & PAGE_PRESENT)
 				break;
 		}
-		if (i == PGTBL_SIZE) {
-			/* free_phys_page(PDE(pgdir[pdi])); */
+		if (i == PTRS_PER_PGTBL) {
+			phys = PDE(pgdir[pdi]) & PAGE_MASK;
+			free_pages(phys_to_page(phys));
 			pgdir[pdi] = make_pde(0);
 		}
 	}
