@@ -103,10 +103,16 @@ static __always_inline addr_t page_to_phys(struct page *p)
 	return page_to_pfn(p) << PAGE_SHIFT;
 }
 
+static __always_inline struct page *phys_to_page(addr_t phys)
+{
+	return page_map + (phys >> PAGE_SHIFT);
+}
+
 void __create_pgtbl(addr_t virt, pde_t pde);
+int addr_mapped(addr_t virt);
 int map_page(addr_t virt, addr_t phys);
 int map_pages(addr_t virt, addr_t phys, size_t n);
 int unmap_page(addr_t virt);
-int unmap_page_pgdir(addr_t virt);
+int unmap_page_pgtbl(addr_t virt);
 
 #endif /* UNTITLED_MM_H */
