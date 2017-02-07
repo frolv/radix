@@ -1,5 +1,5 @@
 /*
- * include/untitled/task.h
+ * include/radix/task.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 #ifndef KERNEL_TASK_H
 #define KERNEL_TASK_H
 
-#include <untitled/sched.h>
+#include <radix/sched.h>
 
 void tasking_init(void);
 struct task *kthread_task(void);

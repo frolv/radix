@@ -16,9 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <untitled/irq.h>
-#include <untitled/kernel.h>
-#include <untitled/tty.h>
+#include <radix/irq.h>
+#include <radix/kernel.h>
+#include <radix/tty.h>
 #include <stdio.h>
 
 /*

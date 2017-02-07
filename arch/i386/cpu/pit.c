@@ -18,11 +18,11 @@
 
 #include <string.h>
 
-#include <untitled/asm/io.h>
-#include <untitled/irq.h>
-#include <untitled/sched.h>
-#include <untitled/sys.h>
-#include <untitled/types.h>
+#include <radix/asm/io.h>
+#include <radix/irq.h>
+#include <radix/sched.h>
+#include <radix/sys.h>
+#include <radix/types.h>
 
 #define PIT_0   0x40
 #define PIT_1   0x41

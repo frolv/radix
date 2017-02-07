@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/untitled/arch_irq.h
+ * arch/i386/include/radix/arch_irq.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 #ifndef ARCH_I386_UNTITLED_IRQ_H
 #define ARCH_I386_UNTITLED_IRQ_H
 
-#include <untitled/compiler.h>
+#include <radix/compiler.h>
 
 #define __ARCH_SYSCALL_VECTOR   0x30
 
@@ -35,7 +35,7 @@
 
 #define __INTERRUPT_BIT (1 << 9)
 
-#include <untitled/sys.h>
+#include <radix/sys.h>
 
 int in_interrupt(void);
 void interrupt_disable(void);
@@ -43,7 +43,7 @@ void interrupt_enable(void);
 void install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
 void uninstall_interrupt_handler(uint32_t intno);
 
-#include <untitled/types.h>
+#include <radix/types.h>
 
 static __always_inline int interrupts_active(void)
 {

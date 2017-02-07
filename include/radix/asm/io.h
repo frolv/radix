@@ -1,5 +1,5 @@
 /*
- * include/untitled/mutex.h
+ * include/radix/asm/io.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,20 +16,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_MUTEX_H
-#define UNTITLED_MUTEX_H
+#ifndef UNTITLED_ASM_IO_H
+#define UNTITLED_ASM_IO_H
 
-#include <untitled/list.h>
+#include <radix/asm/arch_io.h>
 
-#define MUTEX_INIT(name) { 0, LIST_INIT((name).queue) }
+#define outb __arch_outb
+#define outw __arch_outw
+#define outl __arch_outl
 
-struct mutex {
-	int             count;
-	struct list     queue;
-};
+#define inb __arch_inb
+#define inw __arch_inw
+#define inl __arch_inl
 
-void mutex_init(struct mutex *m);
-void mutex_lock(struct mutex *m);
-void mutex_unlock(struct mutex *m);
+#define io_wait __arch_io_wait
 
-#endif /* UNTITLED_MUTEX_H */
+#endif /* UNTITLED_ASM_IO_H */

@@ -19,9 +19,9 @@
 #ifndef KERNEL_MM_BUDDY_H
 #define KERNEL_MM_BUDDY_H
 
-#include <untitled/list.h>
-#include <untitled/mm.h>
-#include <untitled/mm_types.h>
+#include <radix/list.h>
+#include <radix/mm.h>
+#include <radix/mm_types.h>
 
 #define PM_PAGE_BLOCK_OFFSET(p)         __PAGE_BLOCK_OFFSET(p)
 #define PM_SET_BLOCK_ORDER(p, ord)      __SET_BLOCK_ORDER(p, ord)

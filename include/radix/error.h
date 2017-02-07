@@ -1,5 +1,5 @@
 /*
- * include/untitled/irq.h
+ * include/radix/error.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,23 +16,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_IRQ_H
-#define UNTITLED_IRQ_H
+#ifndef UNTITLED_ERROR_H
+#define UNTITLED_ERROR_H
 
-#define SYSCALL_INTERRUPT 0x80
+#define MAX_ERRNO 79
 
-#include <untitled/arch_irq.h>
+#include <errno.h>
 
-#define SYSCALL_VECTOR  __ARCH_SYSCALL_VECTOR
+/*
+ * The last page of virtual addresses maps to the page directory,
+ * and therefore will never be returned by an allocation function.
+ * It is therefore possible to return errors from a function that
+ * returns a pointer through a "pointer" containing the negative
+ * of one of the standard error values - a large unsigned number.
+ */
+#define ERR_PTR(err)    ((void *)(-(err)))
+#define IS_ERR(ptr)     ((unsigned long)ptr >= (unsigned long)(-MAX_ERRNO))
+#define ERR_VAL(ptr)    (-((unsigned long)(ptr)))
 
-#define TIMER_IRQ       __ARCH_TIMER_IRQ
-#define KBD_IRQ         __ARCH_KBD_IRQ
-
-#define in_irq          __arch_in_irq
-#define irq_active      __arch_irq_active
-#define irq_disable     __arch_irq_disable
-#define irq_enable      __arch_irq_enable
-#define irq_install     __arch_irq_install
-#define irq_uninstall   __arch_irq_uninstall
-
-#endif /* UNTITLED_IRQ_H */
+#endif /* UNTITLED_ERROR_H */

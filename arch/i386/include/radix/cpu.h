@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/untitled/cpu.h
+ * arch/i386/include/radix/cpu.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -88,7 +88,7 @@
 #define EFLAGS_VIP      (1 << 20)
 #define EFLAGS_ID       (1 << 21)
 
-#include <untitled/compiler.h>
+#include <radix/compiler.h>
 
 static __always_inline unsigned long cpuid_supported(void)
 {

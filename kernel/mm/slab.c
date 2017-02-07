@@ -18,12 +18,12 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <untitled/compiler.h>
-#include <untitled/cpu.h>
-#include <untitled/kernel.h>
-#include <untitled/mm.h>
-#include <untitled/page.h>
-#include <untitled/slab.h>
+#include <radix/compiler.h>
+#include <radix/cpu.h>
+#include <radix/kernel.h>
+#include <radix/mm.h>
+#include <radix/page.h>
+#include <radix/slab.h>
 
 #include "slab.h"
 

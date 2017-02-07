@@ -16,9 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <untitled/asm/io.h>
-#include <untitled/irq.h>
-#include <untitled/sys.h>
+#include <radix/asm/io.h>
+#include <radix/irq.h>
+#include <radix/sys.h>
 
 /* this will be converted to a kernel module eventually */
 

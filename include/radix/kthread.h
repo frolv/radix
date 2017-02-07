@@ -1,5 +1,5 @@
 /*
- * include/untitled/error.h
+ * include/radix/kthread.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,22 +16,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ERROR_H
-#define UNTITLED_ERROR_H
+#ifndef UNTITLED_KTHREAD_H
+#define UNTITLED_KTHREAD_H
 
-#define MAX_ERRNO 79
+#include <radix/sched.h>
 
-#include <errno.h>
+#define KTHREAD_NAME_LEN 0x40
 
-/*
- * The last page of virtual addresses maps to the page directory,
- * and therefore will never be returned by an allocation function.
- * It is therefore possible to return errors from a function that
- * returns a pointer through a "pointer" containing the negative
- * of one of the standard error values - a large unsigned number.
- */
-#define ERR_PTR(err)    ((void *)(-(err)))
-#define IS_ERR(ptr)     ((unsigned long)ptr >= (unsigned long)(-MAX_ERRNO))
-#define ERR_VAL(ptr)    (-((unsigned long)(ptr)))
+struct task *kthread_create(void (*func)(void *), void *arg,
+                            int page_order, char *name, ...);
 
-#endif /* UNTITLED_ERROR_H */
+struct task *kthread_run(void (*func)(void *), void *arg,
+                         int page_order, char *name, ...);
+
+void kthread_start(struct task *thread);
+void kthread_stop(struct task *thread);
+
+__noreturn void kthread_exit(void);
+
+#endif /* UNTITLED_KTHREAD_H */

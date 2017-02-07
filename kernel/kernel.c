@@ -17,30 +17,29 @@
  */
 
 #include <stdio.h>
-#include <untitled/irq.h>
-#include <untitled/mm.h>
-#include <untitled/multiboot.h>
-#include <untitled/kernel.h>
+#include <radix/irq.h>
+#include <radix/mm.h>
+#include <radix/multiboot.h>
+#include <radix/kernel.h>
+#include <radix/task.h>
 
 #include "mm/slab.h"
 
 /* kernel entry point */
 int kmain(multiboot_info_t *mbt)
 {
-	printf("Kernel loaded\n");
+	BOOT_OK_MSG("Kernel loaded\n");
 
 	buddy_init(mbt);
-	printf("Detected a total of %llu MiB of available memory\n",
-			totalmem / _M(1));
 	slab_init();
-
+	BOOT_OK_MSG("Memory allocators initialized (%llu MiB total)\n",
+	            totalmem / _M(1));
 	irq_enable();
 
 	/* TEMP: until modules are implemented (so a while) */
 	extern void kbd_install(void);
 	kbd_install();
-	printf("\nWelcome to UNTITLED!\n");
-	printf("Use `hjkl' to navigate page map\n");
+	printf("\nWelcome to RADIX\n");
 
 	while (1)
 		;

@@ -16,9 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <untitled/irq.h>
-#include <untitled/sched.h>
-#include <untitled/task.h>
+#include <radix/irq.h>
+#include <radix/sched.h>
+#include <radix/task.h>
 
 struct task *current_task = NULL;
 

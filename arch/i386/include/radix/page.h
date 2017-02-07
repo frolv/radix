@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/untitled/page.h
+ * arch/i386/include/radix/page.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -52,9 +52,9 @@
 #define PAGE_PSE        (((pteval_t)1) << _PAGE_BIT_PSE)
 #define PAGE_GLOBAL     (((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
-#include <untitled/compiler.h>
+#include <radix/compiler.h>
 
-#include <untitled/mm_types.h>
+#include <radix/mm_types.h>
 
 #define PDE(x) ((x).pde)
 #define PTE(x) ((x).pte)

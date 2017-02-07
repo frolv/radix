@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/untitled/asm/arch_io.h
+ * arch/i386/include/radix/asm/arch_io.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,8 +19,8 @@
 #ifndef ARCH_I386_UNTITLED_ASM_IO_H
 #define ARCH_I386_UNTITLED_ASM_IO_H
 
-#include <untitled/compiler.h>
-#include <untitled/types.h>
+#include <radix/compiler.h>
+#include <radix/types.h>
 
 #define __arch_outb x86_outb
 #define __arch_outw x86_outw

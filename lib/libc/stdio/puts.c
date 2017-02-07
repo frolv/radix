@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <untitled/tty.h>
+#include <radix/tty.h>
 
 int puts(const char *s)
 {

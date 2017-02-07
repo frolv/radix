@@ -1,5 +1,5 @@
 /*
- * include/untitled/slab.h
+ * include/radix/slab.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,8 +19,8 @@
 #ifndef UNTITLED_SLAB_H
 #define UNTITLED_SLAB_H
 
-#include <untitled/list.h>
-#include <untitled/types.h>
+#include <radix/list.h>
+#include <radix/types.h>
 
 #define NAME_LEN        0x40
 

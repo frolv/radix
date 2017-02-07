@@ -18,10 +18,10 @@
 
 #include <ctype.h>
 #include <string.h>
-#include <untitled/compiler.h>
-#include <untitled/kernel.h>
-#include <untitled/mutex.h>
-#include <untitled/tty.h>
+#include <radix/compiler.h>
+#include <radix/kernel.h>
+#include <radix/mutex.h>
+#include <radix/tty.h>
 
 #include "vga.h"
 

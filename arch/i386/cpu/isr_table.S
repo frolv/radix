@@ -86,7 +86,7 @@ isr_common:
 
 # Push all registers onto the stack as part of a struct regs.
 # The order in which these are pushed is important; see
-# arch/i386/include/untitled/sys.h for the struct definition.
+# arch/i386/include/radix/sys.h for the struct definition.
 register_push:
 	# segment registers
 	push %ds

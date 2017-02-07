@@ -1,5 +1,5 @@
 /*
- * include/untitled/kernel.h
+ * include/radix/kernel.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 #ifndef UNTITLED_KERNEL_H
 #define UNTITLED_KERNEL_H
 
-#include <untitled/types.h>
+#include <radix/types.h>
 
 #define HALT()  asm volatile("hlt")
 #define DIE() \
@@ -43,7 +43,7 @@
 	} while (0)
 
 
-#include <untitled/compiler.h>
+#include <radix/compiler.h>
 
 #define POW2(x) (1U << (x))
 

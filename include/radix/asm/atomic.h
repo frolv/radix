@@ -1,5 +1,5 @@
 /*
- * include/untitled/asm/atomic.h
+ * include/radix/asm/atomic.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 #ifndef UNTITLED_ASM_ATOMIC_H
 #define UNTITLED_ASM_ATOMIC_H
 
-#include <untitled/asm/arch_atomic.h>
+#include <radix/asm/arch_atomic.h>
 
 #define atomic_swap __arch_atomic_swap
 

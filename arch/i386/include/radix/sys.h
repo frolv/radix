@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/untitled/sys.h
+ * arch/i386/include/radix/sys.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,8 +19,8 @@
 #ifndef ARCH_I386_UNTITLED_SYS_H
 #define ARCH_I386_UNTITLED_SYS_H
 
-#include <untitled/types.h>
-#include <untitled/mm_types.h>
+#include <radix/types.h>
+#include <radix/mm_types.h>
 
 struct interrupt_regs {
 	uint32_t di;

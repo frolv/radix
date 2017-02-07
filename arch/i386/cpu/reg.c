@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <untitled/cpu.h>
-#include <untitled/kthread.h>
-#include <untitled/mm_types.h>
-#include <untitled/sys.h>
+#include <radix/cpu.h>
+#include <radix/kthread.h>
+#include <radix/mm_types.h>
+#include <radix/sys.h>
 
 #define KERNEL_CS 0x08
 #define KERNEL_DS 0x10

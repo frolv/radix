@@ -19,7 +19,7 @@
 #ifndef ARCH_I386_IDT_H
 #define ARCH_I386_IDT_H
 
-#include <untitled/types.h>
+#include <radix/types.h>
 
 void idt_set(size_t intno, uintptr_t intfn, uint16_t sel, uint8_t flags);
 

@@ -1,5 +1,5 @@
 /*
- * include/untitled/mm.h
+ * include/radix/mm.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,11 +19,11 @@
 #ifndef UNTITLED_MM_H
 #define UNTITLED_MM_H
 
-#include <untitled/error.h>
-#include <untitled/mm_types.h>
-#include <untitled/multiboot.h>
-#include <untitled/page.h>
-#include <untitled/types.h>
+#include <radix/error.h>
+#include <radix/mm_types.h>
+#include <radix/multiboot.h>
+#include <radix/page.h>
+#include <radix/types.h>
 
 #define KERNEL_VIRTUAL_BASE     __ARCH_KERNEL_VIRT_BASE
 #define KERNEL_SIZE             0x00400000

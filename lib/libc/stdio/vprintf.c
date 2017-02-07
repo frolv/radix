@@ -18,8 +18,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <untitled/tty.h>
-#include <untitled/kernel.h>
+#include <radix/tty.h>
+#include <radix/kernel.h>
 
 #include "printf.h"
 

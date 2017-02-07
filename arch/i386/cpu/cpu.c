@@ -18,8 +18,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <untitled/cpu.h>
-#include <untitled/kernel.h>
+#include <radix/cpu.h>
+#include <radix/kernel.h>
 
 static long cpuid_max;
 
@@ -803,6 +803,12 @@ static void read_cpuid4(void)
 
 /* full name of processor */
 static char processor_name[64];
+
+/* TEMP */
+char *cpu_name(void)
+{
+	return processor_name;
+}
 
 /*
  * extended_processor_info:

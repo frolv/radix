@@ -1,5 +1,5 @@
 /*
- * include/untitled/kthread.h
+ * include/radix/mutex.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,22 +16,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_KTHREAD_H
-#define UNTITLED_KTHREAD_H
+#ifndef UNTITLED_MUTEX_H
+#define UNTITLED_MUTEX_H
 
-#include <untitled/sched.h>
+#include <radix/list.h>
 
-#define KTHREAD_NAME_LEN 0x40
+#define MUTEX_INIT(name) { 0, LIST_INIT((name).queue) }
 
-struct task *kthread_create(void (*func)(void *), void *arg,
-                            int page_order, char *name, ...);
+struct mutex {
+	int             count;
+	struct list     queue;
+};
 
-struct task *kthread_run(void (*func)(void *), void *arg,
-                         int page_order, char *name, ...);
+void mutex_init(struct mutex *m);
+void mutex_lock(struct mutex *m);
+void mutex_unlock(struct mutex *m);
 
-void kthread_start(struct task *thread);
-void kthread_stop(struct task *thread);
-
-__noreturn void kthread_exit(void);
-
-#endif /* UNTITLED_KTHREAD_H */
+#endif /* UNTITLED_MUTEX_H */

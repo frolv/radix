@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <untitled/irq.h>
-#include <untitled/kernel.h>
-#include <untitled/sched.h>
-#include <untitled/sys.h>
+#include <radix/irq.h>
+#include <radix/kernel.h>
+#include <radix/sched.h>
+#include <radix/sys.h>
 
 #include "idt.h"
 #include "isr.h"

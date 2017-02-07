@@ -17,9 +17,9 @@
  */
 
 #include <string.h>
-#include <untitled/kernel.h>
-#include <untitled/mm.h>
-#include <untitled/page.h>
+#include <radix/kernel.h>
+#include <radix/mm.h>
+#include <radix/page.h>
 
 #include "buddy.h"
 

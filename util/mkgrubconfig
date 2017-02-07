@@ -1,5 +1,10 @@
 #!/bin/sh
 
-echo 'menuentry "untitled" {'
-echo '    multiboot /boot/kuntitled'
+echo 'menuentry "radix" {'
+echo '    multiboot /boot/kradix'
+echo '}'
+
+echo 'menuentry "System shutdown" {'
+echo '    echo "System shutting down..."'
+echo '    halt'
 echo '}'

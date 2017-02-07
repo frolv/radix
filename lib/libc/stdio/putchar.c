@@ -17,7 +17,7 @@
  */
 
 #include <stdio.h>
-#include <untitled/tty.h>
+#include <radix/tty.h>
 
 int putchar(int c)
 {

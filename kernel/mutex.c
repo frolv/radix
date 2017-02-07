@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <untitled/asm/atomic.h>
-#include <untitled/irq.h>
-#include <untitled/mutex.h>
-#include <untitled/sched.h>
+#include <radix/asm/atomic.h>
+#include <radix/irq.h>
+#include <radix/mutex.h>
+#include <radix/sched.h>
 
 void mutex_init(struct mutex *m)
 {

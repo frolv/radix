@@ -1,5 +1,5 @@
 /*
- * include/untitled/compiler.h
+ * include/radix/tty.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,18 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_COMPILER_H
-#define UNTITLED_COMPILER_H
+#ifndef UNTITLED_TTY_H
+#define UNTITLED_TTY_H
 
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
+#include <radix/types.h>
 
-#define __always_inline inline __attribute__((always_inline))
+#define TTY_TAB_STOP 8
 
-#define __noreturn __attribute__((noreturn))
+void tty_init(void);
+void tty_putchar(int c);
+void tty_write(const char *data, size_t size);
+void tty_flush(void);
 
-#define __aligned(x) __attribute__((aligned(x)))
-
-#define offsetof(type, member) __builtin_offsetof(type, member)
-
-#endif /* UNTITLED_COMPILER_H */
+#endif /* UNTITLED_TTY_H */

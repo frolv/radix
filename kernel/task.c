@@ -17,12 +17,12 @@
  */
 
 #include <string.h>
-#include <untitled/error.h>
-#include <untitled/kernel.h>
-#include <untitled/kthread.h>
-#include <untitled/sched.h>
-#include <untitled/slab.h>
-#include <untitled/task.h>
+#include <radix/error.h>
+#include <radix/kernel.h>
+#include <radix/kthread.h>
+#include <radix/sched.h>
+#include <radix/slab.h>
+#include <radix/task.h>
 
 static struct slab_cache *task_cache;
 

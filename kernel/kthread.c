@@ -17,12 +17,12 @@
  */
 
 #include <stdio.h>
-#include <untitled/irq.h>
-#include <untitled/kernel.h>
-#include <untitled/kthread.h>
-#include <untitled/mm.h>
-#include <untitled/slab.h>
-#include <untitled/task.h>
+#include <radix/irq.h>
+#include <radix/kernel.h>
+#include <radix/kthread.h>
+#include <radix/mm.h>
+#include <radix/slab.h>
+#include <radix/task.h>
 
 static struct task *__kthread_create(void (*func)(void *), void *arg,
                                      int page_order);

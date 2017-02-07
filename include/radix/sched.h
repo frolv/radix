@@ -1,5 +1,5 @@
 /*
- * include/untitled/sched.h
+ * include/radix/sched.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,9 +19,9 @@
 #ifndef UNTITLED_SCHED_H
 #define UNTITLED_SCHED_H
 
-#include <untitled/list.h>
-#include <untitled/sys.h>
-#include <untitled/types.h>
+#include <radix/list.h>
+#include <radix/sys.h>
+#include <radix/types.h>
 
 /*
  * A single task (process/kthread) in the system.

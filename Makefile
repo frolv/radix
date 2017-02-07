@@ -1,4 +1,4 @@
-PROJECT_NAME = untitled
+PROJECT_NAME = radix
 KERNEL_NAME = k$(PROJECT_NAME)
 
 DEFAULT_HOST != util/default-host

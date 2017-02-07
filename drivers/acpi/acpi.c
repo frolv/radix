@@ -22,8 +22,8 @@
 #include <acpi/rsdp.h>
 #include <acpi/tables/sdt.h>
 
-#include <untitled/kernel.h>
-#include <untitled/mm.h>
+#include <radix/kernel.h>
+#include <radix/mm.h>
 
 #define RSDP_SIG "RSD PTR "
 
@@ -132,6 +132,7 @@ static void rsdt_setup(addr_t rsdt_addr)
 
 	sdt_ptr = rsdt->sdt_addr + KERNEL_VIRTUAL_BASE;
 	sdt_len = (rsdt->head.length - sizeof rsdt->head) / sizeof (addr_t);
+	printf("0x%08lX %d\n", sdt_ptr, sdt_len);
 }
 
 static void xsdt_setup(addr_t xsdt_addr)
@@ -139,7 +140,7 @@ static void xsdt_setup(addr_t xsdt_addr)
 	struct xsdt *xsdt;
 
 	(void)xsdt;
-	(void)xsdt_addr;
+	printf("0x%08lX\n", xsdt_addr);
 }
 
 void *acpi_find_table(char *signature)

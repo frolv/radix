@@ -1,5 +1,5 @@
 /*
- * include/untitled/tty.h
+ * include/radix/irq.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,16 +16,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_TTY_H
-#define UNTITLED_TTY_H
+#ifndef UNTITLED_IRQ_H
+#define UNTITLED_IRQ_H
 
-#include <untitled/types.h>
+#define SYSCALL_INTERRUPT 0x80
 
-#define TTY_TAB_STOP 8
+#include <radix/arch_irq.h>
 
-void tty_init(void);
-void tty_putchar(int c);
-void tty_write(const char *data, size_t size);
-void tty_flush(void);
+#define SYSCALL_VECTOR  __ARCH_SYSCALL_VECTOR
 
-#endif /* UNTITLED_TTY_H */
+#define TIMER_IRQ       __ARCH_TIMER_IRQ
+#define KBD_IRQ         __ARCH_KBD_IRQ
+
+#define in_irq          __arch_in_irq
+#define irq_active      __arch_irq_active
+#define irq_disable     __arch_irq_disable
+#define irq_enable      __arch_irq_enable
+#define irq_install     __arch_irq_install
+#define irq_uninstall   __arch_irq_uninstall
+
+#endif /* UNTITLED_IRQ_H */

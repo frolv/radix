@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/untitled/mm_types.h
+ * arch/i386/include/radix/mm_types.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ typedef struct {
 	pteval_t pte;
 } pte_t;
 
-#include <untitled/list.h>
+#include <radix/list.h>
 
 /*
  * x86 page status (32-bit):
