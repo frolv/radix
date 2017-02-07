@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_UNTITLED_MM_TYPES_H
-#define ARCH_I386_UNTITLED_MM_TYPES_H
+#ifndef ARCH_I386_RADIX_MM_TYPES_H
+#define ARCH_I386_RADIX_MM_TYPES_H
 
 #define __ARCH_KERNEL_VIRT_BASE 0xC0000000UL
 
@@ -80,4 +80,4 @@ struct page {
 	struct list     list;           /* buddy allocator list */
 };
 
-#endif /* ARCH_I386_UNTITLED_MM_TYPES_H */
+#endif /* ARCH_I386_RADIX_MM_TYPES_H */

@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_KERNEL_H
-#define UNTITLED_KERNEL_H
+#ifndef RADIX_KERNEL_H
+#define RADIX_KERNEL_H
 
 #include <radix/types.h>
 
@@ -71,4 +71,4 @@ static __always_inline size_t order(size_t n)
 
 void panic(const char *err, ...);
 
-#endif /* UNTITLED_KERNEL_H */
+#endif /* RADIX_KERNEL_H */

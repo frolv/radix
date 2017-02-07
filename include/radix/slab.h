@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_SLAB_H
-#define UNTITLED_SLAB_H
+#ifndef RADIX_SLAB_H
+#define RADIX_SLAB_H
 
 #include <radix/list.h>
 #include <radix/types.h>
@@ -71,4 +71,4 @@ void free_cache(struct slab_cache *cache, void *obj);
 void *kmalloc(size_t size);
 void kfree(void *ptr);
 
-#endif /* UNTITLED_SLAB_H */
+#endif /* RADIX_SLAB_H */

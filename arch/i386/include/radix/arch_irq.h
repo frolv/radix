@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_UNTITLED_IRQ_H
-#define ARCH_I386_UNTITLED_IRQ_H
+#ifndef ARCH_I386_RADIX_IRQ_H
+#define ARCH_I386_RADIX_IRQ_H
 
 #include <radix/compiler.h>
 
@@ -55,4 +55,4 @@ static __always_inline int interrupts_active(void)
 	return flags & __INTERRUPT_BIT;
 }
 
-#endif /* ARCH_I386_UNTITLED_IRQ_H */
+#endif /* ARCH_I386_RADIX_IRQ_H */

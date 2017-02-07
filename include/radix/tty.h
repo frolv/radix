@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_TTY_H
-#define UNTITLED_TTY_H
+#ifndef RADIX_TTY_H
+#define RADIX_TTY_H
 
 #include <radix/types.h>
 
@@ -28,4 +28,4 @@ void tty_putchar(int c);
 void tty_write(const char *data, size_t size);
 void tty_flush(void);
 
-#endif /* UNTITLED_TTY_H */
+#endif /* RADIX_TTY_H */

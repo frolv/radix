@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_UNTITLED_CPU_H
-#define ARCH_I386_UNTITLED_CPU_H
+#ifndef ARCH_I386_RADIX_CPU_H
+#define ARCH_I386_RADIX_CPU_H
 
 #define CPU_VENDOR_AMD          "AuthenticAMD"
 #define CPU_VENDOR_CENTAUR      "CentaurHauls"
@@ -121,4 +121,4 @@ unsigned long cpu_cache_line_size(void);
 
 char *cpu_cache_str(void);
 
-#endif /* ARCH_I386_UNTITLED_CPU_H */
+#endif /* ARCH_I386_RADIX_CPU_H */

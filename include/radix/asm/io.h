@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ASM_IO_H
-#define UNTITLED_ASM_IO_H
+#ifndef RADIX_ASM_IO_H
+#define RADIX_ASM_IO_H
 
 #include <radix/asm/arch_io.h>
 
@@ -31,4 +31,4 @@
 
 #define io_wait __arch_io_wait
 
-#endif /* UNTITLED_ASM_IO_H */
+#endif /* RADIX_ASM_IO_H */

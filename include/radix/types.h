@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_TYPES_H
-#define UNTITLED_TYPES_H
+#ifndef RADIX_TYPES_H
+#define RADIX_TYPES_H
 
 #include <stdint.h>
 
@@ -32,4 +32,4 @@ typedef unsigned int    uid_t;
 typedef unsigned int    gid_t;
 typedef unsigned int    mode_t;
 
-#endif /* UNTITLED_TYPES_H */
+#endif /* RADIX_TYPES_H */

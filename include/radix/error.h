@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ERROR_H
-#define UNTITLED_ERROR_H
+#ifndef RADIX_ERROR_H
+#define RADIX_ERROR_H
 
 #define MAX_ERRNO 79
 
@@ -34,4 +34,4 @@
 #define IS_ERR(ptr)     ((unsigned long)ptr >= (unsigned long)(-MAX_ERRNO))
 #define ERR_VAL(ptr)    (-((unsigned long)(ptr)))
 
-#endif /* UNTITLED_ERROR_H */
+#endif /* RADIX_ERROR_H */

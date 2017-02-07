@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_MM_H
-#define UNTITLED_MM_H
+#ifndef RADIX_MM_H
+#define RADIX_MM_H
 
 #include <radix/error.h>
 #include <radix/mm_types.h>
@@ -115,4 +115,4 @@ int map_pages(addr_t virt, addr_t phys, size_t n);
 int unmap_page(addr_t virt);
 int unmap_page_pgtbl(addr_t virt);
 
-#endif /* UNTITLED_MM_H */
+#endif /* RADIX_MM_H */

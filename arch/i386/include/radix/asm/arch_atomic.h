@@ -17,8 +17,8 @@
  */
 
 
-#ifndef ARCH_I386_UNTITLED_ASM_ATOMIC_H
-#define ARCH_I386_UNTITLED_ASM_ATOMIC_H
+#ifndef ARCH_I386_RADIX_ASM_ATOMIC_H
+#define ARCH_I386_RADIX_ASM_ATOMIC_H
 
 #include <radix/compiler.h>
 
@@ -30,4 +30,4 @@ static __always_inline int x86_atomic_swap(int *a, int b)
 	return b;
 }
 
-#endif /* ARCH_I386_UNTITLED_ASM_ATOMIC_H */
+#endif /* ARCH_I386_RADIX_ASM_ATOMIC_H */

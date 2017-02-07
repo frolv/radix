@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_UNTITLED_PAGE_H
-#define ARCH_I386_UNTITLED_PAGE_H
+#ifndef ARCH_I386_RADIX_PAGE_H
+#define ARCH_I386_RADIX_PAGE_H
 
 #define PTRS_PER_PGDIR          0x400
 #define PTRS_PER_PGTBL          0x400
@@ -88,4 +88,4 @@ static __always_inline addr_t __pa(addr_t v)
 		return v - __ARCH_KERNEL_VIRT_BASE;
 }
 
-#endif /* ARCH_I386_UNTITLED_PAGE_H */
+#endif /* ARCH_I386_RADIX_PAGE_H */

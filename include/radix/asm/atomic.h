@@ -16,11 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_ASM_ATOMIC_H
-#define UNTITLED_ASM_ATOMIC_H
+#ifndef RADIX_ASM_ATOMIC_H
+#define RADIX_ASM_ATOMIC_H
 
 #include <radix/asm/arch_atomic.h>
 
 #define atomic_swap __arch_atomic_swap
 
-#endif /* UNTITLED_ASM_ATOMIC_H */
+#endif /* RADIX_ASM_ATOMIC_H */

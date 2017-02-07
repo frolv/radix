@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_COMPILER_H
-#define UNTITLED_COMPILER_H
+#ifndef RADIX_COMPILER_H
+#define RADIX_COMPILER_H
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -30,4 +30,4 @@
 
 #define offsetof(type, member) __builtin_offsetof(type, member)
 
-#endif /* UNTITLED_COMPILER_H */
+#endif /* RADIX_COMPILER_H */

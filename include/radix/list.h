@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_LIST_H
-#define UNTITLED_LIST_H
+#ifndef RADIX_LIST_H
+#define RADIX_LIST_H
 
 #include <radix/compiler.h>
 
@@ -98,4 +98,4 @@ static __always_inline int list_empty(struct list *head)
 	for (pos = (head)->prev, n = pos->prev; pos != (head); \
 			pos = n, n = pos->prev)
 
-#endif /* UNTITLED_LIST_H */
+#endif /* RADIX_LIST_H */

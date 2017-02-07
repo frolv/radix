@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_IRQ_H
-#define UNTITLED_IRQ_H
+#ifndef RADIX_IRQ_H
+#define RADIX_IRQ_H
 
 #define SYSCALL_INTERRUPT 0x80
 
@@ -35,4 +35,4 @@
 #define irq_install     __arch_irq_install
 #define irq_uninstall   __arch_irq_uninstall
 
-#endif /* UNTITLED_IRQ_H */
+#endif /* RADIX_IRQ_H */

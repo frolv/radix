@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_SCHED_H
-#define UNTITLED_SCHED_H
+#ifndef RADIX_SCHED_H
+#define RADIX_SCHED_H
 
 #include <radix/list.h>
 #include <radix/sys.h>
@@ -64,4 +64,4 @@ void sched_del(struct task *t);
 
 void sched_unblock(struct task *t);
 
-#endif /* UNTITLED_SCHED_H */
+#endif /* RADIX_SCHED_H */

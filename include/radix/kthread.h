@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_KTHREAD_H
-#define UNTITLED_KTHREAD_H
+#ifndef RADIX_KTHREAD_H
+#define RADIX_KTHREAD_H
 
 #include <radix/sched.h>
 
@@ -34,4 +34,4 @@ void kthread_stop(struct task *thread);
 
 __noreturn void kthread_exit(void);
 
-#endif /* UNTITLED_KTHREAD_H */
+#endif /* RADIX_KTHREAD_H */

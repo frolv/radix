@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef UNTITLED_MUTEX_H
-#define UNTITLED_MUTEX_H
+#ifndef RADIX_MUTEX_H
+#define RADIX_MUTEX_H
 
 #include <radix/list.h>
 
@@ -32,4 +32,4 @@ void mutex_init(struct mutex *m);
 void mutex_lock(struct mutex *m);
 void mutex_unlock(struct mutex *m);
 
-#endif /* UNTITLED_MUTEX_H */
+#endif /* RADIX_MUTEX_H */

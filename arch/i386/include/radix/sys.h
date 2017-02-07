@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_UNTITLED_SYS_H
-#define ARCH_I386_UNTITLED_SYS_H
+#ifndef ARCH_I386_RADIX_SYS_H
+#define ARCH_I386_RADIX_SYS_H
 
 #include <radix/types.h>
 #include <radix/mm_types.h>
@@ -74,4 +74,4 @@ void load_registers(struct interrupt_regs *ir, struct regs *r);
 
 void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg);
 
-#endif /* ARCH_I386_UNTITLED_SYS_H */
+#endif /* ARCH_I386_RADIX_SYS_H */
