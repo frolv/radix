@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KERNEL_TASK_H
-#define KERNEL_TASK_H
+#ifndef RADIX_TASK_H
+#define RADIX_TASK_H
 
 #include <radix/sched.h>
 
@@ -27,4 +27,4 @@ void task_free(struct task *task);
 
 void switch_to_task(struct task *task);
 
-#endif /* KERNEL_TASK_H */
+#endif /* RADIX_TASK_H */
