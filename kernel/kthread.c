@@ -16,13 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/kthread.h>
 #include <radix/mm.h>
 #include <radix/slab.h>
 #include <radix/task.h>
+
+#include <rlibc/stdio.h>
 
 static struct task *__kthread_create(void (*func)(void *), void *arg,
                                      int page_order);

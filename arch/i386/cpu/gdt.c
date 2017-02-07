@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <radix/types.h>
+#include <rlibc/string.h>
 
 /* Global Descriptor Table */
 static uint64_t gdt[6];

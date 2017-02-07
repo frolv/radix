@@ -1,5 +1,5 @@
 /*
- * kernel/panic.c
+ * lib/rlibc/stdio/puts.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,28 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/irq.h>
-#include <radix/kernel.h>
 #include <radix/tty.h>
 #include <rlibc/stdio.h>
+#include <rlibc/string.h>
 
-/*
- * panic:
- * Print error message and halt the system.
- * This function never returns.
- */
-void panic(const char *err, ...)
+int puts(const char *s)
 {
-	va_list ap;
-
-	/* disable interrupts */
-	irq_disable();
-
-	printf("kernel panic: ");
-	va_start(ap, err);
-	vprintf(err, ap);
-	va_end(ap);
-	tty_flush();
-
-	DIE();
+	tty_write(s, strlen(s));
+	tty_putchar('\n');
+	return 0;
 }

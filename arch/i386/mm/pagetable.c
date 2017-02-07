@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/page.h>
+#include <rlibc/string.h>
 
 #define PGTBL(x)        (pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
 

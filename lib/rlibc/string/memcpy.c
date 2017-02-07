@@ -1,5 +1,5 @@
 /*
- * kernel/panic.c
+ * lib/rlibc/string/memcpy.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,28 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/irq.h>
-#include <radix/kernel.h>
-#include <radix/tty.h>
-#include <rlibc/stdio.h>
+#include <rlibc/string.h>
 
-/*
- * panic:
- * Print error message and halt the system.
- * This function never returns.
- */
-void panic(const char *err, ...)
+void *memcpy(void *__restrict dst, const void *__restrict src, size_t n)
 {
-	va_list ap;
+	unsigned char *d = dst;
+	const unsigned char *s = src;
 
-	/* disable interrupts */
-	irq_disable();
+	while (n--)
+		*d++ = *s++;
 
-	printf("kernel panic: ");
-	va_start(ap, err);
-	vprintf(err, ap);
-	va_end(ap);
-	tty_flush();
-
-	DIE();
+	return dst;
 }

@@ -1,5 +1,5 @@
 /*
- * kernel/panic.c
+ * include/rlibc/ctype.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,28 +16,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/irq.h>
-#include <radix/kernel.h>
-#include <radix/tty.h>
-#include <rlibc/stdio.h>
+#ifndef RLIBC_CTYPE_H
+#define RLIBC_CTYPE_H
 
-/*
- * panic:
- * Print error message and halt the system.
- * This function never returns.
- */
-void panic(const char *err, ...)
-{
-	va_list ap;
+int isalnum(int c);
+int isalpha(int c);
+int isdigit(int c);
+int isspace(int c);
+int islower(int c);
+int isupper(int c);
 
-	/* disable interrupts */
-	irq_disable();
+int tolower(int c);
+int toupper(int c);
 
-	printf("kernel panic: ");
-	va_start(ap, err);
-	vprintf(err, ap);
-	va_end(ap);
-	tty_flush();
-
-	DIE();
-}
+#endif /* RLIBC_CTYPE_H */

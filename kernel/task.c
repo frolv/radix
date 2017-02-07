@@ -16,13 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
 #include <radix/kthread.h>
 #include <radix/sched.h>
 #include <radix/slab.h>
 #include <radix/task.h>
+
+#include <rlibc/string.h>
 
 static struct slab_cache *task_cache;
 

@@ -16,7 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <radix/irq.h>
 #include <radix/mm.h>
 #include <radix/multiboot.h>
@@ -34,6 +33,7 @@ int kmain(multiboot_info_t *mbt)
 	slab_init();
 	BOOT_OK_MSG("Memory allocators initialized (%llu MiB total)\n",
 	            totalmem / _M(1));
+	tasking_init();
 	irq_enable();
 
 	/* TEMP: until modules are implemented (so a while) */

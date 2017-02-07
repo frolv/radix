@@ -16,13 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-
 #include <radix/asm/io.h>
 #include <radix/irq.h>
 #include <radix/sched.h>
 #include <radix/sys.h>
 #include <radix/types.h>
+
+#include <rlibc/string.h>
 
 #define PIT_0   0x40
 #define PIT_1   0x41

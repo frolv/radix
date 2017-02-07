@@ -1,5 +1,5 @@
 /*
- * kernel/panic.c
+ * include/rlibc/stdio.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,28 +16,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/irq.h>
-#include <radix/kernel.h>
-#include <radix/tty.h>
-#include <rlibc/stdio.h>
+#ifndef RLIBC_STDIO_H
+#define RLIBC_STDIO_H
 
-/*
- * panic:
- * Print error message and halt the system.
- * This function never returns.
- */
-void panic(const char *err, ...)
-{
-	va_list ap;
+#include <stdarg.h>
+#include <radix/types.h>
 
-	/* disable interrupts */
-	irq_disable();
+#define EOF (-1)
 
-	printf("kernel panic: ");
-	va_start(ap, err);
-	vprintf(err, ap);
-	va_end(ap);
-	tty_flush();
+int putchar(int c);
+int puts(const char *s);
 
-	DIE();
-}
+int printf(const char *format, ...);
+int vprintf(const char *format, va_list ap);
+
+int sprintf(char *str, const char *format, ...);
+int vsprintf(char *str, const char *format, va_list ap);
+
+int snprintf(char *str, size_t size, const char *format, ...);
+int vsnprintf(char *str, size_t size, const char *format, va_list ap);
+
+#endif /* RLIBC_STDIO_H */

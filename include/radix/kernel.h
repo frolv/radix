@@ -61,7 +61,7 @@ static __always_inline size_t order(size_t n)
 #define _M(n)   (_K(n) * 1024UL)
 #define _G(n)   (_M(n) * 1024UL)
 
-#include <stdio.h>
+#include <rlibc/stdio.h>
 
 #define BOOT_OK_MSG(msg, ...) \
 	printf("[ \x1B[1;32mOK\x1B[37m ] " msg, ##__VA_ARGS__)

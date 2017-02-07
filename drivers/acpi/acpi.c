@@ -16,14 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-
 #include <acpi/acpi.h>
 #include <acpi/rsdp.h>
 #include <acpi/tables/sdt.h>
 
 #include <radix/kernel.h>
 #include <radix/mm.h>
+
+#include <rlibc/string.h>
 
 #define RSDP_SIG "RSD PTR "
 

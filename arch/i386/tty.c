@@ -16,12 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctype.h>
-#include <string.h>
 #include <radix/compiler.h>
 #include <radix/kernel.h>
 #include <radix/mutex.h>
 #include <radix/tty.h>
+
+#include <rlibc/ctype.h>
+#include <rlibc/string.h>
 
 #include "vga.h"
 

@@ -1,5 +1,5 @@
 /*
- * kernel/panic.c
+ * lib/rlibc/string/strcmp.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,28 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/irq.h>
-#include <radix/kernel.h>
-#include <radix/tty.h>
-#include <rlibc/stdio.h>
+#include <rlibc/string.h>
 
-/*
- * panic:
- * Print error message and halt the system.
- * This function never returns.
- */
-void panic(const char *err, ...)
+int strcmp(const char *s1, const char *s2)
 {
-	va_list ap;
-
-	/* disable interrupts */
-	irq_disable();
-
-	printf("kernel panic: ");
-	va_start(ap, err);
-	vprintf(err, ap);
-	va_end(ap);
-	tty_flush();
-
-	DIE();
+	for (; *s1 == *s2; ++s1, ++s2) {
+		if (!*s1)
+			return 0;
+	}
+	return *s1 < *s2 ? -1 : 1;
 }

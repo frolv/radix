@@ -1,5 +1,5 @@
 /*
- * kernel/panic.c
+ * lib/rlibc/string/memcmp.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,28 +16,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/irq.h>
-#include <radix/kernel.h>
-#include <radix/tty.h>
-#include <rlibc/stdio.h>
+#include <rlibc/string.h>
 
-/*
- * panic:
- * Print error message and halt the system.
- * This function never returns.
- */
-void panic(const char *err, ...)
+int memcmp(const void *s1, const void *s2, size_t n)
 {
-	va_list ap;
+	const unsigned char *a, *b;
+	size_t i;
 
-	/* disable interrupts */
-	irq_disable();
+	a = s1;
+	b = s2;
 
-	printf("kernel panic: ");
-	va_start(ap, err);
-	vprintf(err, ap);
-	va_end(ap);
-	tty_flush();
-
-	DIE();
+	for (i = 0; i < n; ++i) {
+		if (a[i] < b[i])
+			return -1;
+		else if (a[i] > b[i])
+			return 1;
+	}
+	return 0;
 }

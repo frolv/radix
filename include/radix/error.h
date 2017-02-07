@@ -21,7 +21,7 @@
 
 #define MAX_ERRNO 79
 
-#include <errno.h>
+#include <rlibc/errno.h>
 
 /*
  * The last page of virtual addresses maps to the page directory,
