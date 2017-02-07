@@ -20,6 +20,6 @@
 #define ACPI_ACPI_H
 
 void acpi_init(void);
-void *acpi_find_table(char *signature);
+void *acpi_find_table(const char *signature);
 
 #endif /* ACPI_ACPI_H */

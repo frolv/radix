@@ -35,16 +35,17 @@
 
 struct rsdt {
 	struct acpi_sdt_header head;
-	addr_t sdt_addr[];
+	uint32_t sdt_addr[];
 };
 
 struct xsdt {
 	struct acpi_sdt_header head;
-	addr_t sdt_addr[];
+	uint64_t sdt_addr[];
 };
 
-static addr_t *sdt_ptr;
+static void *sdt_base;
 static size_t sdt_len;
+static size_t sdt_size;
 
 static void rsdt_setup(addr_t rsdt_addr);
 static void xsdt_setup(addr_t xsdt_addr);
@@ -103,7 +104,7 @@ err_checksum:
 
 /*
  * rsdt_setup:
- * Read the RSDT descriptor to find the number
+ * Read the XSDT descriptor to find the number
  * of APCI tables and their addresses.
  */
 static void rsdt_setup(addr_t rsdt_addr)
@@ -130,21 +131,69 @@ static void rsdt_setup(addr_t rsdt_addr)
 			unmap_page_pgtbl(sdt_page + KERNEL_VIRTUAL_BASE);
 	}
 
-	sdt_ptr = rsdt->sdt_addr + KERNEL_VIRTUAL_BASE;
-	sdt_len = (rsdt->head.length - sizeof rsdt->head) / sizeof (addr_t);
-	printf("0x%08lX %d\n", sdt_ptr, sdt_len);
+	sdt_base = rsdt->sdt_addr + KERNEL_VIRTUAL_BASE;
+	sdt_size = 4;
+	sdt_len = (rsdt->head.length - sizeof rsdt->head) / sdt_size;
 }
 
+/*
+ * xsdt_setup:
+ * Read the XSDT descriptor to find the number
+ * of APCI tables and their addresses.
+ */
 static void xsdt_setup(addr_t xsdt_addr)
 {
 	struct xsdt *xsdt;
+	addr_t sdt_page;
+	int checksum, unmap;
 
-	(void)xsdt;
-	printf("0x%08lX\n", xsdt_addr);
+	unmap = 0;
+	xsdt = (struct xsdt *)(xsdt_addr + KERNEL_VIRTUAL_BASE);
+
+	if (!addr_mapped((addr_t)xsdt)) {
+		sdt_page = xsdt_addr & PAGE_MASK;
+		map_page(sdt_page + KERNEL_VIRTUAL_BASE, sdt_page);
+		unmap = 1;
+	}
+
+	checksum = byte_sum(xsdt, (char *)xsdt + xsdt->head.length);
+
+	if ((checksum & 0xFF) != 0) {
+		BOOT_FAIL_MSG("Invalid ACPI checksum at address 0x%08lX\n",
+		              xsdt);
+		if (unmap)
+			unmap_page_pgtbl(sdt_page + KERNEL_VIRTUAL_BASE);
+	}
+
+	sdt_base = xsdt->sdt_addr + KERNEL_VIRTUAL_BASE;
+	sdt_size = 8;
+	sdt_len = (xsdt->head.length - sizeof xsdt->head) / sdt_size;
 }
 
-void *acpi_find_table(char *signature)
+/*
+ * apci_find_table:
+ * Return a pointer to the ACPI table with given signature, it it exists.
+ */
+void *acpi_find_table(const char *signature)
 {
+	unsigned int i;
+	struct acpi_sdt_header *h;
+
+	for (i = 0; i < sdt_len; ++i) {
+		if (sdt_size == 4) {
+			h = (struct acpi_sdt_header *)((uint32_t *)sdt_base)[i];
+		} else {
+#if defined(__i386__)
+			h = (struct acpi_sdt_header *)
+				(addr_t)((uint64_t *)sdt_base)[i];
+#elif defined(__x86_64__)
+			h = (struct acpi_sdt_header *)((uint64_t *)sdt_base)[i];
+#endif
+		}
+		if (strncmp(h->signature, signature, 4) == 0)
+			return h;
+	}
+
 	return NULL;
 }
 
