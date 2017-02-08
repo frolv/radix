@@ -28,6 +28,8 @@
 #define KERNEL_VIRTUAL_BASE     __ARCH_KERNEL_VIRT_BASE
 #define KERNEL_SIZE             0x00400000
 
+#define ACPI_TABLES_VIRT_BASE   __ARCH_ACPI_VIRT_BASE
+
 /*
  * Page map starts at 16 MiB in physical memory, directly after the DMA zone.
  */

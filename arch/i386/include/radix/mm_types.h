@@ -21,6 +21,9 @@
 
 #define __ARCH_KERNEL_VIRT_BASE 0xC0000000UL
 
+/* Pages containing ACPI tables are mapped starting at this virtual address. */
+#define __ARCH_ACPI_VIRT_BASE   0xFFBF0000UL
+
 #define __ARCH_MEM_LIMIT        0x100000000ULL
 
 typedef unsigned long addr_t;
