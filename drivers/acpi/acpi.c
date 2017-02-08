@@ -114,11 +114,12 @@ static void rsdt_setup(addr_t rsdt_addr)
 	int checksum, unmap;
 
 	unmap = 0;
-	rsdt = (struct rsdt *)(rsdt_addr + KERNEL_VIRTUAL_BASE);
+	rsdt = (struct rsdt *)((rsdt_addr & (PAGE_SIZE - 1))
+	                       + ACPI_TABLES_VIRT_BASE);
 
 	if (!addr_mapped((addr_t)rsdt)) {
 		sdt_page = rsdt_addr & PAGE_MASK;
-		map_page(sdt_page + KERNEL_VIRTUAL_BASE, sdt_page);
+		map_page(ACPI_TABLES_VIRT_BASE, sdt_page);
 		unmap = 1;
 	}
 
@@ -128,10 +129,11 @@ static void rsdt_setup(addr_t rsdt_addr)
 		BOOT_FAIL_MSG("Invalid ACPI checksum at address 0x%08lX\n",
 		              rsdt);
 		if (unmap)
-			unmap_page_pgtbl(sdt_page + KERNEL_VIRTUAL_BASE);
+			unmap_page_pgtbl(ACPI_TABLES_VIRT_BASE);
 	}
 
-	sdt_base = rsdt->sdt_addr + KERNEL_VIRTUAL_BASE;
+	sdt_base = (void *)((addr_t)rsdt->sdt_addr & (PAGE_SIZE - 1))
+		+ ACPI_TABLES_VIRT_BASE;
 	sdt_size = 4;
 	sdt_len = (rsdt->head.length - sizeof rsdt->head) / sdt_size;
 }
@@ -148,11 +150,12 @@ static void xsdt_setup(addr_t xsdt_addr)
 	int checksum, unmap;
 
 	unmap = 0;
-	xsdt = (struct xsdt *)(xsdt_addr + KERNEL_VIRTUAL_BASE);
+	xsdt = (struct xsdt *)((xsdt_addr & (PAGE_SIZE - 1))
+	                       + ACPI_TABLES_VIRT_BASE);
 
 	if (!addr_mapped((addr_t)xsdt)) {
 		sdt_page = xsdt_addr & PAGE_MASK;
-		map_page(sdt_page + KERNEL_VIRTUAL_BASE, sdt_page);
+		map_page(ACPI_TABLES_VIRT_BASE, sdt_page);
 		unmap = 1;
 	}
 
@@ -162,10 +165,11 @@ static void xsdt_setup(addr_t xsdt_addr)
 		BOOT_FAIL_MSG("Invalid ACPI checksum at address 0x%08lX\n",
 		              xsdt);
 		if (unmap)
-			unmap_page_pgtbl(sdt_page + KERNEL_VIRTUAL_BASE);
+			unmap_page_pgtbl(ACPI_TABLES_VIRT_BASE);
 	}
 
-	sdt_base = xsdt->sdt_addr + KERNEL_VIRTUAL_BASE;
+	sdt_base = (void *)((addr_t)xsdt->sdt_addr & (PAGE_SIZE - 1))
+		+ ACPI_TABLES_VIRT_BASE;
 	sdt_size = 8;
 	sdt_len = (xsdt->head.length - sizeof xsdt->head) / sdt_size;
 }
