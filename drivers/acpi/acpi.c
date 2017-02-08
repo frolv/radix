@@ -103,6 +103,72 @@ err_checksum:
 }
 
 /*
+ * convert_rsdt_addrs:
+ * Convert addresses of all SDT tables referred to by RSDT to virtual addresses.
+ */
+static void convert_rsdt_addrs(void)
+{
+	struct acpi_sdt_header *h;
+	unsigned int i, curr_page;
+	uint32_t addr, phys_page;
+
+	curr_page = 0;
+	for (i = 0; i < sdt_len; ++i) {
+		addr = ((uint32_t *)sdt_base)[i];
+		phys_page = addr & PAGE_MASK;
+		addr &= PAGE_SIZE - 1;
+		addr += ACPI_TABLES_VIRT_BASE + curr_page * PAGE_SIZE;
+		((uint32_t *)sdt_base)[i] = addr;
+
+		if (!addr_mapped(addr)) {
+			map_page(addr & PAGE_MASK, phys_page);
+			++curr_page;
+		}
+
+		h = (struct acpi_sdt_header *)addr;
+		if (addr + h->length > ALIGN(addr, PAGE_SIZE)) {
+			map_page(ALIGN(addr, PAGE_SIZE), phys_page + PAGE_SIZE);
+			++curr_page;
+		}
+	}
+}
+
+/*
+ * convert_xsdt_addrs:
+ * Convert addresses of all SDT tables referred to by XSDT to virtual addresses.
+ */
+static void convert_xsdt_addrs(void)
+{
+	struct acpi_sdt_header *h;
+	unsigned int i, curr_page;
+	uint64_t addr, phys_page;
+
+	curr_page = 0;
+	for (i = 0; i < sdt_len; ++i) {
+		addr = ((uint64_t *)sdt_base)[i];
+		phys_page = addr & PAGE_MASK;
+		addr &= PAGE_SIZE - 1;
+		addr += ACPI_TABLES_VIRT_BASE + curr_page * PAGE_SIZE;
+		((uint64_t *)sdt_base)[i] = addr;
+
+		if (!addr_mapped(addr)) {
+			map_page(addr & PAGE_MASK, phys_page);
+			++curr_page;
+		}
+
+#if defined(__i386__)
+		h = (struct acpi_sdt_header *)(addr_t)addr;
+#elif defined(__x86_64__)
+		h = (struct acpi_sdt_header *)addr;
+#endif
+		if (addr + h->length > ALIGN(addr, PAGE_SIZE)) {
+			map_page(ALIGN(addr, PAGE_SIZE), phys_page + PAGE_SIZE);
+			++curr_page;
+		}
+	}
+}
+
+/*
  * rsdt_setup:
  * Read the XSDT descriptor to find the number
  * of APCI tables and their addresses.
@@ -136,6 +202,7 @@ static void rsdt_setup(addr_t rsdt_addr)
 		+ ACPI_TABLES_VIRT_BASE;
 	sdt_size = 4;
 	sdt_len = (rsdt->head.length - sizeof rsdt->head) / sdt_size;
+	convert_rsdt_addrs();
 }
 
 /*
@@ -172,6 +239,7 @@ static void xsdt_setup(addr_t xsdt_addr)
 		+ ACPI_TABLES_VIRT_BASE;
 	sdt_size = 8;
 	sdt_len = (xsdt->head.length - sizeof xsdt->head) / sdt_size;
+	convert_xsdt_addrs();
 }
 
 /*
