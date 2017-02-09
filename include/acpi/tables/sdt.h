@@ -34,6 +34,11 @@ struct acpi_sdt_header {
 	uint32_t        creator_revision;
 };
 
+struct acpi_subtable_header {
+	uint8_t type;
+	uint8_t length;
+};
+
 int acpi_valid_checksum(struct acpi_sdt_header *header);
 
 #endif /* ACPI_TABLES_SDT_H */
