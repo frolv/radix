@@ -59,6 +59,8 @@ void slab_init(void)
 	grow_cache(&cache_cache);
 
 	kmalloc_init();
+	BOOT_OK_MSG("Memory allocators initialized (%llu MiB total)\n",
+	            totalmem / _M(1));
 }
 
 static struct slab_desc *init_slab(struct slab_cache *cache);

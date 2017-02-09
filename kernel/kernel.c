@@ -27,14 +27,12 @@
 #include "mm/slab.h"
 
 /* kernel entry point */
-int kmain(multiboot_info_t *mbt)
+int kmain(struct multiboot_info *mbt)
 {
 	BOOT_OK_MSG("Kernel loaded\n");
 
 	buddy_init(mbt);
 	slab_init();
-	BOOT_OK_MSG("Memory allocators initialized (%llu MiB total)\n",
-	            totalmem / _M(1));
 	acpi_init();
 	irq_init();
 
