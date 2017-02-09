@@ -40,6 +40,8 @@ enum {
 	ACPI_MADT_GENERIC_TRANSLATOR
 };
 
+#define ACPI_MADT_SIGNATURE "APIC"
+
 struct acpi_madt {
 	struct acpi_sdt_header header;
 	uint32_t address;
