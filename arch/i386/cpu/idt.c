@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/irq.h>
+#include <radix/kernel.h>
+
 #include "idt.h"
 #include "isr.h"
 
@@ -28,6 +31,7 @@ void idt_init(void)
 {
 	load_interrupt_routines();
 	idt_load(idt, sizeof idt);
+	BOOT_OK_MSG("IDT loaded\n");
 }
 
 /* idt_set: load a single entry into the IDT */

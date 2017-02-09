@@ -26,6 +26,7 @@
 #define __ARCH_TIMER_IRQ        0x0
 #define __ARCH_KBD_IRQ          0x1
 
+#define __arch_irq_init         idt_init
 #define __arch_in_irq           in_interrupt
 #define __arch_irq_active       interrupts_active
 #define __arch_irq_disable      interrupt_disable
@@ -37,6 +38,7 @@
 
 #include <radix/sys.h>
 
+void idt_init(void);
 int in_interrupt(void);
 void interrupt_disable(void);
 void interrupt_enable(void);

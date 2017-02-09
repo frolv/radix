@@ -135,16 +135,6 @@ load_gdt:
 	call tty_write
 	addl $8, %esp
 
-# Load the interrupt descriptor table.
-load_idt:
-	call idt_init
-
-	# Print a message indicating successful IDT load.
-	pushl len_idt_msg
-	pushl $idt_msg
-	call tty_write
-	addl $8, %esp
-
 kernel_start:
 	# ebx contains the physical address of the multiboot_info
 	# structure. Covert this to its equivalent virtual address.
@@ -168,7 +158,3 @@ gdt_msg:
 	.ascii "[ \x1b[1;32mOK\x1b[37m ] GDT loaded\n"
 len_gdt_msg:
 	.long . - gdt_msg
-idt_msg:
-	.ascii "[ \x1b[1;32mOK\x1b[37m ] IDT loaded\n"
-len_idt_msg:
-	.long . - idt_msg
