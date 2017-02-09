@@ -31,5 +31,5 @@ int acpi_valid_checksum(struct acpi_sdt_header *header)
 	for (i = 0; i < header->length; ++i)
 		sum += ((char *)header)[i];
 
-	return sum == 0;
+	return (sum & 0xFF) == 0;
 }
