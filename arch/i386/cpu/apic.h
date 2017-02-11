@@ -1,5 +1,5 @@
 /*
- * arch/i386/cpu/apic.c
+ * arch/i386/cpu/apic.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,30 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <acpi/acpi.h>
-#include <acpi/tables/madt.h>
+#ifndef ARCH_I386_APIC_H
+#define ARCH_I386_APIC_H
 
-#include <radix/error.h>
-#include <radix/kernel.h>
+int apic_madt_check(void);
+void apic_init(void);
 
-#include "apic.h"
-
-static struct acpi_madt *madt;
-
-int apic_madt_check(void)
-{
-	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
-	if (!madt)
-		return EINVAL;
-
-	if (!acpi_valid_checksum((struct acpi_sdt_header *)madt)) {
-		BOOT_FAIL_MSG("ACPI MADT checksum invalid\n");
-		return EINVAL;
-	}
-
-	return 0;
-}
-
-void apic_init(void)
-{
-}
+#endif /* ARCH_I386_APIC_H */
