@@ -132,6 +132,11 @@ int cpu_has_apic(void)
 	return cpu_info[3] & CPUID_APIC;
 }
 
+int cpu_has_msr(void)
+{
+	return cpu_info[3] & CPUID_MSR;
+}
+
 unsigned long cpu_cache_line_size(void)
 {
 	return cache_info.line_size;
