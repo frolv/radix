@@ -117,6 +117,7 @@ static __always_inline unsigned long cpuid_supported(void)
 	             : "0"(eax))
 
 int cpu_has_apic(void);
+int cpu_has_msr(void);
 unsigned long cpu_cache_line_size(void);
 
 char *cpu_cache_str(void);
