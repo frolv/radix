@@ -19,10 +19,13 @@
 #include <acpi/acpi.h>
 #include <acpi/tables/madt.h>
 
+#include <radix/asm/msr.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
 
 #include "apic.h"
+
+#define APIC_BASE_MSR 0x1B
 
 static struct acpi_madt *madt;
 
@@ -42,4 +45,7 @@ int apic_madt_check(void)
 
 void apic_init(void)
 {
+	uint32_t eax, edx;
+
+	rdmsr(APIC_BASE_MSR, &eax, &edx);
 }

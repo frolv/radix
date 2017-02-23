@@ -16,11 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/cpu.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/sched.h>
 #include <radix/sys.h>
 
+#include "apic.h"
 #include "idt.h"
 #include "isr.h"
 #include "pic.h"
@@ -70,6 +72,12 @@ void load_interrupt_routines(void)
 
 	/* remap IRQs to vectors 0x20 through 0x2F */
 	pic_remap(IRQ_BASE, IRQ_BASE + 8);
+
+	if (cpu_has_apic() && cpu_has_msr() && apic_madt_check() == 0) {
+		/* APIC is available; use it. */
+		pic_disable();
+		apic_init();
+	}
 }
 
 /* install_interrupt_handler: set a function to handler IRQ `irqno` */
