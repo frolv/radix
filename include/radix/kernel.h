@@ -61,6 +61,8 @@ static __always_inline size_t order(size_t n)
 #define _M(n)   (_K(n) * 1024UL)
 #define _G(n)   (_M(n) * 1024UL)
 
+#define ARRAY_SIZE(a) (sizeof (a) / sizeof ((a)[0]))
+
 #include <rlibc/stdio.h>
 
 #define BOOT_OK_MSG(msg, ...) \
