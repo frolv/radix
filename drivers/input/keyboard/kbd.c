@@ -27,6 +27,9 @@ void kbd_handler(struct regs *r)
 	uint8_t c;
 
 	c = inb(0x60);
+
+	(void)c;
+	(void)r;
 }
 
 void kbd_install(void)
