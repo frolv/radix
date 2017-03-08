@@ -22,10 +22,12 @@
 #include <radix/asm/msr.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
+#include <radix/page.h>
 
 #include "apic.h"
 
-#define APIC_BASE_MSR 0x1B
+#define APIC_BASE_MSR           0x1B
+#define APIC_BASE_MSR_ENABLE    0x800
 
 static struct acpi_madt *madt;
 
@@ -43,9 +45,17 @@ int apic_madt_check(void)
 	return 0;
 }
 
-void apic_init(void)
+static addr_t get_apic_phys_base(void)
 {
 	uint32_t eax, edx;
 
 	rdmsr(APIC_BASE_MSR, &eax, &edx);
+	return eax & PAGE_MASK;
+}
+
+void apic_init(void)
+{
+	addr_t phys;
+
+	phys = get_apic_phys_base();
 }
