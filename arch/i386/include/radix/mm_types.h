@@ -24,6 +24,9 @@
 /* Pages containing ACPI tables are mapped starting at this virtual address. */
 #define __ARCH_ACPI_VIRT_BASE   0xFFBF0000UL
 
+/* APIC registers page virtual address */
+#define __ARCH_APIC_VIRT_PAGE   0xFFBEF000UL
+
 #define __ARCH_MEM_LIMIT        0x100000000ULL
 
 typedef unsigned long addr_t;
