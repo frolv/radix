@@ -22,6 +22,7 @@
 #include <radix/asm/msr.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
+#include <radix/mm.h>
 #include <radix/page.h>
 
 #include "apic.h"
@@ -58,4 +59,5 @@ void apic_init(void)
 	addr_t phys;
 
 	phys = get_apic_phys_base();
+	map_page(__ARCH_APIC_VIRT_PAGE, phys);
 }
