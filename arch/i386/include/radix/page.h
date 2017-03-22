@@ -82,7 +82,7 @@ addr_t __virt_to_phys(addr_t addr);
 
 static __always_inline addr_t __pa(addr_t v)
 {
-	if (v < __ARCH_KERNEL_VIRT_BASE || v >= __ARCH_ACPI_VIRT_BASE)
+	if (v < __ARCH_KERNEL_VIRT_BASE || v >= __ARCH_APIC_VIRT_PAGE)
 		return __virt_to_phys(v);
 	else
 		return v - __ARCH_KERNEL_VIRT_BASE;
