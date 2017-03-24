@@ -315,8 +315,8 @@ static size_t calculate_align(unsigned long flags, size_t align, size_t size)
 	/* align objects to the CPU cache if requested */
 	if (flags & SLAB_HW_CACHE_ALIGN) {
 		cache_align = cpu_cache_line_size();
-		while (size <= cache_align / 2)
-			cache_align /= 2;
+		while (size <= cache_align >> 1)
+			cache_align >>= 1;
 		align = MAX(align, cache_align);
 	}
 

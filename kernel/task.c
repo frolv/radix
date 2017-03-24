@@ -52,7 +52,7 @@ void tasking_init(void)
 		      strerror(ERR_VAL(curr)));
 	}
 	curr->state = TASK_RUNNING;
-	curr->cmdline = kmalloc(2 * sizeof (*curr->cmdline));
+	curr->cmdline = kmalloc(sizeof (*curr->cmdline) << 1);
 	curr->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
 	strcpy(curr->cmdline[0], "kernel_boot_thread");
 	curr->cmdline[1] = NULL;
