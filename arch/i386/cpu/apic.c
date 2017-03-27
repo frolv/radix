@@ -32,6 +32,10 @@
 
 static struct acpi_madt *madt;
 
+/*
+ * apic_madt_check:
+ * Check that the MADT ACPI table exists and is valid, and store pointer to it.
+ */
 int apic_madt_check(void)
 {
 	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
@@ -54,6 +58,10 @@ static addr_t get_apic_phys_base(void)
 	return eax & PAGE_MASK;
 }
 
+/*
+ * apic_init:
+ * Configure the LAPIC to send interrupts and enable it.
+ */
 void apic_init(void)
 {
 	addr_t phys;
