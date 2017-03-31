@@ -25,6 +25,7 @@
 #define __always_inline inline __attribute__((always_inline))
 
 #define __noreturn __attribute__((noreturn))
+#define __deprecated __attribute__((deprecated))
 
 #define __aligned(x) __attribute__((aligned(x)))
 
