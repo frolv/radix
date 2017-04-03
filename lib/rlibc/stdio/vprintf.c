@@ -88,7 +88,7 @@ static int print_str(const char *s, struct printf_format *p)
 	}
 
 	tty_write(s, len);
-	return MAX(p->width, len);
+	return MAX((int)p->width, len);
 }
 
 static int print_char(int c, struct printf_format *p)
@@ -100,7 +100,7 @@ static int print_char(int c, struct printf_format *p)
 		tty_putchar(' ');
 	tty_putchar(c);
 
-	return MAX(p->width, 1);
+	return MAX((int)p->width, 1);
 }
 
 /* print_int: print a signed integer */
@@ -125,7 +125,7 @@ static int print_int(long long i, struct printf_format *p)
 			tty_putchar(i);
 	}
 	tty_write(buf, n);
-	return MAX(p->width, len);
+	return MAX((int)p->width, len);
 }
 
 /* print_uint: print an unsigned integer in octal, decimal or hex format */
@@ -152,5 +152,5 @@ static int print_uint(unsigned long long u, struct printf_format *p)
 			tty_putchar(u);
 	}
 	tty_write(buf, len);
-	return MAX(p->width, len);
+	return MAX((int)p->width, len);
 }

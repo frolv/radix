@@ -32,8 +32,15 @@
 
 #define ALIGNED(x, a)           (((x) & ((a) - 1)) == 0)
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) ({ \
+	typeof(a) _maxa = (a); \
+	typeof(b) _maxb = (b); \
+	_maxa > _maxb ? _maxa : _maxb; })
+
+#define MIN(a, b) ({ \
+	typeof(a) _mina = (a); \
+	typeof(b) _minb = (b); \
+	_mina > _minb ? _mina : _minb; })
 
 #define SWAP(a, b) \
 	do { \
