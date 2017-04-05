@@ -27,10 +27,10 @@
 		HALT(); \
 	} while (1)
 
-#define ALIGN(x, a)             __ALIGN_MASK(x, (typeof (x))(a) - 1)
+#define ALIGN(x, a)             __ALIGN_MASK(x, ((typeof (x))(a) - 1))
 #define __ALIGN_MASK(x, mask)   (((x) + (mask)) & ~(mask))
-
-#define ALIGNED(x, a)           (((x) & ((a) - 1)) == 0)
+#define PTR_ALIGN(p, a)         ((typeof (p))ALIGN((unsigned long)(p), (a)))
+#define ALIGNED(x, a)           (((x) & ((typeof (x))(a) - 1)) == 0)
 
 #define MAX(a, b) ({ \
 	typeof(a) _maxa = (a); \
