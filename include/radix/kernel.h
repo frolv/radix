@@ -32,6 +32,8 @@
 #define PTR_ALIGN(p, a)         ((typeof (p))ALIGN((unsigned long)(p), (a)))
 #define ALIGNED(x, a)           (((x) & ((typeof (x))(a) - 1)) == 0)
 
+#define FIELD_SIZEOF(t, f)      (sizeof (((t *)0)->f))
+
 #define MAX(a, b) ({ \
 	typeof(a) _maxa = (a); \
 	typeof(b) _maxb = (b); \
