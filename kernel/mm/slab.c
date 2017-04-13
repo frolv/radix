@@ -289,7 +289,7 @@ static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
 		n = 1;
 	} else {
 		p = s->first;
-		n = POW2(PM_PAGE_BLOCK_ORDER(p));
+		n = pow2(PM_PAGE_BLOCK_ORDER(p));
 		kfree(s);
 	}
 
@@ -317,7 +317,7 @@ static size_t calculate_align(unsigned long flags, size_t align, size_t size)
 		cache_align = cpu_cache_line_size();
 		while (size <= cache_align >> 1)
 			cache_align >>= 1;
-		align = MAX(align, cache_align);
+		align = max(align, cache_align);
 	}
 
 	if (align < MIN_ALIGN)
@@ -369,7 +369,7 @@ static void __init_cache(struct slab_cache *cache, const char *name,
 	if (size < ON_SLAB_LIMIT)
 		cache->flags |= SLAB_DESC_ON_SLAB;
 
-	cache->count = calculate_count(POW2(cache->slab_ord),
+	cache->count = calculate_count(pow2(cache->slab_ord),
 	                               cache->offset, cache->flags);
 
 	cache->ctor = ctor;
@@ -422,7 +422,7 @@ void kmalloc_init(void)
 	}
 
 	for (i = 0; i < 6; ++i) {
-		sz = 256 * POW2(i);
+		sz = 256 * pow2(i);
 		sprintf(name, "kmalloc-%u", sz);
 		cache = create_cache(name, sz, MIN_ALIGN, 0, NULL, NULL);
 		if ((err = grow_cache(cache)))

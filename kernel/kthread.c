@@ -122,7 +122,7 @@ static struct task *__kthread_create(void (*func)(void *), void *arg,
 		return (void *)p;
 	}
 
-	stack_top = (addr_t)p->mem + POW2(page_order) * PAGE_SIZE - 0x10;
+	stack_top = (addr_t)p->mem + pow2(page_order) * PAGE_SIZE;
 	kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
 	thread->stack_base = p->mem;
 

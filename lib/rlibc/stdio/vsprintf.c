@@ -96,7 +96,7 @@ static int write_str(char *str, const char *s, struct printf_format *p)
 	}
 
 	strcpy(str, s);
-	return MAX((int)p->width, len);
+	return max((int)p->width, len);
 }
 
 static int write_char(char *str, int c, struct printf_format *p)
@@ -108,7 +108,7 @@ static int write_char(char *str, int c, struct printf_format *p)
 		*str++ = ' ';
 	*str++ = c;
 
-	return MAX((int)p->width, 1);
+	return max((int)p->width, 1);
 }
 
 static int write_int(char *str, long long i, struct printf_format *p)
@@ -132,7 +132,7 @@ static int write_int(char *str, long long i, struct printf_format *p)
 			*str++ = i;
 	}
 	strcpy(str, buf);
-	return MAX((int)p->width, len);
+	return max((int)p->width, len);
 }
 
 static int write_uint(char *str, unsigned long long u, struct printf_format *p)
@@ -158,5 +158,5 @@ static int write_uint(char *str, unsigned long long u, struct printf_format *p)
 			*str++ = u;
 	}
 	strcpy(str, buf);
-	return MAX((int)p->width, len);
+	return max((int)p->width, len);
 }

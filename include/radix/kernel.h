@@ -34,17 +34,17 @@
 
 #define FIELD_SIZEOF(t, f)      (sizeof (((t *)0)->f))
 
-#define MAX(a, b) ({ \
+#define max(a, b) ({ \
 	typeof(a) _maxa = (a); \
 	typeof(b) _maxb = (b); \
 	_maxa > _maxb ? _maxa : _maxb; })
 
-#define MIN(a, b) ({ \
+#define min(a, b) ({ \
 	typeof(a) _mina = (a); \
 	typeof(b) _minb = (b); \
 	_mina > _minb ? _mina : _minb; })
 
-#define SWAP(a, b) \
+#define swap(a, b) \
 	do { \
 		typeof(a) __tmp = (a); \
 		(a) = (b); \
@@ -54,7 +54,7 @@
 
 #include <radix/compiler.h>
 
-#define POW2(x) (1U << (x))
+#define pow2(x) (1U << (x))
 
 static __always_inline size_t order(size_t n)
 {

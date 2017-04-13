@@ -155,7 +155,7 @@ void free_pages(struct page *p)
 	p->status &= ~PM_PAGE_ALLOCATED;
 
 	ord = PM_PAGE_BLOCK_ORDER(p);
-	zone->alloc_pages -= POW2(ord);
+	zone->alloc_pages -= pow2(ord);
 
 	if (ord < PM_PAGE_MAX_ORDER(p)) {
 		p = buddy_coalesce(zone, p);
@@ -164,7 +164,7 @@ void free_pages(struct page *p)
 
 	list_add(&zone->ord[ord], &p->list);
 	zone->len[ord]++;
-	zone->max_ord = MAX(zone->max_ord, ord);
+	zone->max_ord = max(zone->max_ord, ord);
 }
 
 /* __alloc_pages: allocate 2^{ord} pages from `zone` */
@@ -188,7 +188,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 		while (!zone->len[zone->max_ord])
 			zone->max_ord--;
 	}
-	zone->alloc_pages += POW2(ord);
+	zone->alloc_pages += pow2(ord);
 
 	if (!(flags & __PA_NO_MAP) && !(p->status & PM_PAGE_MAPPED)) {
 		if (zone == &zone_reg) {
@@ -198,7 +198,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 			virt = 0;
 		}
 
-		map_pages(virt, page_to_phys(p), POW2(ord));
+		map_pages(virt, page_to_phys(p), pow2(ord));
 		p->mem = (void *)virt;
 		p->status |= PM_PAGE_MAPPED;
 	}
@@ -225,7 +225,7 @@ static void buddy_split(struct buddy *zone, size_t req_ord)
 	p = list_first_entry(&zone->ord[ord], struct page, list);
 
 	while (!zone->len[req_ord]) {
-		buddy = p + POW2(ord - 1);
+		buddy = p + pow2(ord - 1);
 
 		list_del(&p->list);
 		zone->len[ord]--;
@@ -252,10 +252,10 @@ static struct page *buddy_coalesce(struct buddy *zone, struct page *p)
 	do {
 		block_off = PM_PAGE_BLOCK_OFFSET(p);
 		ord = PM_PAGE_BLOCK_ORDER(p);
-		if (ALIGNED(block_off, POW2(ord + 1)))
-			buddy = p + POW2(ord);
+		if (ALIGNED(block_off, pow2(ord + 1)))
+			buddy = p + pow2(ord);
 		else
-			buddy = p - POW2(ord);
+			buddy = p - pow2(ord);
 
 		/*
 		 * Two blocks can be coalesced if they are both
@@ -271,7 +271,7 @@ static struct page *buddy_coalesce(struct buddy *zone, struct page *p)
 
 		/* set p to point to the base of the new, larger block */
 		if (p > buddy)
-			SWAP(p, buddy);
+			swap(p, buddy);
 
 		PM_SET_BLOCK_ORDER(buddy, PM_PAGE_ORDER_INNER);
 		PM_SET_BLOCK_ORDER(p, ord + 1);
@@ -359,10 +359,10 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 		/* determine the size of the block, up the the maximum 2^9 */
 		if ((ord = order(pages)) > PA_MAX_ORDER - 1)
 			ord = PA_MAX_ORDER - 1;
-		if (pages < POW2(ord))
+		if (pages < pow2(ord))
 			--ord;
 
-		end = base + POW2(ord) * PAGE_SIZE;
+		end = base + pow2(ord) * PAGE_SIZE;
 
 		/* initialize all pages in the block */
 		start = base >> PAGE_SHIFT;
@@ -455,28 +455,28 @@ static void split_block(size_t pfn, size_t lim)
 	size_t ord, rem, end;
 
 	ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-	rem = pfn + POW2(ord) - lim;
+	rem = pfn + pow2(ord) - lim;
 	end = lim;
 
 	while (rem) {
 		ord = order(rem);
-		if (rem < POW2(ord))
+		if (rem < pow2(ord))
 			--ord;
 
 		PM_SET_BLOCK_ORDER(page_map + end, ord);
-		end += POW2(ord);
-		rem -= POW2(ord);
+		end += pow2(ord);
+		rem -= pow2(ord);
 	}
 
 	rem = lim - pfn;
 	while (rem) {
 		ord = order(rem);
-		if (rem < POW2(ord))
+		if (rem < pow2(ord))
 			--ord;
 
 		PM_SET_BLOCK_ORDER(page_map + pfn, ord);
-		pfn += POW2(ord);
-		rem -= POW2(ord);
+		pfn += pow2(ord);
+		rem -= pow2(ord);
 	}
 }
 
@@ -492,7 +492,7 @@ static size_t zone_init(size_t pfn, size_t section_end,
 
 	while (pfn < section_end) {
 		ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-		end = pfn + POW2(ord);
+		end = pfn + pow2(ord);
 
 		/*
 		 * The current block of pages exceeds the remaining space in
@@ -501,15 +501,15 @@ static size_t zone_init(size_t pfn, size_t section_end,
 		if (end > section_end) {
 			split_block(pfn, section_end);
 			ord = PM_PAGE_BLOCK_ORDER(page_map + pfn);
-			end = pfn + POW2(ord);
+			end = pfn + pow2(ord);
 		}
 
 		/* ignore invalid pages */
 		if (zone && !(page_map[pfn].status & PM_PAGE_INVALID)) {
 			list_add(&zone->ord[ord], &page_map[pfn].list);
 			zone->len[ord]++;
-			zone->max_ord = MAX(ord, zone->max_ord);
-			zone->total_pages += POW2(ord);
+			zone->max_ord = max(ord, zone->max_ord);
+			zone->total_pages += pow2(ord);
 		}
 		start = pfn;
 		for (; pfn < end; ++pfn) {
