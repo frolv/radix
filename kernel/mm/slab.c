@@ -156,7 +156,7 @@ void *alloc_cache(struct slab_cache *cache)
 void free_cache(struct slab_cache *cache, void *obj)
 {
 	struct slab_desc *s;
-	size_t diff, ind;
+	long diff, ind;
 
 	if (unlikely(!cache || !obj))
 		return;
@@ -168,10 +168,8 @@ void free_cache(struct slab_cache *cache, void *obj)
 	}
 
 	diff = obj - s->first;
-	if (unlikely(!ALIGNED(diff, cache->offset))) {
-		/* klog("attempt to free non-allocated address %lu\n", obj); */
+	if (unlikely(!ALIGNED(diff, cache->offset) || diff < 0))
 		return;
-	}
 	ind = diff / cache->offset;
 
 	if (cache->dtor)
