@@ -58,6 +58,16 @@ static addr_t get_apic_phys_base(void)
 	return eax & PAGE_MASK;
 }
 
+static void set_apic_phys_base(addr_t base)
+{
+	uint32_t eax, edx;
+
+	edx = 0;
+	eax = (base & PAGE_MASK) | APIC_BASE_MSR_ENABLE;
+
+	wrmsr(APIC_BASE_MSR, eax, edx);
+}
+
 /*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
@@ -68,4 +78,5 @@ void apic_init(void)
 
 	phys = get_apic_phys_base();
 	map_page(__ARCH_APIC_VIRT_PAGE, phys);
+	set_apic_phys_base(phys);
 }
