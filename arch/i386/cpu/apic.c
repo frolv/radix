@@ -50,7 +50,7 @@ int apic_madt_check(void)
 	return 0;
 }
 
-static addr_t get_apic_phys_base(void)
+static addr_t apic_get_phys_base(void)
 {
 	uint32_t eax, edx;
 
@@ -58,14 +58,19 @@ static addr_t get_apic_phys_base(void)
 	return eax & PAGE_MASK;
 }
 
-static void set_apic_phys_base(addr_t base)
+static void apic_set_phys_base(addr_t base)
 {
-	uint32_t eax, edx;
+	wrmsr(APIC_BASE_MSR, (base & PAGE_MASK) | APIC_BASE_MSR_ENABLE, 0);
+}
 
-	edx = 0;
-	eax = (base & PAGE_MASK) | APIC_BASE_MSR_ENABLE;
+static uint32_t apic_reg_read(unsigned int reg)
+{
+	return *(uint32_t *)(__ARCH_APIC_VIRT_PAGE + (reg << 4));
+}
 
-	wrmsr(APIC_BASE_MSR, eax, edx);
+static void apic_reg_write(unsigned int reg, int32_t value)
+{
+	*(uint32_t *)(__ARCH_APIC_VIRT_PAGE + (reg << 4)) = value;
 }
 
 /*
@@ -76,7 +81,9 @@ void apic_init(void)
 {
 	addr_t phys;
 
-	phys = get_apic_phys_base();
+	phys = apic_get_phys_base();
 	map_page(__ARCH_APIC_VIRT_PAGE, phys);
-	set_apic_phys_base(phys);
+	apic_set_phys_base(phys);
+
+	apic_reg_write(0xF0, apic_reg_read(0xF0) | 0x100);
 }
