@@ -1,5 +1,5 @@
 *.o
-isodir
+iso
 root
 kradix
 radix*.iso

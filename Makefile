@@ -69,7 +69,7 @@ drivers: $(DRIVER_OBJS)
 .S.o:
 	$(AS) $< -o $@ $(ASFLAGS)
 
-ISODIR := isodir
+ISODIR := iso
 ISONAME := $(PROJECT_NAME)-$(HOSTARCH).iso
 
 .PHONY: iso
