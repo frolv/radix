@@ -27,8 +27,7 @@
 
 #include "apic.h"
 
-#define APIC_BASE_MSR           0x1B
-#define APIC_BASE_MSR_ENABLE    0x800
+#define IA32_APIC_BASE_ENABLE 0x800
 
 static struct acpi_madt *madt;
 
@@ -54,13 +53,13 @@ static addr_t apic_get_phys_base(void)
 {
 	uint32_t eax, edx;
 
-	rdmsr(APIC_BASE_MSR, &eax, &edx);
+	rdmsr(IA32_APIC_BASE, &eax, &edx);
 	return eax & PAGE_MASK;
 }
 
 static void apic_set_phys_base(addr_t base)
 {
-	wrmsr(APIC_BASE_MSR, (base & PAGE_MASK) | APIC_BASE_MSR_ENABLE, 0);
+	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
 }
 
 static uint32_t apic_reg_read(uint16_t reg)

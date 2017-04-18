@@ -19,6 +19,13 @@
 #ifndef ARCH_I386_RADIX_ASM_MSR_H
 #define ARCH_I386_RADIX_ASM_MSR_H
 
+#define IA32_TIME_STAMP_COUNTER 0x10
+#define IA32_PLATFORM_ID        0x17
+#define IA32_APIC_BASE          0x1B
+#define IA32_BIOS_UPDT_TRIG     0x79
+#define IA32_BIOS_SIGN_ID       0x8B
+#define IA32_MTRRCAP            0xFE
+
 #include <radix/compiler.h>
 
 static __always_inline void rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
