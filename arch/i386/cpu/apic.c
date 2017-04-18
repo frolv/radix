@@ -63,14 +63,14 @@ static void apic_set_phys_base(addr_t base)
 	wrmsr(APIC_BASE_MSR, (base & PAGE_MASK) | APIC_BASE_MSR_ENABLE, 0);
 }
 
-static uint32_t apic_reg_read(unsigned int reg)
+static uint32_t apic_reg_read(uint16_t reg)
 {
-	return *(uint32_t *)(__ARCH_APIC_VIRT_PAGE + (reg << 4));
+	return *(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg);
 }
 
-static void apic_reg_write(unsigned int reg, int32_t value)
+static void apic_reg_write(uint16_t reg, int32_t value)
 {
-	*(uint32_t *)(__ARCH_APIC_VIRT_PAGE + (reg << 4)) = value;
+	*(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg) = value;
 }
 
 /*
