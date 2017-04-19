@@ -79,6 +79,9 @@ iso: $(KERNEL_NAME)
 	util/mkgrubconfig > $(ISODIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISONAME) $(ISODIR)
 
+.PHONY: clean
+clean: clean-all
+
 .PHONY: clean-all
 clean-all: clean-kernel clean-libk clean-drivers clean-iso
 
