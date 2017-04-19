@@ -120,6 +120,10 @@ int cpu_has_apic(void);
 int cpu_has_msr(void);
 unsigned long cpu_cache_line_size(void);
 
+#include <radix/types.h>
+
+uint8_t processor_id(void);
+
 char *cpu_cache_str(void);
 
 #endif /* ARCH_I386_RADIX_CPU_H */

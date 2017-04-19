@@ -93,6 +93,7 @@ void read_cpu_info(void)
 
 	if (!cpuid_supported()) {
 		vendor_id[0] = '\0';
+		cpuid_max = 0;
 		return;
 	}
 
@@ -140,6 +141,21 @@ int cpu_has_msr(void)
 unsigned long cpu_cache_line_size(void)
 {
 	return cache_info.line_size;
+}
+
+/*
+ * processor_id:
+ * Return the local APIC ID of the executing processor.
+ */
+uint8_t processor_id(void)
+{
+	long buf[4];
+
+	if (!cpuid_max)
+		return 0;
+
+	cpuid(1, buf[0], buf[1], buf[2], buf[3]);
+	return buf[1] >> 24;
 }
 
 static void add_cache(unsigned char level, unsigned char type,
@@ -954,7 +970,7 @@ static char *print_tlb(char *pos)
 		? 'd' \
 		: ((a) == CACHE_TYPE_INSTRUCTION ? 'i' : 'u'))
 
-char *print_caches(char *pos)
+static char *print_caches(char *pos)
 {
 	unsigned int i;
 
