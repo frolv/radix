@@ -149,12 +149,11 @@ static __always_inline unsigned long cpuid_supported(void)
 	             : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
 	             : "0"(eax))
 
-int cpu_has_apic(void);
-int cpu_has_msr(void);
 unsigned long cpu_cache_line_size(void);
 
 #include <radix/types.h>
 
+int cpu_supports(uint64_t features);
 uint8_t processor_id(void);
 
 char *cpu_cache_str(void);

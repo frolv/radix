@@ -73,7 +73,7 @@ void load_interrupt_routines(void)
 	/* remap IRQs to vectors 0x20 through 0x2F */
 	pic_remap(IRQ_BASE, IRQ_BASE + 8);
 
-	if (cpu_has_apic() && cpu_has_msr() && apic_madt_check() == 0) {
+	if (cpu_supports(CPUID_APIC | CPUID_MSR) && apic_madt_check() == 0) {
 		/* APIC is available; use it. */
 		pic_disable();
 		apic_init();

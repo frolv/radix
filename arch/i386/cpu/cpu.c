@@ -28,7 +28,8 @@ static long cpuid_max;
 static char vendor_id[16];
 
 /* cpuid 0x1 information */
-static long cpu_info[4];
+static unsigned long cpu_info[4];
+static uint64_t cpu_features;
 
 struct cpu_cache {
 	/* id[0..3]: level; id[4..7]: type */
@@ -102,6 +103,7 @@ void read_cpu_info(void)
 	memcpy(vendor_id, vendor, sizeof vendor_id);
 
 	cpuid(1, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
+	cpu_features = ((uint64_t)cpu_info[2] << 32) | cpu_info[3];
 
 	memset(&cache_info, 0, sizeof cache_info);
 	if (cpuid_max >= 2) {
@@ -128,19 +130,14 @@ void read_cpu_info(void)
 	extended_processor_info();
 }
 
-int cpu_has_apic(void)
-{
-	return cpu_info[3] & CPUID_APIC;
-}
-
-int cpu_has_msr(void)
-{
-	return cpu_info[3] & CPUID_MSR;
-}
-
 unsigned long cpu_cache_line_size(void)
 {
 	return cache_info.line_size;
+}
+
+int cpu_supports(uint64_t features)
+{
+	return !!(cpu_features & features);
 }
 
 /*
