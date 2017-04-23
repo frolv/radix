@@ -140,21 +140,6 @@ int cpu_supports(uint64_t features)
 	return !!(cpu_features & features);
 }
 
-/*
- * processor_id:
- * Return the local APIC ID of the executing processor.
- */
-uint8_t processor_id(void)
-{
-	long buf[4];
-
-	if (!cpuid_max)
-		return 0;
-
-	cpuid(1, buf[0], buf[1], buf[2], buf[3]);
-	return buf[1] >> 24;
-}
-
 static void add_cache(unsigned char level, unsigned char type,
                       unsigned long size, unsigned long line_size,
                       unsigned long assoc)

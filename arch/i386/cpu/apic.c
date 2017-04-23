@@ -20,6 +20,7 @@
 #include <acpi/tables/madt.h>
 
 #include <radix/asm/msr.h>
+#include <radix/cpu.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
@@ -27,7 +28,9 @@
 
 #include "apic.h"
 
-#define IA32_APIC_BASE_ENABLE 0x800
+#define IA32_APIC_BASE_BSP    (1 << 8)  /* bootstrap processor */
+#define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
+#define IA32_APIC_BASE_ENABLE (1 << 11) /* XAPIC global enable */
 
 static struct acpi_madt *madt;
 
@@ -73,6 +76,29 @@ static void apic_reg_write(uint16_t reg, int32_t value)
 }
 
 /*
+ * processor_id:
+ * Return the local APIC ID of the executing processor.
+ */
+uint32_t processor_id(void)
+{
+	uint32_t eax, edx;
+
+	if (!cpu_supports(CPUID_APIC))
+		return 0;
+
+	if (cpu_supports(CPUID_X2APIC)) {
+		/* check if operating in X2APIC mode */
+		rdmsr(IA32_APIC_BASE, &eax, &edx);
+		if (eax & IA32_APIC_BASE_EXTD) {
+			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
+			return eax;
+		}
+	}
+
+	return apic_reg_read(0x20) >> 24;
+}
+
+/*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
  */
@@ -84,5 +110,5 @@ void apic_init(void)
 	map_page(__ARCH_APIC_VIRT_PAGE, phys);
 	apic_set_phys_base(phys);
 
-	apic_reg_write(0xF0, apic_reg_read(0xF0) | 0x100);
+	apic_reg_write(0xF0, 0x100);
 }

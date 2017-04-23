@@ -154,7 +154,7 @@ unsigned long cpu_cache_line_size(void);
 #include <radix/types.h>
 
 int cpu_supports(uint64_t features);
-uint8_t processor_id(void);
+uint32_t processor_id(void);
 
 char *cpu_cache_str(void);
 
