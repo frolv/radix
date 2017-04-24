@@ -30,10 +30,12 @@
 #define NUM_EXCEPTIONS  32 /* CPU protected mode exceptions */
 #define NUM_IRQS        16 /* Industry Standard Architecture IRQs */
 
-/* +1 for syscall interrupt */
-#define NUM_INTERRUPTS (NUM_EXCEPTIONS + NUM_IRQS + 1)
+/* +2 for syscall and spurious interrupts */
+#define NUM_INTERRUPTS (NUM_EXCEPTIONS + NUM_IRQS + 2)
 
 #define IRQ_BASE        0x20
+
+#define SPURIOUS_VECTOR    (SYSCALL_VECTOR + 1)
 
 /*
  * Routines to be called on interrupt.
@@ -69,6 +71,7 @@ void load_interrupt_routines(void)
 
 	/* syscall interrupt */
 	idt_set(SYSCALL_INTERRUPT, (uintptr_t)intr[SYSCALL_VECTOR], 0x08, 0x8E);
+	idt_set(SPURIOUS_INTERRUPT, (uintptr_t)intr[SPURIOUS_VECTOR], 0x08, 0x8E);
 
 	/* remap IRQs to vectors 0x20 through 0x2F */
 	pic_remap(IRQ_BASE, IRQ_BASE + 8);

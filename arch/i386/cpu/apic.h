@@ -19,6 +19,8 @@
 #ifndef ARCH_I386_APIC_H
 #define ARCH_I386_APIC_H
 
+#define SPURIOUS_INTERRUPT 0xF0
+
 int apic_madt_check(void);
 void apic_init(void);
 

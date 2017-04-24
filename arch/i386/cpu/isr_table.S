@@ -80,6 +80,10 @@ sysc:
 	push $0x80
 	jmp isr_common
 
+# spurious interrupt handler (do nothing)
+spur:
+	jmp iret_final
+
 isr_common:
 	testw $0x3, 12(%esp)
 	jz stack_fix
@@ -259,6 +263,7 @@ isr_table_setup:
 	movl $irq14, 184(%eax)
 	movl $irq15, 188(%eax)
 	movl $sysc,  192(%eax)
+	movl $spur,  196(%eax)
 	ret
 
 .section .data
@@ -266,4 +271,4 @@ isr_table_setup:
 # array containing the addresses of all interrupt handlers
 .global intr
 intr:
-	.space 196
+	.space 200
