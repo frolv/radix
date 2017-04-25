@@ -44,11 +44,6 @@ int apic_madt_check(void)
 	if (!madt)
 		return 1;
 
-	if (!acpi_valid_checksum((struct acpi_sdt_header *)madt)) {
-		BOOT_FAIL_MSG("ACPI MADT checksum invalid\n");
-		return 1;
-	}
-
 	return 0;
 }
 

@@ -43,9 +43,9 @@ struct xsdt {
 	uint64_t sdt_addr[];
 };
 
-static void *sdt_base;
-static size_t sdt_len;
-static size_t sdt_size;
+static void *sdt_base = NULL;
+static size_t sdt_len = 0;
+static size_t sdt_size = 0;
 
 static void rsdt_setup(addr_t rsdt_addr);
 static void xsdt_setup(addr_t xsdt_addr);
@@ -56,7 +56,6 @@ void acpi_init(void)
 	struct acpi_rsdp *rsdp;
 	struct acpi_rsdp_2 *rsdp_2;
 	uint64_t *s;
-	void *err_addr;
 	int checksum;
 
 	rsdp = NULL;
@@ -69,37 +68,27 @@ void acpi_init(void)
 	 */
 	s = (void *)BIOS_REGION_START;
 	for (; s < (uint64_t *)BIOS_REGION_END; s += 2) {
-		if (memcmp(s, RSDP_SIG, sizeof *s) == 0) {
-			rsdp = (struct acpi_rsdp *)s;
-			if (rsdp->revision == 2)
-				rsdp_2 = (struct acpi_rsdp_2 *)s;
+		if (memcmp(s, RSDP_SIG, sizeof *s) != 0)
+			continue;
+
+		rsdp = (struct acpi_rsdp *)s;
+		if (rsdp->revision == 2) {
+			rsdp_2 = (struct acpi_rsdp_2 *)s;
+			checksum = byte_sum(rsdp_2,
+					    (char *)rsdp_2 + rsdp_2->length);
+		} else {
+			checksum = byte_sum(rsdp, (char *)rsdp + sizeof *rsdp);
+		}
+		if ((checksum & 0xFF) == 0)
 			break;
-		}
 	}
 
-	checksum = byte_sum(rsdp, (char *)rsdp + sizeof *rsdp);
-	/* Invalid checksum. Abort. */
-	if ((checksum & 0xFF) != 0) {
-		err_addr = rsdp;
-		goto err_checksum;
-	}
-
-	if (rsdp_2) {
-		checksum = byte_sum(rsdp_2, (char *)rsdp_2 + rsdp_2->length);
-		if ((checksum & 0xFF) != 0) {
-			err_addr = rsdp;
-			goto err_checksum;
-		}
-
+	if (!rsdp && !rsdp_2)
+		BOOT_FAIL_MSG("Could not locate ACPI RSDT\n");
+	else if (rsdp_2)
 		xsdt_setup((addr_t)rsdp_2->xsdt_addr);
-	} else {
+	else
 		rsdt_setup(rsdp->rsdt_addr);
-	}
-
-	return;
-
-err_checksum:
-	BOOT_FAIL_MSG("Invalid ACPI checksum at address 0x%08lX\n", err_addr);
 }
 
 /*
@@ -170,7 +159,7 @@ static void convert_xsdt_addrs(void)
 
 /*
  * rsdt_setup:
- * Read the XSDT descriptor to find the number
+ * Read the RSDT descriptor to find the number
  * of APCI tables and their addresses.
  */
 static void rsdt_setup(addr_t rsdt_addr)
@@ -192,10 +181,10 @@ static void rsdt_setup(addr_t rsdt_addr)
 	checksum = byte_sum(rsdt, (char *)rsdt + rsdt->head.length);
 
 	if ((checksum & 0xFF) != 0) {
-		BOOT_FAIL_MSG("Invalid ACPI checksum at address 0x%08lX\n",
-		              rsdt);
+		BOOT_FAIL_MSG("Invalid ACPI RSDT checksum\n");
 		if (unmap)
 			unmap_page_pgtbl(ACPI_TABLES_VIRT_BASE);
+		return;
 	}
 
 	sdt_base = (void *)((addr_t)rsdt->sdt_addr & (PAGE_SIZE - 1))
@@ -229,10 +218,10 @@ static void xsdt_setup(addr_t xsdt_addr)
 	checksum = byte_sum(xsdt, (char *)xsdt + xsdt->head.length);
 
 	if ((checksum & 0xFF) != 0) {
-		BOOT_FAIL_MSG("Invalid ACPI checksum at address 0x%08lX\n",
-		              xsdt);
+		BOOT_FAIL_MSG("Invalid ACPI XSDT checksum\n");
 		if (unmap)
 			unmap_page_pgtbl(ACPI_TABLES_VIRT_BASE);
+		return;
 	}
 
 	sdt_base = (void *)((addr_t)xsdt->sdt_addr & (PAGE_SIZE - 1))
@@ -262,8 +251,9 @@ void *acpi_find_table(const char *signature)
 			h = (struct acpi_sdt_header *)((uint64_t *)sdt_base)[i];
 #endif
 		}
-		if (strncmp(h->signature, signature, 4) == 0)
-			return h;
+		if (strncmp(h->signature, signature, 4) == 0
+		    && acpi_valid_checksum(h))
+				return h;
 	}
 
 	return NULL;
