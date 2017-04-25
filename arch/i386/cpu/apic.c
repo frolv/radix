@@ -34,28 +34,67 @@
 
 static struct acpi_madt *madt;
 
+static addr_t lapic_base; /* Local APIC base address */
+
+static void apic_parse_lapic(struct acpi_madt_local_apic *s)
+{
+	printf("ACPI: LAPIC (processor_id %u lapic_id %u %s)\n",
+	       s->processor_id, s->apic_id,
+	       s->flags & 1 ? "enabled" : "disabled");
+}
+
+static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
+{
+	printf("ACPI: IOAPIC (id %u address 0x%08lX irq_base %u)\n",
+	       s->id, s->address, s->global_irq_base);
+}
+
+static void apic_parse_override(struct acpi_madt_interrupt_override *s)
+{
+	printf("ACPI: OVERRIDE (bus %u source_irq %u global_irq %u)\n",
+	       s->bus_source, s->irq_source, s->global_irq);
+}
+
 /*
- * apic_madt_check:
+ * apic_parse_madt:
  * Check that the MADT ACPI table exists and is valid, and store pointer to it.
  */
-int apic_madt_check(void)
+int apic_parse_madt(void)
 {
+	struct acpi_subtable_header *header;
+	unsigned char *p, *end;
+
 	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
 	if (!madt)
 		return 1;
 
+	lapic_base = madt->address;
+
+	p = (unsigned char *)(madt + 1);
+	end = (unsigned char *)madt + madt->header.length;
+
+	while (p < end) {
+		header = (struct acpi_subtable_header *)p;
+		switch (header->type) {
+		case ACPI_MADT_LOCAL_APIC:
+			apic_parse_lapic((struct acpi_madt_local_apic *)header);
+			break;
+		case ACPI_MADT_IO_APIC:
+			apic_parse_ioapic((struct acpi_madt_io_apic *)header);
+			break;
+		case ACPI_MADT_INTERRUPT_OVERRIDE:
+			apic_parse_override((struct acpi_madt_interrupt_override *)header);
+			break;
+		default:
+			break;
+		}
+		p += header->length;
+	}
+
 	return 0;
 }
 
-static addr_t apic_get_phys_base(void)
-{
-	uint32_t eax, edx;
-
-	rdmsr(IA32_APIC_BASE, &eax, &edx);
-	return eax & PAGE_MASK;
-}
-
-static void apic_set_phys_base(addr_t base)
+static void apic_enable(addr_t base)
 {
 	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
 }
@@ -99,11 +138,8 @@ uint32_t processor_id(void)
  */
 void apic_init(void)
 {
-	addr_t phys;
-
-	phys = apic_get_phys_base();
-	map_page(__ARCH_APIC_VIRT_PAGE, phys);
-	apic_set_phys_base(phys);
+	map_page(__ARCH_APIC_VIRT_PAGE, lapic_base);
+	apic_enable(lapic_base);
 
 	/* Enable APIC and set spurious interrupt vector */
 	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
