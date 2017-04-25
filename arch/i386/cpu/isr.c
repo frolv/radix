@@ -28,7 +28,7 @@
 #include "isr.h"
 #include "pic.h"
 
-#define NUM_ISR_VECTORS 255
+#define NUM_ISR_VECTORS 256
 #define NUM_EXCEPTIONS  32
 #define IRQ_BASE        0x20
 
@@ -116,7 +116,7 @@ int uninstall_exception_handler(uint32_t intno)
 /* install_interrupt_handler: set a function to handle IRQ `intno` */
 int install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *))
 {
-	if (intno < IRQ_BASE || intno > NUM_ISR_VECTORS)
+	if (intno < IRQ_BASE || intno >= NUM_ISR_VECTORS)
 		return EINVAL;
 
 	irq_handlers[intno] = hnd;
@@ -126,7 +126,7 @@ int install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *))
 /* uninstall_interrupt_handler: remove the handler function for `intno` */
 int uninstall_interrupt_handler(uint32_t intno)
 {
-	if (intno < IRQ_BASE || intno > NUM_ISR_VECTORS)
+	if (intno < IRQ_BASE || intno >= NUM_ISR_VECTORS)
 		return EINVAL;
 
 	irq_handlers[intno] = NULL;
