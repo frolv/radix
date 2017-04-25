@@ -42,11 +42,11 @@ int apic_madt_check(void)
 {
 	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
 	if (!madt)
-		return EINVAL;
+		return 1;
 
 	if (!acpi_valid_checksum((struct acpi_sdt_header *)madt)) {
 		BOOT_FAIL_MSG("ACPI MADT checksum invalid\n");
-		return EINVAL;
+		return 1;
 	}
 
 	return 0;
@@ -110,5 +110,6 @@ void apic_init(void)
 	map_page(__ARCH_APIC_VIRT_PAGE, phys);
 	apic_set_phys_base(phys);
 
-	apic_reg_write(0xF0, 0x100);
+	/* Enable APIC and set spurious interrupt vector */
+	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
 }
