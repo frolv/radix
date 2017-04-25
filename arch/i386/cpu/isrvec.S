@@ -1,24 +1,36 @@
+#
+# arch/i386/cpu/isrvec.S
+# Copyright (C) 2016-2017 Alexei Frolov
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
 .section .text
 .align 4
 
-# inspired by toaruos
 .macro ISR_NOERR i
-isr\i:
+.global isr_\i
+isr_\i:
 	push $0
 	push $\i
 	jmp isr_common
 .endm
 
 .macro ISR_ERR i
-isr\i:
+.global isr_\i
+isr_\i:
 	push $\i
-	jmp isr_common
-.endm
-
-.macro IRQ i
-irq\i:
-	push $0
-	push $(\i + 32)
 	jmp isr_common
 .endm
 
@@ -56,34 +68,59 @@ ISR_NOERR 29
 ISR_ERR   30
 ISR_NOERR 31
 
-# standard IRQs
-IRQ 0
-IRQ 1
-IRQ 2
-IRQ 3
-IRQ 4
-IRQ 5
-IRQ 6
-IRQ 7
-IRQ 8
-IRQ 9
-IRQ 10
-IRQ 11
-IRQ 12
-IRQ 13
-IRQ 14
-IRQ 15
+# ISA IRQs
+.irp n,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47
+	ISR_NOERR \n
+.endr
+
+# misc vectors
+.irp n,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	ISR_NOERR \n
+.endr
+.irp n,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79
+	ISR_NOERR \n
+.endr
+.irp n,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	ISR_NOERR \n
+.endr
+.irp n,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111
+	ISR_NOERR \n
+.endr
+.irp n,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127
+	ISR_NOERR \n
+.endr
 
 # system call interrupt
-sysc:
-	push $0
-	push $0x80
-	jmp isr_common
+ISR_NOERR 128
 
-# spurious interrupt handler (do nothing)
-spur:
-	jmp iret_final
+# misc vectors cont.
+.irp n,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143
+	ISR_NOERR \n
+.endr
+.irp n,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159
+	ISR_NOERR \n
+.endr
+.irp n,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175
+	ISR_NOERR \n
+.endr
+.irp n,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191
+	ISR_NOERR \n
+.endr
+.irp n,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207
+	ISR_NOERR \n
+.endr
+.irp n,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223
+	ISR_NOERR \n
+.endr
+.irp n,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239
+	ISR_NOERR \n
+.endr
+.irp n,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
+	ISR_NOERR \n
+.endr
 
+
+.align 16
 isr_common:
 	testw $0x3, 12(%esp)
 	jz stack_fix
@@ -209,66 +246,3 @@ stack_restore:
 
 	# The new stack is now set up, ready for an iret.
 	jmp iret_final
-
-.global isr_table_setup
-# load the addresses of all interrupt functions into the intr array
-isr_table_setup:
-	movl $intr,  %eax
-	movl $isr0,  0(%eax)
-	movl $isr1,  4(%eax)
-	movl $isr2,  8(%eax)
-	movl $isr3,  12(%eax)
-	movl $isr4,  16(%eax)
-	movl $isr5,  20(%eax)
-	movl $isr6,  24(%eax)
-	movl $isr7,  28(%eax)
-	movl $isr8,  32(%eax)
-	movl $isr9,  36(%eax)
-	movl $isr10, 40(%eax)
-	movl $isr11, 44(%eax)
-	movl $isr12, 48(%eax)
-	movl $isr13, 52(%eax)
-	movl $isr14, 56(%eax)
-	movl $isr15, 60(%eax)
-	movl $isr16, 64(%eax)
-	movl $isr17, 68(%eax)
-	movl $isr18, 72(%eax)
-	movl $isr19, 76(%eax)
-	movl $isr20, 80(%eax)
-	movl $isr21, 84(%eax)
-	movl $isr22, 88(%eax)
-	movl $isr23, 92(%eax)
-	movl $isr24, 96(%eax)
-	movl $isr25, 100(%eax)
-	movl $isr26, 104(%eax)
-	movl $isr27, 108(%eax)
-	movl $isr28, 112(%eax)
-	movl $isr29, 116(%eax)
-	movl $isr30, 120(%eax)
-	movl $isr31, 124(%eax)
-	movl $irq0,  128(%eax)
-	movl $irq1,  132(%eax)
-	movl $irq2,  136(%eax)
-	movl $irq3,  140(%eax)
-	movl $irq4,  144(%eax)
-	movl $irq5,  148(%eax)
-	movl $irq6,  152(%eax)
-	movl $irq7,  156(%eax)
-	movl $irq8,  160(%eax)
-	movl $irq9,  164(%eax)
-	movl $irq10, 168(%eax)
-	movl $irq11, 172(%eax)
-	movl $irq12, 176(%eax)
-	movl $irq13, 180(%eax)
-	movl $irq14, 184(%eax)
-	movl $irq15, 188(%eax)
-	movl $sysc,  192(%eax)
-	movl $spur,  196(%eax)
-	ret
-
-.section .data
-
-# array containing the addresses of all interrupt handlers
-.global intr
-intr:
-	.space 200

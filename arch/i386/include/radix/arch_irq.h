@@ -42,8 +42,11 @@ void idt_init(void);
 int in_interrupt(void);
 void interrupt_disable(void);
 void interrupt_enable(void);
-void install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
-void uninstall_interrupt_handler(uint32_t intno);
+
+int install_exception_handler(uint32_t intno, void (*hnd)(struct regs *, int));
+int uninstall_exception_handler(uint32_t intno);
+int install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
+int uninstall_interrupt_handler(uint32_t intno);
 
 #include <radix/types.h>
 
