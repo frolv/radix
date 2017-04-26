@@ -35,12 +35,15 @@
 static struct acpi_madt *madt;
 
 static addr_t lapic_base; /* Local APIC base address */
+static int cpus_available;
 
 static void apic_parse_lapic(struct acpi_madt_local_apic *s)
 {
 	printf("ACPI: LAPIC (processor_id %u lapic_id %u %s)\n",
 	       s->processor_id, s->apic_id,
 	       s->flags & 1 ? "enabled" : "disabled");
+
+	cpus_available += s->flags & 1;
 }
 
 static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
