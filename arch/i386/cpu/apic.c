@@ -37,6 +37,8 @@ static struct acpi_madt *madt;
 static addr_t lapic_base; /* Local APIC base address */
 static int cpus_available;
 
+static unsigned char isa_irqs[16];
+
 static void apic_parse_lapic(struct acpi_madt_local_apic *s)
 {
 	printf("ACPI: LAPIC (processor_id %u lapic_id %u %s)\n",
@@ -56,6 +58,8 @@ static void apic_parse_override(struct acpi_madt_interrupt_override *s)
 {
 	printf("ACPI: OVERRIDE (bus %u source_irq %u global_irq %u)\n",
 	       s->bus_source, s->irq_source, s->global_irq);
+
+	isa_irqs[s->irq_source] = s->global_irq;
 }
 
 /*
@@ -66,6 +70,10 @@ int apic_parse_madt(void)
 {
 	struct acpi_subtable_header *header;
 	unsigned char *p, *end;
+	size_t i;
+
+	for (i = 0; i < 16; ++i)
+		isa_irqs[i] = i;
 
 	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
 	if (!madt)
