@@ -79,7 +79,7 @@ struct acpi_madt_interrupt_override {
 /* flags for the above field */
 #define ACPI_MADT_INTI_POLARITY_CONFORMS        0
 #define ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH     1
-#define ACPI_MADT_INTI_POLARITY_ACTIVE_RESERVED 2
+#define ACPI_MADT_INTI_POLARITY_RESERVED        2
 #define ACPI_MADT_INTI_POLARITY_ACTIVE_LOW      3
 
 #define ACPI_MADT_INTI_TRIGGER_MODE_CONFORMS    0
