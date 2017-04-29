@@ -37,7 +37,13 @@ static struct acpi_madt *madt;
 static addr_t lapic_base; /* Local APIC base address */
 static int cpus_available;
 
-static unsigned char isa_irqs[16];
+struct irq_map {
+	uint16_t bus;
+	uint16_t source_irq;
+	uint16_t global_irq;
+	uint16_t flags;
+};
+static struct irq_map bus_irqs[16];
 
 static void apic_parse_lapic(struct acpi_madt_local_apic *s)
 {
@@ -56,10 +62,20 @@ static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
 
 static void apic_parse_override(struct acpi_madt_interrupt_override *s)
 {
+	size_t i;
+
 	printf("ACPI: OVERRIDE (bus %u source_irq %u global_irq %u)\n",
 	       s->bus_source, s->irq_source, s->global_irq);
 
-	isa_irqs[s->irq_source] = s->global_irq;
+	/* Set bus for all ISA IRQs */
+	if (bus_irqs[0].bus == 0xFFFF) {
+		for (i = 0; i < 16; ++i)
+			bus_irqs[i].bus = s->bus_source;
+	}
+
+	bus_irqs[s->irq_source].bus = s->bus_source;
+	bus_irqs[s->irq_source].global_irq = s->global_irq;
+	bus_irqs[s->irq_source].flags = s->flags;
 }
 
 /*
@@ -72,8 +88,13 @@ int apic_parse_madt(void)
 	unsigned char *p, *end;
 	size_t i;
 
-	for (i = 0; i < 16; ++i)
-		isa_irqs[i] = i;
+	for (i = 0; i < 16; ++i) {
+		bus_irqs[i].bus = 0xFFFF;
+		bus_irqs[i].source_irq = i;
+		bus_irqs[i].global_irq = i;
+		bus_irqs[i].flags = ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH |
+			ACPI_MADT_INTI_TRIGGER_MODE_EDGE;
+	}
 
 	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
 	if (!madt)

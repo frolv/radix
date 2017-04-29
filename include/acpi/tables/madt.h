@@ -76,6 +76,18 @@ struct acpi_madt_interrupt_override {
 	uint16_t flags;
 };
 
+/* flags for the above field */
+#define ACPI_MADT_INTI_POLARITY_CONFORMS        0
+#define ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH     1
+#define ACPI_MADT_INTI_POLARITY_ACTIVE_RESERVED 2
+#define ACPI_MADT_INTI_POLARITY_ACTIVE_LOW      3
+
+#define ACPI_MADT_INTI_TRIGGER_MODE_CONFORMS    0
+#define ACPI_MADT_INTI_TRIGGER_MODE_EDGE        (1 << 2)
+#define ACPI_MADT_INTI_TRIGGER_MODE_RESERVED    (2 << 2)
+#define ACPI_MADT_INTI_TRIGGER_MODE_LEVEL       (3 << 2)
+
+
 struct acpi_madt_nmi_source {
 	struct acpi_subtable_header header;
 	uint16_t flags;
