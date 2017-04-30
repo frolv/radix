@@ -37,6 +37,7 @@ static struct acpi_madt *madt;
 static addr_t lapic_base; /* Local APIC base address */
 static int cpus_available;
 
+/* Mapping between source and global IRQ */
 struct irq_map {
 	uint16_t bus;
 	uint16_t source_irq;
@@ -45,27 +46,123 @@ struct irq_map {
 };
 static struct irq_map bus_irqs[16];
 
+/*
+ * Make sure to change __ARCH_IOAPIC_VIRT_BASE in
+ * arch/i386/include/radix/mm_types.h if this is changed.
+ */
+#define MAX_IOAPICS 16
+
+struct ioapic {
+	uint32_t id;
+	uint32_t irq_base;
+	uint32_t irq_count;
+	volatile uint32_t *base;
+};
+static struct ioapic ioapic_list[MAX_IOAPICS];
+static unsigned int ioapics_available;
+
+#define IOAPIC_IOREGSEL 0
+#define IOAPIC_IOREGWIN 4
+
+#define IOAPIC_REG_ID   0
+#define IOAPIC_REG_VER  1
+#define IOAPIC_REG_ARB  2
+
+static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
+{
+	ioapic->base[IOAPIC_IOREGSEL] = reg;
+	return ioapic->base[IOAPIC_IOREGWIN];
+}
+
+static void ioapic_reg_write(struct ioapic *ioapic, int reg, uint32_t value)
+{
+	ioapic->base[IOAPIC_IOREGSEL] = reg;
+	ioapic->base[IOAPIC_IOREGWIN] = value;
+}
+
+static void apic_enable(addr_t base)
+{
+	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
+}
+
+static uint32_t apic_reg_read(uint16_t reg)
+{
+	return *(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg);
+}
+
+static void apic_reg_write(uint16_t reg, uint32_t value)
+{
+	*(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg) = value;
+}
+
+/*
+ * processor_id:
+ * Return the local APIC ID of the executing processor.
+ */
+uint32_t processor_id(void)
+{
+	uint32_t eax, edx;
+
+	if (!cpu_supports(CPUID_APIC))
+		return 0;
+
+	if (cpu_supports(CPUID_X2APIC)) {
+		/* check if operating in X2APIC mode */
+		rdmsr(IA32_APIC_BASE, &eax, &edx);
+		if (eax & IA32_APIC_BASE_EXTD) {
+			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
+			return eax;
+		}
+	}
+
+	return apic_reg_read(0x20) >> 24;
+}
+
+/*
+ * apic_init:
+ * Configure the LAPIC to send interrupts and enable it.
+ */
+void apic_init(void)
+{
+	/* TODO: mark APIC page as strong uncacheable */
+	map_page(__ARCH_APIC_VIRT_PAGE, lapic_base);
+	apic_enable(lapic_base);
+
+	/* Enable APIC and set spurious interrupt vector */
+	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
+}
+
 static void apic_parse_lapic(struct acpi_madt_local_apic *s)
 {
-	printf("ACPI: LAPIC (processor_id %u lapic_id %u %s)\n",
-	       s->processor_id, s->apic_id,
-	       s->flags & 1 ? "enabled" : "disabled");
-
 	cpus_available += s->flags & 1;
 }
 
 static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
 {
-	printf("ACPI: IOAPIC (id %u address 0x%08lX irq_base %u)\n",
-	       s->id, s->address, s->global_irq_base);
+	struct ioapic *ioapic;
+	uint32_t irq_count;
+	addr_t base;
+
+	if (ioapics_available == MAX_IOAPICS)
+		return;
+
+	base = __ARCH_IOAPIC_VIRT_BASE + ioapics_available * PAGE_SIZE;
+	/* TODO: mark page as strong uncacheable */
+	map_page(base, s->address);
+
+	ioapic = &ioapic_list[ioapics_available++];
+	ioapic->id = s->id;
+	ioapic->irq_base = s->global_irq_base;
+	ioapic->base = (uint32_t *)base;
+
+	irq_count = ioapic_reg_read(ioapic, IOAPIC_REG_VER);
+	irq_count = ((irq_count >> 16) & 0xFF) + 1;
+	ioapic->irq_count = irq_count;
 }
 
 static void apic_parse_override(struct acpi_madt_interrupt_override *s)
 {
 	size_t i;
-
-	printf("ACPI: OVERRIDE (bus %u source_irq %u global_irq %u)\n",
-	       s->bus_source, s->irq_source, s->global_irq);
 
 	/* Set bus for all ISA IRQs */
 	if (bus_irqs[0].bus == 0xFFFF) {
@@ -124,55 +221,4 @@ int apic_parse_madt(void)
 	}
 
 	return 0;
-}
-
-static void apic_enable(addr_t base)
-{
-	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
-}
-
-static uint32_t apic_reg_read(uint16_t reg)
-{
-	return *(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg);
-}
-
-static void apic_reg_write(uint16_t reg, int32_t value)
-{
-	*(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg) = value;
-}
-
-/*
- * processor_id:
- * Return the local APIC ID of the executing processor.
- */
-uint32_t processor_id(void)
-{
-	uint32_t eax, edx;
-
-	if (!cpu_supports(CPUID_APIC))
-		return 0;
-
-	if (cpu_supports(CPUID_X2APIC)) {
-		/* check if operating in X2APIC mode */
-		rdmsr(IA32_APIC_BASE, &eax, &edx);
-		if (eax & IA32_APIC_BASE_EXTD) {
-			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
-			return eax;
-		}
-	}
-
-	return apic_reg_read(0x20) >> 24;
-}
-
-/*
- * apic_init:
- * Configure the LAPIC to send interrupts and enable it.
- */
-void apic_init(void)
-{
-	map_page(__ARCH_APIC_VIRT_PAGE, lapic_base);
-	apic_enable(lapic_base);
-
-	/* Enable APIC and set spurious interrupt vector */
-	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
 }
