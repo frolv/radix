@@ -83,8 +83,8 @@ void buddy_init(struct multiboot_info *mbt)
 	zone_reg_end = totalmem / 4;
 	if (zone_reg_end < _M(20))
 		zone_reg_end = totalmem > _M(16) ? _M(20) : 0;
-	else if (zone_reg_end > PGDIR_BASE - KERNEL_VIRTUAL_BASE)
-		zone_reg_end = PGDIR_BASE - KERNEL_VIRTUAL_BASE;
+	else if (zone_reg_end > RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE)
+		zone_reg_end = RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE;
 
 	/* initialize buddy zones */
 	for (i = 0; i < PA_MAX_ORDER; ++i) {
