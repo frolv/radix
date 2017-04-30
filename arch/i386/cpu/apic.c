@@ -80,6 +80,35 @@ static void ioapic_reg_write(struct ioapic *ioapic, int reg, uint32_t value)
 	ioapic->base[IOAPIC_IOREGWIN] = value;
 }
 
+static struct ioapic *ioapic_from_id(unsigned int id)
+{
+	size_t i;
+
+	for (i = 0; i < ioapics_available; ++i) {
+		if (ioapic_list[i].id == id)
+			return ioapic_list + i;
+	}
+
+	return NULL;
+}
+
+/*
+ * ioapic_from_vector:
+ * Return the I/O APIC that controls the given interrupt vector.
+ */
+static struct ioapic *ioapic_from_vector(unsigned int vec)
+{
+	size_t i;
+
+	for (i = 0; i < ioapics_available; ++i) {
+		if (vec >= ioapic_list[i].irq_base &&
+		    vec < ioapic_list[i].irq_base + ioapic_list[i].irq_count)
+			return ioapic_list + i;
+	}
+
+	return NULL;
+}
+
 static void apic_enable(addr_t base)
 {
 	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
