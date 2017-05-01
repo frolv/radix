@@ -113,9 +113,11 @@ void read_cpu_info(void)
 		 * If cache information cannot be read, assume
 		 * default values from Intel Pentium P5.
 		 */
-		add_cache(1, CACHE_TYPE_DATA, _K(8), 32, CACHE_ASSOC_2WAY);
-		add_cache(1, CACHE_TYPE_INSTRUCTION, _K(8), 32, CACHE_ASSOC_4WAY);
-		add_cache(2, CACHE_TYPE_UNIFIED, _K(256), 32, CACHE_ASSOC_4WAY);
+		add_cache(1, CACHE_TYPE_DATA, KIB(8), 32, CACHE_ASSOC_2WAY);
+		add_cache(1, CACHE_TYPE_INSTRUCTION,
+			  KIB(8), 32, CACHE_ASSOC_4WAY);
+		add_cache(2, CACHE_TYPE_UNIFIED,
+			  KIB(256), 32, CACHE_ASSOC_4WAY);
 		cache_info.line_size = 32;
 
 		cache_info.tlbi_page_size = PAGE_SIZE_4K;
@@ -206,19 +208,19 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0x06:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(8),
+				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(8),
 				          32, CACHE_ASSOC_2WAY);
 				break;
 			case 0x08:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(16),
+				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x09:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(32),
+				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(32),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x0A:
-				add_cache(1, CACHE_TYPE_DATA, _K(8),
+				add_cache(1, CACHE_TYPE_DATA, KIB(8),
 				          32, CACHE_ASSOC_2WAY);
 				break;
 			case 0x0B:
@@ -227,144 +229,144 @@ static void read_cache_info(void)
 				cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0x0C:
-				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				add_cache(1, CACHE_TYPE_DATA, KIB(16),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x0D:
-				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				add_cache(1, CACHE_TYPE_DATA, KIB(16),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x0E:
-				add_cache(1, CACHE_TYPE_DATA, _K(24),
+				add_cache(1, CACHE_TYPE_DATA, KIB(24),
 				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x10:
-				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				add_cache(1, CACHE_TYPE_DATA, KIB(16),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x15:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(16),
+				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x1A:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(96),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(96),
 				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x1D:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
 				          64, CACHE_ASSOC_2WAY);
 				break;
 			case 0x21:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x22:
-				add_cache(3, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(3, CACHE_TYPE_UNIFIED, KIB(512),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x23:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x24:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
 				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x25:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x29:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x2C:
-				add_cache(1, CACHE_TYPE_DATA, _K(32),
+				add_cache(1, CACHE_TYPE_DATA, KIB(32),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x30:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(32),
+				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(32),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x39:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x3A:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(192),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(192),
 				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x3B:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
 				          64, CACHE_ASSOC_2WAY);
 				break;
 			case 0x3C:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x3D:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(384),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(384),
 				          64, CACHE_ASSOC_6WAY);
 				break;
 			case 0x3E:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x41:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x42:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x43:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x44:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x45:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
 				          32, CACHE_ASSOC_4WAY);
 				break;
 			case 0x46:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x47:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x48:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(3),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(3),
 				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0x49:
 				/* TODO: L3 on P4, L2 on Core 2 */
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
 				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x4A:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(6),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(6),
 				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0x4B:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
 				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x4C:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(12),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(12),
 				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0x4D:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(16),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(16),
 				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0x4E:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(6),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(6),
 				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0x4F:
@@ -439,7 +441,7 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
 				break;
 			case 0x60:
-				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				add_cache(1, CACHE_TYPE_DATA, KIB(16),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x61:
@@ -459,15 +461,15 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0x66:
-				add_cache(1, CACHE_TYPE_DATA, _K(8),
+				add_cache(1, CACHE_TYPE_DATA, KIB(8),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x67:
-				add_cache(1, CACHE_TYPE_DATA, _K(16),
+				add_cache(1, CACHE_TYPE_DATA, KIB(16),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x68:
-				add_cache(1, CACHE_TYPE_DATA, _K(32),
+				add_cache(1, CACHE_TYPE_DATA, KIB(32),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x6A:
@@ -498,87 +500,87 @@ static void read_cache_info(void)
 				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
 				break;
 			case 0x77:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, _K(16),
+				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x78:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x79:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7A:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7B:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7C:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7D:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7E:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
 				          128, CACHE_ASSOC_8WAY);
 				break;
 			case 0x7F:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
 				          64, CACHE_ASSOC_2WAY);
 				break;
 			case 0x80:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x81:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(128),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
 				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x82:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(256),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
 				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x83:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
 				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x84:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
 				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x85:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
 				          32, CACHE_ASSOC_8WAY);
 				break;
 			case 0x86:
-				add_cache(2, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x87:
-				add_cache(2, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0x88:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x89:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x8A:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0x8D:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(3),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(3),
 				          128, CACHE_ASSOC_12WAY);
 				break;
 			case 0x90:
@@ -657,63 +659,63 @@ static void read_cache_info(void)
 				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
 				break;
 			case 0xD0:
-				add_cache(3, CACHE_TYPE_UNIFIED, _K(512),
+				add_cache(3, CACHE_TYPE_UNIFIED, KIB(512),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0xD1:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0xD2:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
 				          64, CACHE_ASSOC_4WAY);
 				break;
 			case 0xD6:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(1),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0xD7:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0xD8:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
 				          64, CACHE_ASSOC_8WAY);
 				break;
 			case 0xDC:
-				add_cache(3, CACHE_TYPE_UNIFIED, _K(1536),
+				add_cache(3, CACHE_TYPE_UNIFIED, KIB(1536),
 				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0xDD:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(3),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(3),
 				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0xDE:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(6),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(6),
 				          64, CACHE_ASSOC_12WAY);
 				break;
 			case 0xE2:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(2),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
 				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0xE3:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(4),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
 				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0xE4:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(8),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
 				          64, CACHE_ASSOC_16WAY);
 				break;
 			case 0xEA:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(12),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(12),
 				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0xEB:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(18),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(18),
 				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0xEC:
-				add_cache(3, CACHE_TYPE_UNIFIED, _M(24),
+				add_cache(3, CACHE_TYPE_UNIFIED, MIB(24),
 				          64, CACHE_ASSOC_24WAY);
 				break;
 			case 0xF0:
@@ -961,7 +963,7 @@ static char *print_caches(char *pos)
 		               "%s associativity\n",
 		               cache_info.caches[i].id & 0xF,
 		               assoc_char(cache_info.caches[i].id >> 4),
-		               cache_info.caches[i].size / _K(1),
+		               cache_info.caches[i].size / KIB(1),
 		               cache_info.caches[i].line_size,
 		               assoc_str(cache_info.caches[i].associativity));
 	}

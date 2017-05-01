@@ -81,8 +81,8 @@ void buddy_init(struct multiboot_info *mbt)
 	 * or a maximum of 1 GiB.
 	 */
 	zone_reg_end = totalmem / 4;
-	if (zone_reg_end < _M(20))
-		zone_reg_end = totalmem > _M(16) ? _M(20) : 0;
+	if (zone_reg_end < MIB(20))
+		zone_reg_end = totalmem > MIB(16) ? MIB(20) : 0;
 	else if (zone_reg_end > RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE)
 		zone_reg_end = RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE;
 
@@ -145,7 +145,7 @@ void free_pages(struct page *p)
 	if (PM_PAGE_BLOCK_ORDER(p) == PM_PAGE_ORDER_INNER)
 		return;
 
-	if (page_to_phys(p) < _M(16))
+	if (page_to_phys(p) < MIB(16))
 		zone = &zone_dma;
 	else
 		zone = (p->status & PM_PAGE_ZONE_USR) ? &zone_usr : &zone_reg;
@@ -428,7 +428,7 @@ static void check_space(size_t pfn, size_t pages)
 static size_t zone_init(size_t pfn, size_t section_end,
                         struct buddy *zone, unsigned int flags);
 
-#define M_TO_PAGES(m) (_M(m) / PAGE_SIZE)
+#define M_TO_PAGES(m) (MIB(m) / PAGE_SIZE)
 
 /* buddy_populate: initialize all buddy allocator lists */
 static void buddy_populate(void)

@@ -66,9 +66,9 @@ static __always_inline size_t order(size_t n)
 	return ord;
 }
 
-#define _K(n)   ((n)   * 1024UL)
-#define _M(n)   (_K(n) * 1024UL)
-#define _G(n)   (_M(n) * 1024UL)
+#define KIB(n) ((n)    * 1024UL)
+#define MIB(n) (KIB(n) * 1024UL)
+#define GIB(n) (MIB(n) * 1024UL)
 
 #define ARRAY_SIZE(a) (sizeof (a) / sizeof ((a)[0]))
 
