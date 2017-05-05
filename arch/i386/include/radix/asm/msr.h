@@ -28,6 +28,7 @@
 #define IA32_X2APIC_APICID      0x802
 
 #include <radix/compiler.h>
+#include <radix/types.h>
 
 static __always_inline void rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 {
