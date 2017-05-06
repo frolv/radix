@@ -25,6 +25,7 @@
 #define IA32_BIOS_UPDT_TRIG     0x79
 #define IA32_BIOS_SIGN_ID       0x8B
 #define IA32_MTRRCAP            0xFE
+#define IA32_PAT                0x277
 #define IA32_X2APIC_APICID      0x802
 
 #include <radix/compiler.h>
