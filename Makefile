@@ -5,11 +5,12 @@ DEFAULT_HOST := $(shell util/default-host)
 BUILD_HOST ?= $(DEFAULT_HOST)
 HOSTARCH := $(shell util/target-to-arch $(BUILD_HOST))
 
-AR = $(BUILD_HOST)-ar
-AS = $(BUILD_HOST)-as
-CC = $(BUILD_HOST)-gcc
+AR := $(BUILD_HOST)-ar
+AS := $(BUILD_HOST)-as
+CC := $(BUILD_HOST)-gcc
 
 RM := rm -f
+CTAGS := ctags
 
 ASFLAGS ?=
 CFLAGS ?= -O2
@@ -20,27 +21,25 @@ CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra
 LDFLAGS := $(LDFLAGS)
 LIBS := $(LIBS) -nostdlib -lgcc
 
+#
+# Source directories.
+#
+KERNELDIR := kernel
 ARCHDIR := arch/$(HOSTARCH)
+DRIVERDIR = drivers
+LIBDIR := lib
 
 include $(ARCHDIR)/config.mk
+include $(LIBDIR)/config.mk
+include $(DRIVERDIR)/config.mk
 
 CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS)
 LDFLAGS := $(LDFLAGS) $(KERNEL_ARCH_LDFLAGS)
 LIBS := $(LIBS) $(KERNEL_ARCH_LIBS)
 
-KERNEL_OBJS := $(patsubst %.c,%.o,$(wildcard kernel/*.c))
-KERNEL_OBJS += $(patsubst %.c,%.o,$(wildcard kernel/*/*.c))
+KERNEL_OBJS := $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*.c))
+KERNEL_OBJS += $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*/*.c))
 KERNEL_OBJS += $(KERNEL_ARCH_OBJS)
-
-LIBDIR := lib
-
-LIBK_OBJS :=
-
-include $(LIBDIR)/config.mk
-
-# until module support is added
-DRIVERDIR = drivers
-include $(DRIVERDIR)/config.mk
 
 INCLUDE := -I./include -I./$(ARCHDIR)/include
 
@@ -72,12 +71,19 @@ drivers: $(DRIVER_OBJS)
 ISODIR := iso
 ISONAME := $(PROJECT_NAME)-$(HOSTARCH).iso
 
+#
+# Build kernel ISO image using GRUB.
+#
 .PHONY: iso
 iso: $(KERNEL_NAME)
 	mkdir -p $(ISODIR)/boot/grub
 	cp $(KERNEL_NAME) $(ISODIR)/boot
 	util/mkgrubconfig > $(ISODIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISONAME) $(ISODIR)
+
+.PHONY: ctags
+ctags:
+	$(CTAGS) -R $(KERNELDIR) $(ARCHDIR) $(LIBDIR) $(DRIVERDIR) include
 
 .PHONY: clean
 clean: clean-all
