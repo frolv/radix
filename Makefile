@@ -2,12 +2,12 @@ PROJECT_NAME = radix
 KERNEL_NAME = k$(PROJECT_NAME)
 
 DEFAULT_HOST := $(shell util/default-host)
-HOST ?= $(DEFAULT_HOST)
-HOSTARCH := $(shell util/target-to-arch $(HOST))
+BUILD_HOST ?= $(DEFAULT_HOST)
+HOSTARCH := $(shell util/target-to-arch $(BUILD_HOST))
 
-AR = $(HOST)-ar
-AS = $(HOST)-as
-CC = $(HOST)-gcc
+AR = $(BUILD_HOST)-ar
+AS = $(BUILD_HOST)-as
+CC = $(BUILD_HOST)-gcc
 
 RM := rm -f
 
