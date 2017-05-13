@@ -26,7 +26,7 @@
 /* The page directory of a legacy 2-level x86 paging setup. */
 pde_t * const pgdir = (pde_t *)PGDIR_VADDR;
 
-addr_t __virt_to_phys(addr_t addr)
+addr_t i386_virt_to_phys(addr_t addr)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
@@ -43,16 +43,16 @@ addr_t __virt_to_phys(addr_t addr)
 	return 0;
 }
 
-void __create_pgtbl(addr_t virt, pde_t pde)
+void i386_set_pde(addr_t virt, pde_t pde)
 {
 	pgdir[PGDIR_INDEX(virt)] = pde;
 }
 
 /*
- * addr_mapped:
+ * i386_addr_mapped:
  * Return 1 if address `virt` has been mapped to a physical address.
  */
-int addr_mapped(addr_t virt)
+int i386_addr_mapped(addr_t virt)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
@@ -68,10 +68,10 @@ int addr_mapped(addr_t virt)
 }
 
 /*
- * map_page:
+ * i386_map_page:
  * Map a page with base virtual address `virt` to physical address `phys`.
  */
-int map_page(addr_t virt, addr_t phys)
+int i386_map_page(addr_t virt, addr_t phys)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
@@ -104,12 +104,12 @@ int map_page(addr_t virt, addr_t phys)
 	return 0;
 }
 
-int map_pages(addr_t virt, addr_t phys, size_t n)
+int i386_map_pages(addr_t virt, addr_t phys, size_t n)
 {
 	int err;
 
 	for (; n; --n, virt += PAGE_SIZE, phys += PAGE_SIZE) {
-		if ((err = map_page(virt, phys)) != 0)
+		if ((err = i386_map_page(virt, phys)) != 0)
 			return err;
 	}
 	return 0;
@@ -117,18 +117,18 @@ int map_pages(addr_t virt, addr_t phys, size_t n)
 
 static int __unmap(addr_t virt, int freetable);
 
-/* unmap_page: unmap the page with base address `virt` */
-int unmap_page(addr_t virt)
+/* i386_unmap_page: unmap the page with base address `virt` */
+int i386_unmap_page(addr_t virt)
 {
 	return __unmap(virt, 0);
 }
 
 /*
- * unmap_page_pgtbl:
+ * unmap_page_clean:
  * Unmap the page with base address `virt`. If the rest of its
  * page table is empty, unmap and free the page table too.
  */
-int unmap_page_pgtbl(addr_t virt)
+int i386_unmap_page_clean(addr_t virt)
 {
 	return __unmap(virt, 1);
 }

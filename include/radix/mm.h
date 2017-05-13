@@ -82,8 +82,7 @@ static __always_inline struct page *alloc_page(unsigned int flags)
 	return alloc_pages(flags, 0);
 }
 
-
-#define phys_addr(x) __pa((addr_t)x)
+#define phys_addr(x) __arch_pa((addr_t)(x))
 
 extern struct page *page_map;
 
@@ -111,11 +110,16 @@ static __always_inline struct page *phys_to_page(addr_t phys)
 	return page_map + (phys >> PAGE_SHIFT);
 }
 
-void __create_pgtbl(addr_t virt, pde_t pde);
-int addr_mapped(addr_t virt);
-int map_page(addr_t virt, addr_t phys);
-int map_pages(addr_t virt, addr_t phys, size_t n);
-int unmap_page(addr_t virt);
-int unmap_page_pgtbl(addr_t virt);
+/*
+ * Memory management functions.
+ * Each supported architecture must provide its own implementation
+ * in arch/$ARCH/include/radix/page.h.
+ */
+#define set_pde(virt, pde)              __arch_set_pde((virt), (pde))
+#define addr_mapped(virt)               __arch_addr_mapped((virt))
+#define map_page(virt, phys)            __arch_map_page((virt), (phys))
+#define map_pages(virt, phys, n)        __arch_map_pages((virt), (phys), (n))
+#define unmap_page(virt)                __arch_unmap_page((virt))
+#define unmap_page_clean(virt)          __arch_unmap_page_clean((virt))
 
 #endif /* RADIX_MM_H */

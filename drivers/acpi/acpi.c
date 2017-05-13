@@ -183,7 +183,7 @@ static void rsdt_setup(addr_t rsdt_addr)
 	if ((checksum & 0xFF) != 0) {
 		BOOT_FAIL_MSG("Invalid ACPI RSDT checksum\n");
 		if (unmap)
-			unmap_page_pgtbl(ACPI_TABLES_VIRT_BASE);
+			unmap_page_clean(ACPI_TABLES_VIRT_BASE);
 		return;
 	}
 
@@ -220,7 +220,7 @@ static void xsdt_setup(addr_t xsdt_addr)
 	if ((checksum & 0xFF) != 0) {
 		BOOT_FAIL_MSG("Invalid ACPI XSDT checksum\n");
 		if (unmap)
-			unmap_page_pgtbl(ACPI_TABLES_VIRT_BASE);
+			unmap_page_clean(ACPI_TABLES_VIRT_BASE);
 		return;
 	}
 

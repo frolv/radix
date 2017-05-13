@@ -78,14 +78,30 @@ static __always_inline pte_t make_pte(pteval_t val)
 #define PGDIR_BASE      0xFFC00000UL
 #define PGDIR_VADDR     0xFFFFF000UL
 
-addr_t __virt_to_phys(addr_t addr);
+/*
+ * i386 definitions of generic memory management functions.
+ */
+addr_t i386_virt_to_phys(addr_t addr);
+void i386_set_pde(addr_t virt, pde_t pde);
+int i386_addr_mapped(addr_t virt);
+int i386_map_page(addr_t virt, addr_t phys);
+int i386_map_pages(addr_t virt, addr_t phys, size_t n);
+int i386_unmap_page(addr_t virt);
+int i386_unmap_page_clean(addr_t virt);
 
-static __always_inline addr_t __pa(addr_t v)
+static __always_inline addr_t __arch_pa(addr_t v)
 {
 	if (v < __ARCH_KERNEL_VIRT_BASE || v >= __ARCH_RESERVED_VIRT_BASE)
-		return __virt_to_phys(v);
+		return i386_virt_to_phys(v);
 	else
 		return v - __ARCH_KERNEL_VIRT_BASE;
 }
+
+#define __arch_set_pde          i386_set_pde
+#define __arch_addr_mapped      i386_addr_mapped
+#define __arch_map_page         i386_map_page
+#define __arch_map_pages        i386_map_pages
+#define __arch_unmap_page       i386_unmap_page
+#define __arch_unmap_page_clean i386_unmap_page_clean
 
 #endif /* ARCH_I386_RADIX_PAGE_H */
