@@ -22,7 +22,7 @@
 #include <radix/page.h>
 #include <rlibc/string.h>
 
-#define PGTBL(x)        (pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
+#define get_page_table(x) (pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
 
 /* The page directory of a legacy 2-level x86 paging setup. */
 pde_t * const pgdir = (pde_t *)PGDIR_VADDR;
@@ -36,7 +36,7 @@ addr_t i386_virt_to_phys(addr_t addr)
 	pti = PGTBL_INDEX(addr);
 
 	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
-		pgtbl = PGTBL(pdi);
+		pgtbl = get_page_table(pdi);
 		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
 			return (PTE(pgtbl[pti]) & PAGE_MASK) + (addr & 0xFFF);
 	}
@@ -60,7 +60,7 @@ int i386_addr_mapped(addr_t virt)
 
 	pdi = PGDIR_INDEX(virt);
 	pti = PGTBL_INDEX(virt);
-	pgtbl = PGTBL(pdi);
+	pgtbl = get_page_table(pdi);
 
 	if (PDE(pgdir[pdi]) & PAGE_PRESENT)
 		return PTE(pgtbl[pti]) & PAGE_PRESENT;
@@ -84,7 +84,7 @@ int i386_map_page(addr_t virt, addr_t phys)
 
 	pdi = PGDIR_INDEX(virt);
 	pti = PGTBL_INDEX(virt);
-	pgtbl = PGTBL(pdi);
+	pgtbl = get_page_table(pdi);
 
 	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
 		/* page is already mapped */
@@ -149,7 +149,7 @@ static int __unmap(addr_t virt, int freetable)
 	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
 		return EINVAL;
 
-	pgtbl = PGTBL(pdi);
+	pgtbl = get_page_table(pdi);
 	if (!(PTE(pgtbl[pti]) & PAGE_PRESENT))
 		return EINVAL;
 
@@ -187,7 +187,7 @@ int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
 		return EINVAL;
 
-	pgtbl = PGTBL(pdi);
+	pgtbl = get_page_table(pdi);
 	pte = PTE(pgtbl[pti]);
 
 	if (!(pte & PAGE_PRESENT))
