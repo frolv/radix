@@ -88,7 +88,6 @@ extern struct page *page_map;
 
 #define PFN(x) (phys_addr(x) >> PAGE_SHIFT)
 
-/* Find the struct page that corresponds to an address. */
 static __always_inline struct page *virt_to_page(void *ptr)
 {
 	return page_map + PFN(ptr);
@@ -121,5 +120,23 @@ static __always_inline struct page *phys_to_page(addr_t phys)
 #define map_pages(virt, phys, n)        __arch_map_pages((virt), (phys), (n))
 #define unmap_page(virt)                __arch_unmap_page((virt))
 #define unmap_page_clean(virt)          __arch_unmap_page_clean((virt))
+#define set_cache_policy(virt, type)    __arch_set_cache_policy((virt), (type))
+
+/* CPU caching control */
+enum cache_policy {
+	PAGE_CP_WRITE_BACK,
+	PAGE_CP_WRITE_THROUGH,
+	PAGE_CP_UNCACHED,
+	PAGE_CP_UNCACHEABLE,
+	PAGE_CP_WRITE_COMBINING,
+	PAGE_CP_WRITE_PROTECTED
+};
+
+#define mark_page_wb(virt)      set_cache_policy((virt), PAGE_CP_WRITE_BACK)
+#define mark_page_wt(virt)      set_cache_policy((virt), PAGE_CP_WRITE_THROUGH)
+#define mark_page_ucminus(virt) set_cache_policy((virt), PAGE_CP_UNCACHED)
+#define mark_page_uc(virt)      set_cache_policy((virt), PAGE_CP_UNCACHEABLE)
+#define mark_page_wc(virt)      set_cache_policy((virt), PAGE_CP_WRITE_COMBINING)
+#define mark_page_wp(virt)      set_cache_policy((virt), PAGE_CP_WRITE_PROTECTED)
 
 #endif /* RADIX_MM_H */

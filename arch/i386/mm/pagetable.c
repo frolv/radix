@@ -169,3 +169,55 @@ static int __unmap(addr_t virt, int freetable)
 
 	return 0;
 }
+
+/*
+ * i386_set_cache_policy:
+ * Set the CPU caching policy for a single virtual page.
+ */
+int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
+{
+	size_t pdi, pti;
+	pte_t *pgtbl;
+	unsigned long pte;
+
+	pdi = PGDIR_INDEX(virt);
+	pti = PGTBL_INDEX(virt);
+
+	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+		return EINVAL;
+
+	pgtbl = PGTBL(pdi);
+	pte = PTE(pgtbl[pti]);
+
+	if (!(pte & PAGE_PRESENT))
+		return EINVAL;
+
+	switch (policy) {
+	case PAGE_CP_WRITE_BACK:
+		pte &= ~(PAGE_PAT | PAGE_PCD | PAGE_PWT);
+		break;
+	case PAGE_CP_WRITE_THROUGH:
+		pte |= PAGE_PWT;
+		pte &= ~(PAGE_PCD | PAGE_PAT);
+		break;
+	case PAGE_CP_UNCACHED:
+		pte |= PAGE_PCD;
+		pte &= ~(PAGE_PWT | PAGE_PAT);
+		break;
+	case PAGE_CP_UNCACHEABLE:
+		pte |= PAGE_PCD | PAGE_PWT;
+		pte &= ~PAGE_PAT;
+		break;
+	case PAGE_CP_WRITE_COMBINING:
+		pte |= PAGE_PAT;
+		pte &= ~(PAGE_PCD | PAGE_PWT);
+		break;
+	case PAGE_CP_WRITE_PROTECTED:
+		pte |= PAGE_PAT | PAGE_PWT;
+		pte &= ~PAGE_PCD;
+		break;
+	}
+	pgtbl[pti] = make_pte(pte);
+
+	return 0;
+}
