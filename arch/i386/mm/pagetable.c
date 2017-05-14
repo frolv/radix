@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/page.h>
@@ -191,6 +192,12 @@ int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 
 	if (!(pte & PAGE_PRESENT))
 		return EINVAL;
+
+	/* WC and WP cache policies are only available through PAT. */
+	if (!cpu_supports(CPUID_PAT) &&
+	    (policy == PAGE_CP_WRITE_COMBINING ||
+	     policy == PAGE_CP_WRITE_PROTECTED))
+		policy = PAGE_CP_WRITE_BACK;
 
 	switch (policy) {
 	case PAGE_CP_WRITE_BACK:
