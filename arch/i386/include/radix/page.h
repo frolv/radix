@@ -35,21 +35,21 @@
 #define _PAGE_BIT_PRESENT       0
 #define _PAGE_BIT_RW            1
 #define _PAGE_BIT_USER          2
-#define _PAGE_BIT_WT            3
-#define _PAGE_BIT_CD            4
+#define _PAGE_BIT_PWT           3
+#define _PAGE_BIT_PCD           4
 #define _PAGE_BIT_ACCESSED      5
 #define _PAGE_BIT_DIRTY         6
-#define _PAGE_BIT_PSE           7
+#define _PAGE_BIT_PAT           7
 #define _PAGE_BIT_GLOBAL        8
 
 #define PAGE_PRESENT    (((pteval_t)1) << _PAGE_BIT_PRESENT)
 #define PAGE_RW         (((pteval_t)1) << _PAGE_BIT_RW)
 #define PAGE_USER       (((pteval_t)1) << _PAGE_BIT_USER)
-#define PAGE_WT         (((pteval_t)1) << _PAGE_BIT_WT)
-#define PAGE_CD         (((pteval_t)1) << _PAGE_BIT_CD)
+#define PAGE_PWT        (((pteval_t)1) << _PAGE_BIT_PWT)
+#define PAGE_PCD        (((pteval_t)1) << _PAGE_BIT_PCD)
 #define PAGE_ACCESSED   (((pteval_t)1) << _PAGE_BIT_ACCESSED)
 #define PAGE_DIRTY      (((pteval_t)1) << _PAGE_BIT_DIRTY)
-#define PAGE_PSE        (((pteval_t)1) << _PAGE_BIT_PSE)
+#define PAGE_PAT        (((pteval_t)1) << _PAGE_BIT_PAT)
 #define PAGE_GLOBAL     (((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
 #include <radix/compiler.h>
@@ -78,6 +78,8 @@ static __always_inline pte_t make_pte(pteval_t val)
 #define PGDIR_BASE      0xFFC00000UL
 #define PGDIR_VADDR     0xFFFFF000UL
 
+enum cache_policy;
+
 /*
  * i386 definitions of generic memory management functions.
  */
@@ -88,6 +90,7 @@ int i386_map_page(addr_t virt, addr_t phys);
 int i386_map_pages(addr_t virt, addr_t phys, size_t n);
 int i386_unmap_page(addr_t virt);
 int i386_unmap_page_clean(addr_t virt);
+int i386_set_cache_policy(addr_t virt, enum cache_policy policy);
 
 static __always_inline addr_t __arch_pa(addr_t v)
 {
@@ -103,5 +106,6 @@ static __always_inline addr_t __arch_pa(addr_t v)
 #define __arch_map_pages        i386_map_pages
 #define __arch_unmap_page       i386_unmap_page
 #define __arch_unmap_page_clean i386_unmap_page_clean
+#define __arch_set_cache_policy i386_set_cache_policy
 
 #endif /* ARCH_I386_RADIX_PAGE_H */
