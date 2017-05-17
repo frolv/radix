@@ -26,7 +26,7 @@ LIBS := $(LIBS) -nostdlib -lgcc
 #
 KERNELDIR := kernel
 ARCHDIR := arch/$(HOSTARCH)
-DRIVERDIR = drivers
+DRIVERDIR := drivers
 LIBDIR := lib
 
 include $(ARCHDIR)/config.mk
