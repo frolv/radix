@@ -123,6 +123,7 @@ static __always_inline struct page *phys_to_page(addr_t phys)
 
 /* CPU caching control */
 enum cache_policy {
+	PAGE_CP_DEFAULT,
 	PAGE_CP_WRITE_BACK,
 	PAGE_CP_WRITE_THROUGH,
 	PAGE_CP_UNCACHED,
@@ -131,10 +132,14 @@ enum cache_policy {
 	PAGE_CP_WRITE_PROTECTED
 };
 
-#define map_page(virt, phys)            __arch_map_page((virt), (phys))
-#define map_pages(virt, phys, n)        __arch_map_pages((virt), (phys), (n))
+#define map_page(virt, phys, prot, cp) \
+	__arch_map_page((virt), (phys), (prot), (cp))
+#define map_pages(virt, phys, prot, cp, n) \
+	__arch_map_pages((virt), (phys), (prot), (cp), (n))
+
 #define unmap_page(virt)                __arch_unmap_page((virt))
 #define unmap_page_clean(virt)          __arch_unmap_page_clean((virt))
+
 #define set_cache_policy(virt, type)    __arch_set_cache_policy((virt), (type))
 
 #define mark_page_wb(virt)      set_cache_policy((virt), PAGE_CP_WRITE_BACK)
