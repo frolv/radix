@@ -56,7 +56,7 @@
 
 #define pow2(x) (1U << (x))
 
-static __always_inline size_t order(size_t n)
+static __always_inline size_t log2(size_t n)
 {
 	size_t ord = 0;
 

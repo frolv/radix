@@ -358,7 +358,7 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 		pages = len / PAGE_SIZE;
 
 		/* determine the size of the block, up the the maximum 2^9 */
-		if ((ord = order(pages)) > PA_MAX_ORDER - 1)
+		if ((ord = log2(pages)) > PA_MAX_ORDER - 1)
 			ord = PA_MAX_ORDER - 1;
 		if (pages < pow2(ord))
 			--ord;
@@ -461,7 +461,7 @@ static void split_block(size_t pfn, size_t lim)
 	end = lim;
 
 	while (rem) {
-		ord = order(rem);
+		ord = log2(rem);
 		if (rem < pow2(ord))
 			--ord;
 
@@ -472,7 +472,7 @@ static void split_block(size_t pfn, size_t lim)
 
 	rem = lim - pfn;
 	while (rem) {
-		ord = order(rem);
+		ord = log2(rem);
 		if (rem < pow2(ord))
 			--ord;
 

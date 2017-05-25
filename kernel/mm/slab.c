@@ -443,7 +443,7 @@ static __always_inline struct slab_cache *kmalloc_get_cache(size_t sz)
 	if (sz <= 192)
 		return kmalloc_sm_caches[(sz - 1) / 8];
 	else
-		return kmalloc_lg_caches[order(sz - 1) - 7];
+		return kmalloc_lg_caches[log2(sz - 1) - 7];
 }
 
 void *kmalloc(size_t size)
