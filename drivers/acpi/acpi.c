@@ -110,13 +110,15 @@ static void convert_rsdt_addrs(void)
 		((uint32_t *)sdt_base)[i] = addr;
 
 		if (!addr_mapped(addr)) {
-			map_page(addr & PAGE_MASK, phys_page);
+			map_page(addr & PAGE_MASK, phys_page,
+			         PROT_WRITE, PAGE_CP_DEFAULT);
 			++curr_page;
 		}
 
 		h = (struct acpi_sdt_header *)addr;
 		if (addr + h->length > ALIGN(addr, PAGE_SIZE)) {
-			map_page(ALIGN(addr, PAGE_SIZE), phys_page + PAGE_SIZE);
+			map_page(ALIGN(addr, PAGE_SIZE), phys_page + PAGE_SIZE,
+			         PROT_WRITE, PAGE_CP_DEFAULT);
 			++curr_page;
 		}
 	}
@@ -141,7 +143,8 @@ static void convert_xsdt_addrs(void)
 		((uint64_t *)sdt_base)[i] = addr;
 
 		if (!addr_mapped(addr)) {
-			map_page(addr & PAGE_MASK, phys_page);
+			map_page(addr & PAGE_MASK, phys_page,
+			         PROT_WRITE, PAGE_CP_DEFAULT);
 			++curr_page;
 		}
 
@@ -151,7 +154,8 @@ static void convert_xsdt_addrs(void)
 		h = (struct acpi_sdt_header *)addr;
 #endif
 		if (addr + h->length > ALIGN(addr, PAGE_SIZE)) {
-			map_page(ALIGN(addr, PAGE_SIZE), phys_page + PAGE_SIZE);
+			map_page(ALIGN(addr, PAGE_SIZE), phys_page + PAGE_SIZE,
+			         PROT_WRITE, PAGE_CP_DEFAULT);
 			++curr_page;
 		}
 	}
@@ -174,7 +178,8 @@ static void rsdt_setup(addr_t rsdt_addr)
 
 	if (!addr_mapped((addr_t)rsdt)) {
 		sdt_page = rsdt_addr & PAGE_MASK;
-		map_page(ACPI_TABLES_VIRT_BASE, sdt_page);
+		map_page(ACPI_TABLES_VIRT_BASE, sdt_page,
+		         PROT_WRITE, PAGE_CP_DEFAULT);
 		unmap = 1;
 	}
 
@@ -211,7 +216,8 @@ static void xsdt_setup(addr_t xsdt_addr)
 
 	if (!addr_mapped((addr_t)xsdt)) {
 		sdt_page = xsdt_addr & PAGE_MASK;
-		map_page(ACPI_TABLES_VIRT_BASE, sdt_page);
+		map_page(ACPI_TABLES_VIRT_BASE, sdt_page,
+		         PROT_WRITE, PAGE_CP_DEFAULT);
 		unmap = 1;
 	}
 
