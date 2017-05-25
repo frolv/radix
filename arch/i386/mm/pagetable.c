@@ -69,10 +69,57 @@ int i386_addr_mapped(addr_t virt)
 }
 
 /*
- * i386_map_page:
- * Map a page with base virtual address `virt` to physical address `phys`.
+ * cp_to_flags:
+ * Convert a cache policy to x86 page flags.
+ * `flags` must already be initialized.
  */
-int i386_map_page(addr_t virt, addr_t phys)
+static int cp_to_flags(unsigned long *flags, int cp)
+{
+	switch (cp) {
+	case PAGE_CP_DEFAULT:
+	case PAGE_CP_WRITE_BACK:
+		*flags &= ~(PAGE_PAT | PAGE_PCD | PAGE_PWT);
+		break;
+	case PAGE_CP_WRITE_THROUGH:
+		*flags |= PAGE_PWT;
+		*flags &= ~(PAGE_PCD | PAGE_PAT);
+		break;
+	case PAGE_CP_UNCACHED:
+		*flags |= PAGE_PCD;
+		*flags &= ~(PAGE_PWT | PAGE_PAT);
+		break;
+	case PAGE_CP_UNCACHEABLE:
+		*flags |= PAGE_PCD | PAGE_PWT;
+		*flags &= ~PAGE_PAT;
+		break;
+	case PAGE_CP_WRITE_COMBINING:
+		*flags |= PAGE_PAT;
+		*flags &= ~(PAGE_PCD | PAGE_PWT);
+		break;
+	case PAGE_CP_WRITE_PROTECTED:
+		*flags |= PAGE_PAT | PAGE_PWT;
+		*flags &= ~PAGE_PCD;
+		break;
+	default:
+		return EINVAL;
+	}
+
+	return 0;
+}
+
+static int mp_args_to_flags(unsigned long *flags, int prot, int cp)
+{
+	*flags = 0;
+
+	if (prot == PROT_WRITE)
+		*flags = PAGE_RW;
+	else if (prot != PROT_READ)
+		return EINVAL;
+
+	return cp_to_flags(flags, cp);
+}
+
+static int __map_page(addr_t virt, addr_t phys, unsigned long flags)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
@@ -100,17 +147,36 @@ int i386_map_page(addr_t virt, addr_t phys)
 		                      | PAGE_RW | PAGE_PRESENT);
 		memset(pgtbl, 0, PGTBL_SIZE);
 	}
-	pgtbl[pti] = make_pte(phys | PAGE_RW | PAGE_PRESENT);
+	pgtbl[pti] = make_pte(phys | flags | PAGE_PRESENT);
 
 	return 0;
 }
 
-int i386_map_pages(addr_t virt, addr_t phys, size_t n)
+/*
+ * i386_map_page:
+ * Map a page with base virtual address `virt` to physical address `phys`.
+ */
+int i386_map_page(addr_t virt, addr_t phys, int prot, int cp)
 {
+	unsigned long flags;
 	int err;
 
+	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
+		return err;
+
+	return __map_page(virt, phys, flags);
+}
+
+int i386_map_pages(addr_t virt, addr_t phys, int prot, int cp, size_t n)
+{
+	unsigned long flags;
+	int err;
+
+	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
+		return err;
+
 	for (; n; --n, virt += PAGE_SIZE, phys += PAGE_SIZE) {
-		if ((err = i386_map_page(virt, phys)) != 0)
+		if ((err = __map_page(virt, phys, flags)) != 0)
 			return err;
 	}
 	return 0;
@@ -174,12 +240,14 @@ static int __unmap(addr_t virt, int freetable)
 /*
  * i386_set_cache_policy:
  * Set the CPU caching policy for a single virtual page.
+ * TODO: flush TLB/caches
  */
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 {
 	size_t pdi, pti;
 	pte_t *pgtbl;
 	unsigned long pte;
+	int err;
 
 	pdi = PGDIR_INDEX(virt);
 	pti = PGTBL_INDEX(virt);
@@ -199,31 +267,9 @@ int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 	     policy == PAGE_CP_WRITE_PROTECTED))
 		policy = PAGE_CP_WRITE_BACK;
 
-	switch (policy) {
-	case PAGE_CP_WRITE_BACK:
-		pte &= ~(PAGE_PAT | PAGE_PCD | PAGE_PWT);
-		break;
-	case PAGE_CP_WRITE_THROUGH:
-		pte |= PAGE_PWT;
-		pte &= ~(PAGE_PCD | PAGE_PAT);
-		break;
-	case PAGE_CP_UNCACHED:
-		pte |= PAGE_PCD;
-		pte &= ~(PAGE_PWT | PAGE_PAT);
-		break;
-	case PAGE_CP_UNCACHEABLE:
-		pte |= PAGE_PCD | PAGE_PWT;
-		pte &= ~PAGE_PAT;
-		break;
-	case PAGE_CP_WRITE_COMBINING:
-		pte |= PAGE_PAT;
-		pte &= ~(PAGE_PCD | PAGE_PWT);
-		break;
-	case PAGE_CP_WRITE_PROTECTED:
-		pte |= PAGE_PAT | PAGE_PWT;
-		pte &= ~PAGE_PCD;
-		break;
-	}
+	if ((err = cp_to_flags(&pte, policy)) != 0)
+		return err;
+
 	pgtbl[pti] = make_pte(pte);
 
 	return 0;
