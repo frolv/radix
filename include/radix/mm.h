@@ -114,13 +114,12 @@ static __always_inline struct page *phys_to_page(addr_t phys)
  * Each supported architecture must provide its own implementation
  * in arch/$ARCH/include/radix/page.h.
  */
+
 #define set_pde(virt, pde)              __arch_set_pde((virt), (pde))
 #define addr_mapped(virt)               __arch_addr_mapped((virt))
-#define map_page(virt, phys)            __arch_map_page((virt), (phys))
-#define map_pages(virt, phys, n)        __arch_map_pages((virt), (phys), (n))
-#define unmap_page(virt)                __arch_unmap_page((virt))
-#define unmap_page_clean(virt)          __arch_unmap_page_clean((virt))
-#define set_cache_policy(virt, type)    __arch_set_cache_policy((virt), (type))
+
+#define PROT_READ  0
+#define PROT_WRITE 1
 
 /* CPU caching control */
 enum cache_policy {
@@ -131,6 +130,12 @@ enum cache_policy {
 	PAGE_CP_WRITE_COMBINING,
 	PAGE_CP_WRITE_PROTECTED
 };
+
+#define map_page(virt, phys)            __arch_map_page((virt), (phys))
+#define map_pages(virt, phys, n)        __arch_map_pages((virt), (phys), (n))
+#define unmap_page(virt)                __arch_unmap_page((virt))
+#define unmap_page_clean(virt)          __arch_unmap_page_clean((virt))
+#define set_cache_policy(virt, type)    __arch_set_cache_policy((virt), (type))
 
 #define mark_page_wb(virt)      set_cache_policy((virt), PAGE_CP_WRITE_BACK)
 #define mark_page_wt(virt)      set_cache_policy((virt), PAGE_CP_WRITE_THROUGH)
