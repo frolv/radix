@@ -198,7 +198,8 @@ static struct page *__alloc_pages(struct buddy *zone,
 			virt = 0;
 		}
 
-		map_pages(virt, page_to_phys(p), pow2(ord));
+		map_pages(virt, page_to_phys(p), PROT_WRITE,
+		          PAGE_CP_DEFAULT, pow2(ord));
 		p->mem = (void *)virt;
 		p->status |= PM_PAGE_MAPPED;
 	}
@@ -418,7 +419,8 @@ static void check_space(size_t pfn, size_t pages)
 
 		for (; off < req_len; off += PAGE_SIZE) {
 			map_page(PAGE_MAP_BASE + off,
-			         __PAGE_MAP_PHYS_BASE + off);
+			         __PAGE_MAP_PHYS_BASE + off,
+			         PROT_WRITE, PAGE_CP_DEFAULT);
 			++npages;
 			page_map_end += PAGE_SIZE;
 		}

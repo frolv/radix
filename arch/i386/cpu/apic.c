@@ -153,8 +153,8 @@ uint32_t processor_id(void)
  */
 void apic_init(void)
 {
-	/* TODO: mark APIC page as strong uncacheable */
-	map_page(__ARCH_APIC_VIRT_PAGE, lapic_base);
+	map_page(__ARCH_APIC_VIRT_PAGE, lapic_base,
+	         PROT_WRITE, PAGE_CP_UNCACHEABLE);
 	apic_enable(lapic_base);
 
 	/* Enable APIC and set spurious interrupt vector */
@@ -176,8 +176,7 @@ static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
 		return;
 
 	base = __ARCH_IOAPIC_VIRT_BASE + ioapics_available * PAGE_SIZE;
-	/* TODO: mark page as strong uncacheable */
-	map_page(base, s->address);
+	map_page(base, s->address, PROT_WRITE, PAGE_CP_UNCACHEABLE);
 
 	ioapic = &ioapic_list[ioapics_available++];
 	ioapic->id = s->id;
