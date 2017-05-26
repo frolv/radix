@@ -132,10 +132,15 @@ enum cache_policy {
 	PAGE_CP_WRITE_PROTECTED
 };
 
-#define map_page(virt, phys, prot, cp) \
-	__arch_map_page((virt), (phys), (prot), (cp))
-#define map_pages(virt, phys, prot, cp, n) \
-	__arch_map_pages((virt), (phys), (prot), (cp), (n))
+#define map_page_kernel(virt, phys, prot, cp) \
+	__arch_map_page_kernel((virt), (phys), (prot), (cp))
+#define map_page_user(virt, phys, prot, cp) \
+	__arch_map_page_user((virt), (phys), (prot), (cp))
+
+#define map_pages_kernel(virt, phys, prot, cp, n) \
+	__arch_map_pages((virt), (phys), (prot), (cp), 0, (n))
+#define map_pages_user(virt, phys, prot, cp, n) \
+	__arch_map_pages((virt), (phys), (prot), (cp), 1, (n))
 
 #define unmap_page(virt)                __arch_unmap_page((virt))
 #define unmap_page_clean(virt)          __arch_unmap_page_clean((virt))

@@ -153,10 +153,11 @@ static int __map_page(addr_t virt, addr_t phys, unsigned long flags)
 }
 
 /*
- * i386_map_page:
- * Map a page with base virtual address `virt` to physical address `phys`.
+ * i386_map_page_kernel:
+ * Map a page with base virtual address `virt` to physical address `phys`
+ * for kernel use.
  */
-int i386_map_page(addr_t virt, addr_t phys, int prot, int cp)
+int i386_map_page_kernel(addr_t virt, addr_t phys, int prot, int cp)
 {
 	unsigned long flags;
 	int err;
@@ -164,16 +165,35 @@ int i386_map_page(addr_t virt, addr_t phys, int prot, int cp)
 	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
 		return err;
 
-	return __map_page(virt, phys, flags);
+	return __map_page(virt, phys, flags | PAGE_GLOBAL);
 }
 
-int i386_map_pages(addr_t virt, addr_t phys, int prot, int cp, size_t n)
+/*
+ * i386_map_page_user:
+ * Map a page with base virtual address `virt` to physical address `phys`
+ * for userspace.
+ */
+int i386_map_page_user(addr_t virt, addr_t phys, int prot, int cp)
 {
 	unsigned long flags;
 	int err;
 
 	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
 		return err;
+
+	return __map_page(virt, phys, flags | PAGE_USER);
+}
+
+int i386_map_pages(addr_t virt, addr_t phys, int prot,
+                   int cp, int user, size_t n)
+{
+	unsigned long flags;
+	int err;
+
+	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
+		return err;
+
+	flags |= user ? PAGE_USER : PAGE_GLOBAL;
 
 	for (; n; --n, virt += PAGE_SIZE, phys += PAGE_SIZE) {
 		if ((err = __map_page(virt, phys, flags)) != 0)

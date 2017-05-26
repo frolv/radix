@@ -86,8 +86,10 @@ enum cache_policy;
 addr_t i386_virt_to_phys(addr_t addr);
 void i386_set_pde(addr_t virt, pde_t pde);
 int i386_addr_mapped(addr_t virt);
-int i386_map_page(addr_t virt, addr_t phys, int prot, int cp);
-int i386_map_pages(addr_t virt, addr_t phys, int prot, int cp, size_t n);
+int i386_map_page_kernel(addr_t virt, addr_t phys, int prot, int cp);
+int i386_map_page_user(addr_t virt, addr_t phys, int prot, int cp);
+int i386_map_pages(addr_t virt, addr_t phys, int prot,
+                   int cp, int user, size_t n);
 int i386_unmap_page(addr_t virt);
 int i386_unmap_page_clean(addr_t virt);
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy);
@@ -102,7 +104,8 @@ static __always_inline addr_t __arch_pa(addr_t v)
 
 #define __arch_set_pde          i386_set_pde
 #define __arch_addr_mapped      i386_addr_mapped
-#define __arch_map_page         i386_map_page
+#define __arch_map_page_kernel  i386_map_page_kernel
+#define __arch_map_page_user    i386_map_page_user
 #define __arch_map_pages        i386_map_pages
 #define __arch_unmap_page       i386_unmap_page
 #define __arch_unmap_page_clean i386_unmap_page_clean
