@@ -28,6 +28,7 @@ KERNELDIR := kernel
 ARCHDIR := arch/$(HOSTARCH)
 DRIVERDIR := drivers
 LIBDIR := lib
+INCLUDEDIRS := include $(ARCHDIR)/include
 
 include $(ARCHDIR)/config.mk
 include $(LIBDIR)/config.mk
@@ -41,7 +42,8 @@ KERNEL_OBJS := $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*.c))
 KERNEL_OBJS += $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*/*.c))
 KERNEL_OBJS += $(KERNEL_ARCH_OBJS)
 
-INCLUDE := -I./include -I./$(ARCHDIR)/include
+_INCLUDE := $(shell realpath $(INCLUDEDIRS))
+INCLUDE := $(patsubst %,-I%,$(_INCLUDE))
 
 .SUFFIXES: .o .c .S
 
