@@ -85,7 +85,8 @@ iso: $(KERNEL_NAME)
 
 .PHONY: ctags
 ctags:
-	$(CTAGS) -R $(KERNELDIR) $(ARCHDIR) $(LIBDIR) $(DRIVERDIR) include
+	$(CTAGS) -R $(KERNELDIR) $(ARCHDIR) $(LIBDIR) $(DRIVERDIR) \
+		$(INCLUDEDIRS)
 
 .PHONY: clean
 clean: clean-all
