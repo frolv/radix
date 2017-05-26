@@ -136,12 +136,12 @@ static int __map_page(addr_t virt, addr_t phys, unsigned long flags)
 	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
 		/* page is already mapped */
 		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
-			return 0;
+			return EEXIST;
 	} else {
 		/* allocate a new page table */
 		new = alloc_page(PA_PAGETABLE);
 		if (IS_ERR(new))
-			panic("Out of memory\n");
+			return ERR_VAL(new);
 
 		pgdir[pdi] = make_pde(page_to_phys(new)
 		                      | PAGE_RW | PAGE_PRESENT);
@@ -179,6 +179,7 @@ int i386_map_pages(addr_t virt, addr_t phys, int prot, int cp, size_t n)
 		if ((err = __map_page(virt, phys, flags)) != 0)
 			return err;
 	}
+
 	return 0;
 }
 
