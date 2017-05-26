@@ -191,15 +191,16 @@ static struct page *__alloc_pages(struct buddy *zone,
 	zone->alloc_pages += pow2(ord);
 
 	if (!(flags & __PA_NO_MAP) && !(p->status & PM_PAGE_MAPPED)) {
+		/* TODO: fix this check to properly detect kernel/user pages */
 		if (zone == &zone_reg) {
 			virt = page_to_phys(p) + KERNEL_VIRTUAL_BASE;
+			map_pages_kernel(virt, page_to_phys(p), PROT_WRITE,
+			                 PAGE_CP_DEFAULT, pow2(ord));
 		} else {
 			/* TODO: find free virtual address range, map pages */
 			virt = 0;
 		}
 
-		map_pages(virt, page_to_phys(p), PROT_WRITE,
-		          PAGE_CP_DEFAULT, pow2(ord));
 		p->mem = (void *)virt;
 		p->status |= PM_PAGE_MAPPED;
 	}
@@ -418,9 +419,9 @@ static void check_space(size_t pfn, size_t pages)
 		check_table_space(req_len);
 
 		for (; off < req_len; off += PAGE_SIZE) {
-			map_page(PAGE_MAP_BASE + off,
-			         __PAGE_MAP_PHYS_BASE + off,
-			         PROT_WRITE, PAGE_CP_DEFAULT);
+			map_page_kernel(PAGE_MAP_BASE + off,
+			                __PAGE_MAP_PHYS_BASE + off,
+			                PROT_WRITE, PAGE_CP_DEFAULT);
 			++npages;
 			page_map_end += PAGE_SIZE;
 		}
