@@ -122,6 +122,22 @@ higher_half_start:
 	# Find out information about the CPU.
 	call read_cpu_info
 
+	# Check if the CPU supports global pages and enable them if so.
+	# Note: this constant is CPUID_PGE defined in cpu.h.
+	pushl $0x00000000
+	pushl $0x00002000
+	call cpu_supports
+	addl $8, %esp
+
+	test %eax, %eax
+	jz no_pge
+
+	# Enable global pages in CR4.
+	movl %cr4, %eax
+	orl $0x00000080, %eax
+	movl %eax, %cr4
+
+no_pge:
 	# Intitialize the TTY.
 	call tty_init
 
