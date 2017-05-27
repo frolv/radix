@@ -18,7 +18,7 @@
 
 #include <radix/asm/io.h>
 #include <radix/irq.h>
-#include <radix/sys.h>
+#include <radix/regs.h>
 
 /* this will be converted to a kernel module eventually */
 

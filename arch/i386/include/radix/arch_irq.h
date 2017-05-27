@@ -36,7 +36,7 @@
 
 #define __INTERRUPT_BIT (1 << 9)
 
-#include <radix/sys.h>
+#include <radix/regs.h>
 
 void idt_init(void);
 int in_interrupt(void);

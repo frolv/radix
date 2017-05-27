@@ -19,7 +19,7 @@
 #include <radix/asm/io.h>
 #include <radix/irq.h>
 #include <radix/sched.h>
-#include <radix/sys.h>
+#include <radix/regs.h>
 #include <radix/types.h>
 
 #include <rlibc/string.h>

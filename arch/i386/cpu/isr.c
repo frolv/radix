@@ -20,8 +20,8 @@
 #include <radix/error.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
+#include <radix/regs.h>
 #include <radix/sched.h>
-#include <radix/sys.h>
 
 #include "apic.h"
 #include "idt.h"

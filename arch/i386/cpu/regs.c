@@ -19,7 +19,7 @@
 #include <radix/cpu.h>
 #include <radix/kthread.h>
 #include <radix/mm_types.h>
-#include <radix/sys.h>
+#include <radix/regs.h>
 
 #define KERNEL_CS 0x08
 #define KERNEL_DS 0x10

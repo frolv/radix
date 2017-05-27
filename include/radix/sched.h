@@ -20,7 +20,7 @@
 #define RADIX_SCHED_H
 
 #include <radix/list.h>
-#include <radix/sys.h>
+#include <radix/regs.h>
 #include <radix/types.h>
 
 /*
