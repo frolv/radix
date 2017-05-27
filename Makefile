@@ -47,7 +47,9 @@ INCLUDE := $(patsubst %,-I%,$(_INCLUDE))
 
 .SUFFIXES: .o .c .S
 
-all: libk drivers $(KERNEL_NAME)
+all: kernel
+
+kernel: libk drivers $(KERNEL_NAME)
 
 .PHONY: $(KERNEL_NAME)
 $(KERNEL_NAME): $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
@@ -77,7 +79,7 @@ ISONAME := $(PROJECT_NAME)-$(HOSTARCH).iso
 # Build kernel ISO image using GRUB.
 #
 .PHONY: iso
-iso: $(KERNEL_NAME)
+iso: kernel
 	mkdir -p $(ISODIR)/boot/grub
 	cp $(KERNEL_NAME) $(ISODIR)/boot
 	util/mkgrubconfig > $(ISODIR)/boot/grub/grub.cfg
