@@ -183,6 +183,34 @@ static __always_inline unsigned long cpuid_supported(void)
 	             : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
 	             : "0"(eax))
 
+static __always_inline void cpu_modify_cr0(unsigned long clear,
+                                           unsigned long set)
+{
+	asm volatile("movl %%cr0, %%eax;"
+	             "movl %0, %%ecx;"
+	             "notl %%ecx;"
+	             "andl %%ecx, %%eax;"
+	             "orl %1, %%eax;"
+	             "movl %%eax, %%cr0;"
+	             :
+	             : "g"(clear), "g"(set)
+	             : "%eax", "%ecx");
+}
+
+static __always_inline void cpu_modify_cr4(unsigned long clear,
+                                           unsigned long set)
+{
+	asm volatile("movl %%cr4, %%eax;"
+	             "movl %0, %%ecx;"
+	             "notl %%ecx;"
+	             "andl %%ecx, %%eax;"
+	             "orl %1, %%eax;"
+	             "movl %%eax, %%cr4;"
+	             :
+	             : "g"(clear), "g"(set)
+	             : "%eax", "%ecx");
+}
+
 unsigned long cpu_cache_line_size(void);
 
 #include <radix/types.h>
