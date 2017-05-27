@@ -63,7 +63,7 @@ _start:
 	# Mark the address as present and writable.
 	# TODO: this maps .text and .rodata as writable
 	movl %esi, %edx
-	orl $0x00000003, %edx
+	orl $0x00000103, %edx
 	movl %edx, (%edi)
 
 	# Advance to the next page.
@@ -78,20 +78,20 @@ _start:
 	# enabling paging does not change the address of the
 	# next instruction, which continues to be physical.
 	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %ecx
-	orl $0x00000003, %ecx
+	orl $0x00000103, %ecx
 	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE
 
 	# Map the page table to page directory entry 0x300
 	# (virtual addresses 0xC0000000 to 0xC03FFFFF),
 	# mapping the kernel in the higher half.
 	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %ecx
-	orl $0x00000003, %ecx
+	orl $0x00000103, %ecx
 	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE + 0x300 * 4
 
 	# Map the final entry in the page directory to
 	# the page directory itself.
 	movl $(pgdir - KERNEL_VIRTUAL_BASE), %ecx
-	orl $0x00000003, %ecx
+	orl $0x00000103, %ecx
 	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE + 0x3FF * 4
 
 	# Load the physical address of the page directory into cr3.
@@ -119,11 +119,11 @@ higher_half_start:
 	# Call global constructors.
 	call _init
 
-	# Intitialize the TTY.
-	call tty_init
-
 	# Find out information about the CPU.
 	call read_cpu_info
+
+	# Intitialize the TTY.
+	call tty_init
 
 # Load the global descriptor table.
 load_gdt:

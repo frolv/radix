@@ -392,7 +392,7 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 static void check_table_space(size_t req_len)
 {
 	size_t off;
-	const unsigned int flags = PAGE_RW | PAGE_PRESENT;
+	const unsigned int flags = PAGE_GLOBAL | PAGE_RW | PAGE_PRESENT;
 
 	off = ntables * PAGE_SIZE * PTRS_PER_PGTBL;
 	if (req_len > off) {

@@ -144,7 +144,7 @@ static int __map_page(addr_t virt, addr_t phys, unsigned long flags)
 			return ERR_VAL(new);
 
 		pgdir[pdi] = make_pde(page_to_phys(new)
-		                      | PAGE_RW | PAGE_PRESENT);
+		                      | PAGE_GLOBAL | PAGE_RW | PAGE_PRESENT);
 		tlb_flush_page_lazy((addr_t)pgtbl);
 		memset(pgtbl, 0, PGTBL_SIZE);
 	}
