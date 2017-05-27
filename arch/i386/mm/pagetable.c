@@ -145,9 +145,11 @@ static int __map_page(addr_t virt, addr_t phys, unsigned long flags)
 
 		pgdir[pdi] = make_pde(page_to_phys(new)
 		                      | PAGE_RW | PAGE_PRESENT);
+		tlb_flush_page_lazy((addr_t)pgtbl);
 		memset(pgtbl, 0, PGTBL_SIZE);
 	}
 	pgtbl[pti] = make_pte(phys | flags | PAGE_PRESENT);
+	tlb_flush_page_lazy(virt);
 
 	return 0;
 }
@@ -241,6 +243,7 @@ static int __unmap(addr_t virt, int freetable)
 		return EINVAL;
 
 	pgtbl[pti] = make_pte(0);
+	tlb_flush_page_lazy(virt);
 
 	if (freetable) {
 		/* check if any other pages exist in the table */
@@ -252,6 +255,7 @@ static int __unmap(addr_t virt, int freetable)
 			phys = PDE(pgdir[pdi]) & PAGE_MASK;
 			free_pages(phys_to_page(phys));
 			pgdir[pdi] = make_pde(0);
+			tlb_flush_page_lazy((addr_t)pgtbl);
 		}
 	}
 
@@ -261,7 +265,7 @@ static int __unmap(addr_t virt, int freetable)
 /*
  * i386_set_cache_policy:
  * Set the CPU caching policy for a single virtual page.
- * TODO: flush TLB/caches
+ * TODO: flush caches
  */
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 {
@@ -292,6 +296,7 @@ int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 		return err;
 
 	pgtbl[pti] = make_pte(pte);
+	tlb_flush_page_lazy(virt);
 
 	return 0;
 }
