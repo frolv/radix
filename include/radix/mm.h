@@ -154,4 +154,23 @@ enum cache_policy {
 #define mark_page_wc(virt)      set_cache_policy((virt), PAGE_CP_WRITE_COMBINING)
 #define mark_page_wp(virt)      set_cache_policy((virt), PAGE_CP_WRITE_PROTECTED)
 
+/*
+ * TLB control functions.
+ */
+
+#define tlb_flush_page(addr, sync)      __arch_tlb_flush_page((addr), (sync))
+
+/*
+ * The lazy versions of the tlb_* functions use the approach of lazy TLB
+ * invalidation. TLB entries are only invalidated immediately on the running
+ * processor; if other processors attempt to access an invalid page in the
+ * future, they will page fault. The page fault handler will then detect that
+ * the fault occurred because of an invalid TLB entry, and remove it.
+ * This has the advantage of avoiding the overhead of multiple inter-processor
+ * interrupts when an entry is invalidated.
+ * These functions should be preferred over their non-lazy counterparts,
+ * when possible.
+ */
+#define tlb_flush_page_lazy(addr)       __arch_tlb_flush_page_lazy((addr))
+
 #endif /* RADIX_MM_H */
