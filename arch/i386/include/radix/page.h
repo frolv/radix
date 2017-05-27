@@ -78,6 +78,8 @@ static __always_inline pte_t make_pte(pteval_t val)
 #define PGDIR_BASE      0xFFC00000UL
 #define PGDIR_VADDR     0xFFFFF000UL
 
+#include <radix/types.h>
+
 enum cache_policy;
 
 /*
