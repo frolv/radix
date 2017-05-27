@@ -96,6 +96,7 @@ int i386_unmap_page(addr_t virt);
 int i386_unmap_page_clean(addr_t virt);
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy);
 
+void i386_tlb_flush_all(int sync);
 void i386_tlb_flush_nonglobal(int sync);
 void i386_tlb_flush_nonglobal_lazy(void);
 void i386_tlb_flush_page(addr_t addr, int sync);
@@ -118,6 +119,7 @@ static __always_inline addr_t __arch_pa(addr_t v)
 #define __arch_unmap_page_clean i386_unmap_page_clean
 #define __arch_set_cache_policy i386_set_cache_policy
 
+#define __arch_tlb_flush_all            i386_tlb_flush_all
 #define __arch_tlb_flush_nonglobal      i386_tlb_flush_nonglobal
 #define __arch_tlb_flush_nonglobal_lazy i386_tlb_flush_nonglobal_lazy
 #define __arch_tlb_flush_page           i386_tlb_flush_page

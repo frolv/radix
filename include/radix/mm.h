@@ -115,8 +115,8 @@ static __always_inline struct page *phys_to_page(addr_t phys)
  * in arch/$ARCH/include/radix/page.h.
  */
 
-#define set_pde(virt, pde)              __arch_set_pde((virt), (pde))
-#define addr_mapped(virt)               __arch_addr_mapped((virt))
+#define set_pde(virt, pde)              __arch_set_pde(virt, pde)
+#define addr_mapped(virt)               __arch_addr_mapped(virt)
 
 #define PROT_READ  0
 #define PROT_WRITE 1
@@ -133,33 +133,34 @@ enum cache_policy {
 };
 
 #define map_page_kernel(virt, phys, prot, cp) \
-	__arch_map_page_kernel((virt), (phys), (prot), (cp))
+	__arch_map_page_kernel(virt, phys, prot, cp)
 #define map_page_user(virt, phys, prot, cp) \
-	__arch_map_page_user((virt), (phys), (prot), (cp))
+	__arch_map_page_user(virt, phys, prot, cp)
 
 #define map_pages_kernel(virt, phys, prot, cp, n) \
-	__arch_map_pages((virt), (phys), (prot), (cp), 0, (n))
+	__arch_map_pages(virt, phys, prot, cp, 0, n)
 #define map_pages_user(virt, phys, prot, cp, n) \
-	__arch_map_pages((virt), (phys), (prot), (cp), 1, (n))
+	__arch_map_pages(virt, phys, prot, cp, 1, n)
 
-#define unmap_page(virt)                __arch_unmap_page((virt))
-#define unmap_page_clean(virt)          __arch_unmap_page_clean((virt))
+#define unmap_page(virt)                __arch_unmap_page(virt)
+#define unmap_page_clean(virt)          __arch_unmap_page_clean(virt)
 
-#define set_cache_policy(virt, type)    __arch_set_cache_policy((virt), (type))
+#define set_cache_policy(virt, type)    __arch_set_cache_policy(virt, type)
 
-#define mark_page_wb(virt)      set_cache_policy((virt), PAGE_CP_WRITE_BACK)
-#define mark_page_wt(virt)      set_cache_policy((virt), PAGE_CP_WRITE_THROUGH)
-#define mark_page_ucminus(virt) set_cache_policy((virt), PAGE_CP_UNCACHED)
-#define mark_page_uc(virt)      set_cache_policy((virt), PAGE_CP_UNCACHEABLE)
-#define mark_page_wc(virt)      set_cache_policy((virt), PAGE_CP_WRITE_COMBINING)
-#define mark_page_wp(virt)      set_cache_policy((virt), PAGE_CP_WRITE_PROTECTED)
+#define mark_page_wb(virt)      set_cache_policy(virt, PAGE_CP_WRITE_BACK)
+#define mark_page_wt(virt)      set_cache_policy(virt, PAGE_CP_WRITE_THROUGH)
+#define mark_page_ucminus(virt) set_cache_policy(virt, PAGE_CP_UNCACHED)
+#define mark_page_uc(virt)      set_cache_policy(virt, PAGE_CP_UNCACHEABLE)
+#define mark_page_wc(virt)      set_cache_policy(virt, PAGE_CP_WRITE_COMBINING)
+#define mark_page_wp(virt)      set_cache_policy(virt, PAGE_CP_WRITE_PROTECTED)
 
 /*
  * TLB control functions.
  */
 
-#define tlb_flush_nonglobal(sync)       __arch_tlb_flush_nonglobal((sync))
-#define tlb_flush_page(addr, sync)      __arch_tlb_flush_page((addr), (sync))
+#define tlb_flush_all(sync)             __arch_tlb_flush_all(sync)
+#define tlb_flush_nonglobal(sync)       __arch_tlb_flush_nonglobal(sync)
+#define tlb_flush_page(addr, sync)      __arch_tlb_flush_page(addr, sync)
 
 /*
  * The lazy versions of the tlb_* functions use the approach of lazy TLB
@@ -171,8 +172,12 @@ enum cache_policy {
  * interrupts when an entry is invalidated.
  * These functions should be preferred over their non-lazy counterparts,
  * when possible.
+ *
+ * `tlb_flush_all` does not have a lazy version. In the case that a call to
+ * it is warranted, it is probably essential that all processors' TLBs get
+ * flushed immediately.
  */
 #define tlb_flush_nonglobal_lazy()      __arch_tlb_flush_nonglobal_lazy()
-#define tlb_flush_page_lazy(addr)       __arch_tlb_flush_page_lazy((addr))
+#define tlb_flush_page_lazy(addr)       __arch_tlb_flush_page_lazy(addr)
 
 #endif /* RADIX_MM_H */

@@ -16,18 +16,42 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/compiler.h>
+#include <radix/cpu.h>
 #include <radix/mm.h>
 
-static inline void invlpg(addr_t addr)
+static __always_inline void invlpg(addr_t addr)
 {
 	asm volatile("invlpg (%0)" ::"r"(addr) :"memory");
 }
 
-static inline void __tlb_flush_nonglobal(void)
+static __always_inline void __tlb_flush_nonglobal(void)
 {
 	asm volatile("movl %%cr3, %%eax;"
 	             "movl %%eax, %%cr3"
 	             :::"%eax");
+}
+
+static __always_inline void __tlb_flush_all(void)
+{
+	if (cpu_supports(CPUID_PGE)) {
+		cpu_modify_cr4(CR4_PGE, 0);
+		cpu_modify_cr4(0, CR4_PGE);
+	} else {
+		/* no global pages, so flush all == flush nonglobal */
+		__tlb_flush_nonglobal();
+	}
+}
+
+/*
+ * i386_tlb_flush_all:
+ * Flush all entries in all CPUs' TLBs.
+ * This function should be called only when absolutely necessary.
+ */
+void i386_tlb_flush_all(int sync)
+{
+	__tlb_flush_all();
+	(void)sync;
 }
 
 /*
