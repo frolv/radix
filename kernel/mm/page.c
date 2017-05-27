@@ -55,7 +55,7 @@ void buddy_init(struct multiboot_info *mbt)
 	mbt->mmap_addr += KERNEL_VIRTUAL_BASE;
 
 	next = 0;
-	while (next_phys_region(mbt, &base, &len)) {
+	while (next_phys_region(mbt, &base, &len) == 0) {
 		if (base > MEM_LIMIT - PAGE_SIZE)
 			base = MEM_LIMIT - PAGE_SIZE;
 
@@ -315,7 +315,7 @@ static int next_phys_region(struct multiboot_info *mbt,
 	}
 
 	if (!IN_RANGE(mmap, mbt))
-		return 0;
+		return 1;
 
 	b = make64(mmap->base_addr_low, mmap->base_addr_high);
 	l = make64(mmap->length_low, mmap->length_high);
@@ -331,7 +331,8 @@ static int next_phys_region(struct multiboot_info *mbt,
 	*base = b;
 	*len = l;
 	totalmem += l;
-	return 1;
+
+	return 0;
 }
 
 /*
