@@ -158,6 +158,7 @@ enum cache_policy {
  * TLB control functions.
  */
 
+#define tlb_flush_nonglobal(sync)       __arch_tlb_flush_nonglobal((sync))
 #define tlb_flush_page(addr, sync)      __arch_tlb_flush_page((addr), (sync))
 
 /*
@@ -171,6 +172,7 @@ enum cache_policy {
  * These functions should be preferred over their non-lazy counterparts,
  * when possible.
  */
+#define tlb_flush_nonglobal_lazy()      __arch_tlb_flush_nonglobal_lazy()
 #define tlb_flush_page_lazy(addr)       __arch_tlb_flush_page_lazy((addr))
 
 #endif /* RADIX_MM_H */
