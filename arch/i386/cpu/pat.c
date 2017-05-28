@@ -18,6 +18,8 @@
 
 #include <radix/asm/msr.h>
 #include <radix/cpu.h>
+#include <radix/irq.h>
+#include <radix/mm.h>
 
 enum {
 	PAT_0,
@@ -51,6 +53,15 @@ int pat_init(void)
 	if (!cpu_supports(CPUID_PAT))
 		return 1;
 
+	irq_disable();
+
+	cpu_modify_cr0(CR0_NW, CR0_CD);
+	cache_flush_all();
+	if (cpu_supports(CPUID_PGE))
+		cpu_modify_cr4(CR4_PGE, 0);
+	else
+		tlb_flush_nonglobal_lazy();
+
 	/*
 	 * Set the first four PAT entries to be compatible with
 	 * the PWT/PCD page bits for legacy caching control.
@@ -70,6 +81,14 @@ int pat_init(void)
 		| pat_set_hi(PAT_7, PAT_UC);
 
 	wrmsr(IA32_PAT, lo, hi);
+
+	cache_flush_all();
+	tlb_flush_nonglobal_lazy();
+	cpu_modify_cr0(CR0_NW | CR0_CD, 0);
+	if (cpu_supports(CPUID_PGE))
+		cpu_modify_cr4(0, CR4_PGE);
+
+	irq_enable();
 
 	return 0;
 }
