@@ -160,6 +160,7 @@ enum cache_policy {
 
 #define tlb_flush_all(sync)             __arch_tlb_flush_all(sync)
 #define tlb_flush_nonglobal(sync)       __arch_tlb_flush_nonglobal(sync)
+#define tlb_flush_range(lo, hi, sync)   __arch_tlb_flush_range(lo, hi, sync)
 #define tlb_flush_page(addr, sync)      __arch_tlb_flush_page(addr, sync)
 
 /*
@@ -178,6 +179,7 @@ enum cache_policy {
  * flushed immediately.
  */
 #define tlb_flush_nonglobal_lazy()      __arch_tlb_flush_nonglobal_lazy()
+#define tlb_flush_range_lazy(lo, hi)    __arch_tlb_flush_range_lazy(lo, hi)
 #define tlb_flush_page_lazy(addr)       __arch_tlb_flush_page_lazy(addr)
 
 #endif /* RADIX_MM_H */

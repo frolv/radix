@@ -18,6 +18,7 @@
 
 #include <radix/compiler.h>
 #include <radix/cpu.h>
+#include <radix/kernel.h>
 #include <radix/mm.h>
 
 static __always_inline void invlpg(addr_t addr)
@@ -43,6 +44,15 @@ static __always_inline void __tlb_flush_all(void)
 	}
 }
 
+static void __tlb_flush_range(addr_t start, addr_t end)
+{
+	start = ALIGN(start, PAGE_SIZE);
+	end = ALIGN(end, PAGE_SIZE);
+
+	for (; start < end; start += PAGE_SIZE)
+		invlpg(start);
+}
+
 /*
  * i386_tlb_flush_all:
  * Flush all entries in all CPUs' TLBs.
@@ -65,6 +75,16 @@ void i386_tlb_flush_nonglobal(int sync)
 }
 
 /*
+ * i386_tlb_flush_range:
+ * Flush all pages between `start` and `end` from all processors' TLBs.
+ */
+void i386_tlb_flush_range(addr_t start, addr_t end, int sync)
+{
+	__tlb_flush_range(start, end);
+	(void)sync;
+}
+
+/*
  * i386_tlb_flush_page:
  * Flush a single page from the all processors' TLBs.
  */
@@ -81,6 +101,15 @@ void i386_tlb_flush_page(addr_t addr, int sync)
 void i386_tlb_flush_nonglobal_lazy(void)
 {
 	__tlb_flush_nonglobal();
+}
+
+/*
+ * i386_tlb_flush_range_lazy:
+ * Flush all pages between `start` and `end` from the current processor's TLB.
+ */
+void i386_tlb_flush_range_lazy(addr_t start, addr_t end)
+{
+	__tlb_flush_range(start, end);
 }
 
 /*
