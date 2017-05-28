@@ -182,4 +182,9 @@ enum cache_policy {
 #define tlb_flush_range_lazy(lo, hi)    __arch_tlb_flush_range_lazy(lo, hi)
 #define tlb_flush_page_lazy(addr)       __arch_tlb_flush_page_lazy(addr)
 
+/*
+ * Cache control functions.
+ */
+#define cache_flush_all()               __arch_cache_flush_all()
+
 #endif /* RADIX_MM_H */
