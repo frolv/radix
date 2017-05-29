@@ -40,7 +40,7 @@
 
 #define MEM_LIMIT __ARCH_MEM_LIMIT
 
-extern uint64_t totalmem;
+uint64_t totalmem(void);
 
 void buddy_init(struct multiboot_info *mbt);
 

@@ -34,7 +34,7 @@ static struct buddy zone_reg;
 static struct buddy zone_usr;
 
 /* total amount of usable memory in the system */
-uint64_t totalmem = 0;
+static uint64_t memsize = 0;
 
 static uint64_t zone_reg_end = 0;
 
@@ -42,6 +42,11 @@ static int next_phys_region(struct multiboot_info *mbt,
                             uint64_t *base, uint64_t *len);
 static void init_region(addr_t base, uint64_t len, unsigned int flags);
 static void buddy_populate(void);
+
+uint64_t totalmem(void)
+{
+	return memsize;
+}
 
 void buddy_init(struct multiboot_info *mbt)
 {
@@ -73,16 +78,16 @@ void buddy_init(struct multiboot_info *mbt)
 		next = base + len;
 	}
 	/* map and invalidate all remaining memory */
-	init_region(next, ALIGN(totalmem, PAGE_SIZE) - next, PM_PAGE_INVALID);
+	init_region(next, ALIGN(memsize, PAGE_SIZE) - next, PM_PAGE_INVALID);
 
 	/*
 	 * The regular zone is the memory that is set aside for kernel usage.
 	 * It extends from the end of the DMA zone up to 1/4 of total memory,
 	 * or a maximum of 1 GiB.
 	 */
-	zone_reg_end = totalmem / 4;
+	zone_reg_end = memsize / 4;
 	if (zone_reg_end < MIB(20))
-		zone_reg_end = totalmem > MIB(16) ? MIB(20) : 0;
+		zone_reg_end = memsize > MIB(16) ? MIB(20) : 0;
 	else if (zone_reg_end > RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE)
 		zone_reg_end = RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE;
 
@@ -310,7 +315,7 @@ static int next_phys_region(struct multiboot_info *mbt,
 
 	/* only consider available RAM */
 	while (mmap->type != 1 && IN_RANGE(mmap, mbt)) {
-		totalmem += make64(mmap->length_low, mmap->length_high);
+		memsize += make64(mmap->length_low, mmap->length_high);
 		mmap = NEXT_MAP(mmap);
 	}
 
@@ -330,7 +335,7 @@ static int next_phys_region(struct multiboot_info *mbt,
 
 	*base = b;
 	*len = l;
-	totalmem += l;
+	memsize += l;
 
 	return 0;
 }
@@ -447,7 +452,7 @@ static void buddy_populate(void)
 	/* mark the pages in the page_map as reserved */
 	pfn = zone_init(pfn, pfn + npages, NULL, kflags);
 	pfn = zone_init(pfn, zone_reg_end / PAGE_SIZE, &zone_reg, 0);
-	pfn = zone_init(pfn, totalmem / PAGE_SIZE, &zone_usr, PM_PAGE_ZONE_USR);
+	pfn = zone_init(pfn, memsize / PAGE_SIZE, &zone_usr, PM_PAGE_ZONE_USR);
 }
 
 /*
