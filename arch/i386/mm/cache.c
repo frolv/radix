@@ -120,14 +120,3 @@ void i386_tlb_flush_page_lazy(addr_t addr)
 {
 	invlpg(addr);
 }
-
-static __always_inline void wbinvd(void)
-{
-	asm volatile("wbinvd");
-}
-
-void i386_cache_flush_all(void)
-{
-	/* TODO: this function properly */
-	wbinvd();
-}

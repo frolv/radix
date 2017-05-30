@@ -186,5 +186,6 @@ enum cache_policy {
  * Cache control functions.
  */
 #define cache_flush_all()               __arch_cache_flush_all()
+#define cache_flush_page(addr)          __arch_cache_flush_page(addr)
 
 #endif /* RADIX_MM_H */
