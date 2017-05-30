@@ -56,7 +56,6 @@ int pat_init(void)
 	irq_disable();
 
 	cpu_modify_cr0(CR0_NW, CR0_CD);
-	cache_flush_all();
 	if (cpu_supports(CPUID_PGE))
 		cpu_modify_cr4(CR4_PGE, 0);
 	else
@@ -82,7 +81,6 @@ int pat_init(void)
 
 	wrmsr(IA32_PAT, lo, hi);
 
-	cache_flush_all();
 	tlb_flush_nonglobal_lazy();
 	cpu_modify_cr0(CR0_NW | CR0_CD, 0);
 	if (cpu_supports(CPUID_PGE))
