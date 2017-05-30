@@ -104,8 +104,6 @@ void i386_tlb_flush_range_lazy(addr_t start, addr_t end);
 void i386_tlb_flush_page(addr_t addr, int sync);
 void i386_tlb_flush_page_lazy(addr_t addr);
 
-void i386_cache_flush_all(void);
-
 static __always_inline addr_t __arch_pa(addr_t v)
 {
 	if (v < __ARCH_KERNEL_VIRT_BASE || v >= __ARCH_RESERVED_VIRT_BASE)
@@ -131,6 +129,8 @@ static __always_inline addr_t __arch_pa(addr_t v)
 #define __arch_tlb_flush_page           i386_tlb_flush_page
 #define __arch_tlb_flush_page_lazy      i386_tlb_flush_page_lazy
 
-#define __arch_cache_flush_all          i386_cache_flush_all
+/* "caches aren't brain-dead on the intel" - some clever guy */
+#define __arch_cache_flush_all()        do { } while (0)
+#define __arch_cache_flush_page(addr)   do { } while (0)
 
 #endif /* ARCH_I386_RADIX_PAGE_H */
