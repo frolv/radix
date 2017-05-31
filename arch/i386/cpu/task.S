@@ -95,7 +95,7 @@ load_registers:
 	movl 48(%eax), %ebx
 	movl 52(%eax), %edx
 
-	mov 64(%eax), %gs
+	# skip gs
 	mov 68(%eax), %fs
 	mov 72(%eax), %es
 	mov 76(%eax), %ds
