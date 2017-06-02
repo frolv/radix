@@ -155,9 +155,9 @@ register_pop:
 	popl %ecx
 	popl %eax
 
-	# skip over gs; it's used for per-cpu storage
+	pop %gs
+	# skip over fs; it's used for per-cpu storage
 	addl $4, %esp
-	pop %fs
 	pop %es
 	pop %ds
 
