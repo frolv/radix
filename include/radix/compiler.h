@@ -28,6 +28,7 @@
 #define __deprecated __attribute__((deprecated))
 
 #define __aligned(x) __attribute__((aligned(x)))
+#define __section(x) __attribute__((section(x)))
 
 #define offsetof(type, member) __builtin_offsetof(type, member)
 
