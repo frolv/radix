@@ -53,11 +53,8 @@ void buddy_init(struct multiboot_info *mbt)
 	uint64_t base, len, next;
 	size_t i;
 
-	/*
-	 * mmap_addr stores the physical address of the memory map.
-	 * Make it virtual.
-	 */
-	mbt->mmap_addr += KERNEL_VIRTUAL_BASE;
+	/* mmap_addr stores the physical address of the memory map */
+	mbt->mmap_addr = phys_to_virt(mbt->mmap_addr);
 
 	next = 0;
 	while (next_phys_region(mbt, &base, &len) == 0) {
@@ -198,7 +195,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 	if (!(flags & __PA_NO_MAP) && !(p->status & PM_PAGE_MAPPED)) {
 		/* TODO: fix this check to properly detect kernel/user pages */
 		if (zone == &zone_reg) {
-			virt = page_to_phys(p) + KERNEL_VIRTUAL_BASE;
+			virt = phys_to_virt(page_to_phys(p));
 			map_pages_kernel(virt, page_to_phys(p), PROT_WRITE,
 			                 PAGE_CP_DEFAULT, pow2(ord));
 		} else {

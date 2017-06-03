@@ -35,7 +35,7 @@
  * Page map starts at 16 MiB in physical memory, directly after the DMA zone.
  */
 #define __PAGE_MAP_PHYS_BASE    0x01000000
-#define PAGE_MAP_BASE           (KERNEL_VIRTUAL_BASE + __PAGE_MAP_PHYS_BASE)
+#define PAGE_MAP_BASE           phys_to_virt(__PAGE_MAP_PHYS_BASE)
 
 
 #define MEM_LIMIT __ARCH_MEM_LIMIT

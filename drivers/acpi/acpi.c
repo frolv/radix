@@ -31,9 +31,9 @@
 #define BIOS_REGION_PHYS_START  0x000E0000
 #define BIOS_REGION_PHYS_END    0x00100000
 
-#define EBDA_BASE_LOCATION      (EBDA_BASE_LOCATION_PHYS + KERNEL_VIRTUAL_BASE)
-#define BIOS_REGION_START       (BIOS_REGION_PHYS_START + KERNEL_VIRTUAL_BASE)
-#define BIOS_REGION_END         (BIOS_REGION_PHYS_END + KERNEL_VIRTUAL_BASE)
+#define EBDA_BASE_LOCATION      phys_to_virt(EBDA_BASE_LOCATION_PHYS)
+#define BIOS_REGION_START       phys_to_virt(BIOS_REGION_PHYS_START)
+#define BIOS_REGION_END         phys_to_virt(BIOS_REGION_PHYS_END)
 
 struct rsdt {
 	struct acpi_sdt_header head;
@@ -60,8 +60,7 @@ void acpi_init(void)
 	struct acpi_rsdp_2 *rsdp_2;
 	addr_t ebda_base;
 
-	ebda_base = (*(uint16_t *)EBDA_BASE_LOCATION) << 4;
-	ebda_base += KERNEL_VIRTUAL_BASE;
+	ebda_base = phys_to_virt((*(uint16_t *)EBDA_BASE_LOCATION) << 4);
 
 	rsdp = acpi_find_rsdp(ebda_base, ebda_base + KIB(1));
 	if (!rsdp)
