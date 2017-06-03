@@ -16,14 +16,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef RADIX_PERCPU_H
+#define RADIX_PERCPU_H
+
 /*
  * Heavily inspired by Linux
  * include/linux/percpu-defs.h
  */
 
+#include <radix/asm/percpu.h>
 #include <radix/compiler.h>
 
 #define PER_CPU_SECTION __ARCH_PER_CPU_SECTION
 
 #define DEFINE_PER_CPU(type, name) \
 	__section(PER_CPU_SECTION) typeof(type) name
+
+#endif /* RADIX_PERCPU_H */

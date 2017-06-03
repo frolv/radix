@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef ARCH_I386_RADIX_PERCPU_H
+#define ARCH_I386_RADIX_PERCPU_H
+
 #define __ARCH_PER_CPU_SECTION ".percpu_data"
 
-#include <radix/percpu.h>
+#endif /* ARCH_I386_RADIX_PERCPU_H */
