@@ -60,10 +60,18 @@ _start:
 	movl $0x400, %ecx
 
 1:
-	# Mark the address as present and writable.
-	# TODO: this maps .text and .rodata as writable
+	# Mark the address as global, present and writeable.
 	movl %esi, %edx
 	orl $0x00000103, %edx
+
+	# Clear writeable bit for read-only sections.
+	cmpl $(__text_start - KERNEL_VIRTUAL_BASE), %esi
+	jl do_move
+	cmpl $(__rodata_end - KERNEL_VIRTUAL_BASE), %esi
+	jge do_move
+	andl $0xFFFFFFFD, %edx
+
+do_move:
 	movl %edx, (%edi)
 
 	# Advance to the next page.
