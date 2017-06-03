@@ -39,7 +39,7 @@ SECTIONS {
 		__per_cpu_start = .;
 		*(.percpu_data)
 		__per_cpu_end = .;
-	} :readonly
+	} :data
 
 	_kernel_end = .;
 }
