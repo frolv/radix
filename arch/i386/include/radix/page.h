@@ -112,6 +112,8 @@ static __always_inline addr_t __arch_pa(addr_t v)
 		return v - __ARCH_KERNEL_VIRT_BASE;
 }
 
+#define __arch_va(addr) ((addr) + __ARCH_KERNEL_VIRT_BASE)
+
 #define __arch_set_pde          i386_set_pde
 #define __arch_addr_mapped      i386_addr_mapped
 #define __arch_map_page_kernel  i386_map_page_kernel

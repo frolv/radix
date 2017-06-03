@@ -82,11 +82,12 @@ static __always_inline struct page *alloc_page(unsigned int flags)
 	return alloc_pages(flags, 0);
 }
 
-#define phys_addr(x) __arch_pa((addr_t)(x))
+#define virt_to_phys(x) __arch_pa((addr_t)(x))
+#define phys_to_virt(x) __arch_va((addr_t)(x))
 
 extern struct page *page_map;
 
-#define PFN(x) (phys_addr(x) >> PAGE_SHIFT)
+#define PFN(x) (virt_to_phys(x) >> PAGE_SHIFT)
 
 static __always_inline struct page *virt_to_page(void *ptr)
 {

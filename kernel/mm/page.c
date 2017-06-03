@@ -405,7 +405,7 @@ static void check_table_space(size_t req_len)
 		for (; off < req_len; off += PAGE_SIZE * PTRS_PER_PGTBL) {
 			memset((void *)curr_pgtbl, 0, PGTBL_SIZE);
 			set_pde(PAGE_MAP_BASE + off,
-			        make_pde(phys_addr(curr_pgtbl) | flags));
+			        make_pde(virt_to_phys(curr_pgtbl) | flags));
 			curr_pgtbl -= PGTBL_SIZE;
 			++ntables;
 		}
