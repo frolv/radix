@@ -20,6 +20,7 @@
 #include <acpi/rsdp.h>
 #include <acpi/tables/sdt.h>
 
+#include <radix/bootmsg.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
 

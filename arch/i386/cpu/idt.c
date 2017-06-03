@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/bootmsg.h>
 #include <radix/irq.h>
-#include <radix/kernel.h>
 
 #include "idt.h"
 #include "isr.h"

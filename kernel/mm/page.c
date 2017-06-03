@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/bits.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/page.h>

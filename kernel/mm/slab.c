@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/bits.h>
+#include <radix/bootmsg.h>
 #include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
