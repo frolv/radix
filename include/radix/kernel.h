@@ -19,8 +19,6 @@
 #ifndef RADIX_KERNEL_H
 #define RADIX_KERNEL_H
 
-#include <radix/types.h>
-
 #define HALT()  asm volatile("hlt")
 #define DIE() \
 	do { \
@@ -51,34 +49,11 @@
 		(b) = __tmp; \
 	} while (0)
 
-
-#include <radix/compiler.h>
-
-#define pow2(x) (1U << (x))
-
-static __always_inline size_t log2(size_t n)
-{
-	size_t ord = 0;
-
-	while ((n >>= 1))
-		++ord;
-
-	return ord;
-}
-
 #define KIB(n) ((n)    * 1024UL)
 #define MIB(n) (KIB(n) * 1024UL)
 #define GIB(n) (MIB(n) * 1024UL)
 
 #define ARRAY_SIZE(a) (sizeof (a) / sizeof ((a)[0]))
-
-#include <rlibc/stdio.h>
-
-#define BOOT_OK_MSG(msg, ...) \
-	printf("[ \x1B[1;32mOK\x1B[37m ] " msg, ##__VA_ARGS__)
-
-#define BOOT_FAIL_MSG(msg, ...) \
-	printf("[ \x1B[1;34mFAILED\x1B[37m ] " msg, ##__VA_ARGS__)
 
 void panic(const char *err, ...);
 
