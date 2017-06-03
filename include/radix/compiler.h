@@ -32,4 +32,6 @@
 
 #define offsetof(type, member) __builtin_offsetof(type, member)
 
+#define is_immediate(exp) (__builtin_constant_p(exp))
+
 #endif /* RADIX_COMPILER_H */
