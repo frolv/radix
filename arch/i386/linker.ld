@@ -11,16 +11,23 @@ SECTIONS {
 	/* begin at 3 GiB + 1 MiB */
 	. = 0xC0100000;
 
-	_kernel_start = .;
+	__kernel_start = .;
 
 	.text ALIGN (4K) : AT (ADDR(.text) - 0xC0000000) {
+		__text_start = .;
 		*(.multiboot)
 		*(.text)
+		*(.init)
+		*(.fini)
+		__text_end = .;
 	} :text
 
 	/* read-only data */
 	.rodata ALIGN (4K) : AT (ADDR(.rodata) - 0xC0000000) {
+		__rodata_start = .;
 		*(.rodata)
+		*(SORT(.rodata.*))
+		__rodata_end = .;
 	} :readonly
 
 	/* initialized read-write data */
@@ -36,10 +43,10 @@ SECTIONS {
 	} :data
 
 	.percpu_data ALIGN (4K) : AT (ADDR(.percpu_data) - 0xC0000000) {
-		__per_cpu_start = .;
+		__percpu_start = .;
 		*(.percpu_data)
-		__per_cpu_end = .;
+		__percpu_end = .;
 	} :data
 
-	_kernel_end = .;
+	__kernel_end = .;
 }
