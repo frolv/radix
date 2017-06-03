@@ -1,5 +1,5 @@
 /*
- * include/radix/types.h
+ * arch/i386/include/radix/asm/types.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,21 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef ARCH_I386_RADIX_TYPES_H
+#define ARCH_I386_RADIX_TYPES_H
+
 #ifndef RADIX_TYPES_H
-#define RADIX_TYPES_H
+#error only <radix/types.h> can be included directly
+#endif
 
-#include <stdint.h>
-#include <radix/asm/types.h>
+#define __WORDSIZE 32
 
-#define NULL ((void *)0UL)
-
-typedef unsigned long   size_t;
-typedef signed long     ssize_t;
-typedef signed long     off_t;
-
-typedef signed int      pid_t;
-typedef unsigned int    uid_t;
-typedef unsigned int    gid_t;
-typedef unsigned int    mode_t;
-
-#endif /* RADIX_TYPES_H */
+#endif /* ARCH_I386_RADIX_TYPES_H */
