@@ -77,6 +77,7 @@ int get_format(const char *format, struct printf_format *p)
 		break;
 	case 'x':
 		p->flags |= FLAGS_LOWER;
+		/* fall through */
 	case 'X':
 		p->type = FORMAT_UINT;
 		p->base = 16;
