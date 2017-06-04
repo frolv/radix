@@ -19,6 +19,8 @@
 #ifndef ARCH_I386_RADIX_CPU_H
 #define ARCH_I386_RADIX_CPU_H
 
+#define MAX_CPUS 64
+
 #define CPU_VENDOR_AMD          "AuthenticAMD"
 #define CPU_VENDOR_CENTAUR      "CentaurHauls"
 #define CPU_VENDOR_CYRIX        "CyrixInstead"
