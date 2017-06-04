@@ -34,12 +34,12 @@ static __always_inline unsigned long __fls(unsigned long x)
 		return __fls_generic(x);
 
 	asm volatile("bsr %1, %0\n\t"
-		     "jnz 1f\n\t"
-		     "movl $0, %0\n"
-		     "1:"
-		     : "=r"(x)
-		     : "rm"(x)
-		    );
+	             "jnz 1f\n\t"
+	             "movl $0, %0\n"
+	             "1:"
+	             : "=r"(x)
+	             : "rm"(x)
+	            );
 
 	return x;
 }
