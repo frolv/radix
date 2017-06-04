@@ -1,5 +1,5 @@
 /*
- * lib/rlibc/string/memset.c
+ * arch/i386/include/rlibc/asm/string.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,41 +16,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/kernel.h>
-#include <rlibc/string.h>
+#ifndef ARCH_I386_RLIBC_STRING_H
+#define ARCH_I386_RLIBC_STRING_H
 
-#ifndef __ARCH_HAS_MEMSET
+#ifndef RLIBC_STRING_H
+#error only <rlibc/string.h> can be included directly
+#endif
 
-void *memset(void *s, int c, size_t n)
+#include <radix/compiler.h>
+
+#define __ARCH_HAS_MEMSET
+static __always_inline void *memset(void *s, int c, size_t n)
 {
-	unsigned char *p = s;
-#if __WORDSIZE == 32 || __WORDSIZE == 64
-	unsigned long *dest;
-	unsigned long val, count;
+	int a, b;
 
-	while (n && !ALIGNED((unsigned long)p, sizeof (unsigned long))) {
-		*p++ = c;
-		--n;
-	}
-
-#if __WORDSIZE == 32
-	val = 0x01010101 * (unsigned char)c;
-#else
-	val = 0x0101010101010101 * (unsigned char)c;
-#endif
-
-	dest = (unsigned long *)p;
-	count = n / sizeof *dest;
-	p += count * sizeof *dest;
-	n -= count * sizeof *dest;
-
-	while (count--)
-		*dest++ = val;
-#endif
-	while (n--)
-		*p++ = c;
+	asm volatile("rep\n\t"
+	             "stosb"
+	             : "=&c"(a), "=&D"(b)
+	             : "a"(c), "1"(s), "0"(n)
+	             : "memory");
 
 	return s;
 }
 
-#endif /* !__ARCH_HAS_MEMSET */
+#endif /* ARCH_I386_RLIBC_STRING_H */

@@ -20,11 +20,15 @@
 #define RLIBC_STRING_H
 
 #include <radix/types.h>
+#include <rlibc/asm/string.h>
 
 int memcmp(const void *s1, const void *s2, size_t n);
 void *memcpy(void *__restrict dst, const void *__restrict src, size_t n);
 void *memmove(void *dst, const void *src, size_t n);
+
+#ifndef __ARCH_HAS_MEMSET
 void *memset(void *s, int c, size_t n);
+#endif
 
 size_t strlen(const char *s);
 int strcmp(const char *s1, const char *s2);
