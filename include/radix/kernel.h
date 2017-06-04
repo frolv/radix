@@ -29,6 +29,7 @@
 #define __ALIGN_MASK(x, mask)   (((x) + (mask)) & ~(mask))
 #define PTR_ALIGN(p, a)         ((typeof (p))ALIGN((unsigned long)(p), (a)))
 #define ALIGNED(x, a)           (((x) & ((typeof (x))(a) - 1)) == 0)
+#define ISPOW2(x)               ALIGNED(x, x)
 
 #define FIELD_SIZEOF(t, f)      (sizeof (((t *)0)->f))
 
