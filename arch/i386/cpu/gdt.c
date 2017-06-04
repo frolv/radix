@@ -16,11 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/types.h>
 #include <rlibc/string.h>
 
+#include "gdt.h"
+
 /* Global Descriptor Table */
-static uint64_t gdt[6];
+static uint64_t gdt[8];
 
 /* Task State Segment */
 static uint32_t tss[26];
@@ -40,15 +41,27 @@ void gdt_init(void)
 	tss_base = (uintptr_t)tss;
 	tss_init(0x0, 0x10);
 
-	gdt_set(0, 0, 0, 0, 0);
-	gdt_set(1, 0, 0xFFFFFFFF, 0x9A, 0x0C); /* ring level 0 code */
-	gdt_set(2, 0, 0xFFFFFFFF, 0x92, 0x0C); /* ring level 0 data */
-	gdt_set(3, 0, 0xFFFFFFFF, 0xFA, 0x0C); /* ring level 3 code */
-	gdt_set(4, 0, 0xFFFFFFFF, 0xF2, 0x0C); /* ring level 3 data */
-	gdt_set(5, tss_base, tss_base + sizeof tss, 0x89, 0x04);
+	gdt_set(GDT_NULL, 0, 0, 0, 0);
+	gdt_set(GDT_KERNEL_CODE, 0, 0xFFFFFFFF, 0x9A, 0x0C);
+	gdt_set(GDT_KERNEL_DATA, 0, 0xFFFFFFFF, 0x92, 0x0C);
+	gdt_set(GDT_USER_CODE, 0, 0xFFFFFFFF, 0xFA, 0x0C);
+	gdt_set(GDT_USER_DATA, 0, 0xFFFFFFFF, 0xF2, 0x0C);
+	gdt_set(GDT_TSS, tss_base, tss_base + sizeof tss, 0x89, 0x04);
+	gdt_set(GDT_FS, 0, 0xFFFFFFFF, 0x92, 0x0C);
+	gdt_set(GDT_GS, 0, 0xFFFFFFFF, 0x92, 0x0C);
 
 	gdt_load(gdt, sizeof gdt);
 	tss_load(0x28);
+}
+
+void gdt_set_fsbase(uint32_t base)
+{
+	gdt_set(GDT_FS, base, 0xFFFFFFFF, 0x92, 0x0C);
+}
+
+void gdt_set_gsbase(uint32_t base)
+{
+	gdt_set(GDT_GS, base, 0xFFFFFFFF, 0x92, 0x0C);
 }
 
 /*
