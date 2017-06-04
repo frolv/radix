@@ -57,11 +57,13 @@ void gdt_init(void)
 void gdt_set_fsbase(uint32_t base)
 {
 	gdt_set(GDT_FS, base, 0xFFFFFFFF, 0x92, 0x0C);
+	asm volatile("mov %0, %%fs" : : "r"(GDT_OFFSET(GDT_FS)));
 }
 
 void gdt_set_gsbase(uint32_t base)
 {
 	gdt_set(GDT_GS, base, 0xFFFFFFFF, 0x92, 0x0C);
+	asm volatile("mov %0, %%gs" : : "r"(GDT_OFFSET(GDT_GS)));
 }
 
 /*
