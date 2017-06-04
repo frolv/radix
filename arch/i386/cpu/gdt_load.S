@@ -35,10 +35,15 @@ gdt_load:
 	lgdt gdtr
 
 	jmp $0x08, $.flush_segments
+
 # reload data segment registers
 .flush_segments:
 	movw $0x10, %ax
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
+	movw $0x30, %ax
+	movw %ax, %fs
+	movw $0x38, %ax
+	movw %ax, %gs
 	ret
