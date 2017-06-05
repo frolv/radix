@@ -78,8 +78,7 @@ static __always_inline int list_empty(struct list *head)
 }
 
 #define list_entry(ptr, type, member) \
-	({ const typeof(((type *)0)->member) *__ptr = (ptr); \
-	(type *)((char *)__ptr - offsetof(type, member)); })
+	container_of(ptr, type, member)
 
 #define list_first_entry(head, type, member) \
 	list_entry((head)->next, type, member);
