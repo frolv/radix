@@ -27,12 +27,6 @@
 #define rb_set_parent(node, parent) \
 	((node)->__parent = ((unsigned long)parent) | rb_colour(node))
 
-void rb_init(struct rb_node *node)
-{
-	node->__parent = (unsigned long)node;
-	node->left = node->right = NULL;
-}
-
 /*
  * Red-black tree properties, from Wikipedia:
  * 1. All nodes are either red or black.
@@ -52,7 +46,7 @@ static __always_inline void rb_rotate_left(struct rb_root *root,
 	p = node->right;
 
 	if (node == root->root_node) {
-		/* `node` becomes the new root */
+		/* `p` becomes the new root */
 		rr = &root->root_node;
 		p->__parent = 0;
 	} else {
@@ -79,7 +73,7 @@ static __always_inline void rb_rotate_right(struct rb_root *root,
 	p = node->left;
 
 	if (node == root->root_node) {
-		/* `node` becomes the new root */
+		/* `p` becomes the new root */
 		rr = &root->root_node;
 		p->__parent = 0;
 	} else {
@@ -133,7 +127,7 @@ void rb_balance(struct rb_root *root, struct rb_node *node)
 
 	/*
 	 * case 3: both parent and uncle are red.
-	 * Make them both black to and the grandparent red to maintain
+	 * Make them both black and the grandparent red to maintain
 	 * property 5, then rebalance around the modified grandparent.
 	 * Note that setting the grandparent red is done at the start
 	 * of the recursive rb_balance call.

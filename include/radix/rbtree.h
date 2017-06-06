@@ -40,7 +40,12 @@ struct rb_root {
 #define rb_entry(ptr, type, member) \
 	container_of(ptr, type, member)
 
-void rb_init(struct rb_node *node);
+/* rb_init: initialize a red-black tree node */
+static __always_inline void rb_init(struct rb_node *node)
+{
+	node->__parent = (unsigned long)node;
+	node->left = node->right = NULL;
+}
 
 /*
  * rb_link: link `node` as the child of parent.
