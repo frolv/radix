@@ -21,8 +21,7 @@
 #include <radix/mm_types.h>
 #include <radix/regs.h>
 
-#define KERNEL_CS 0x08
-#define KERNEL_DS 0x10
+#include "gdt.h"
 
 /* save registers from interrupt into r */
 void save_registers(struct interrupt_regs *ir, struct regs *r)
@@ -91,12 +90,12 @@ void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg)
 	r->sp = (addr_t)(s - 5);
 	r->ip = (addr_t)func;
 
-	r->gs = KERNEL_DS;
-	r->fs = KERNEL_DS;
-	r->es = KERNEL_DS;
-	r->ds = KERNEL_DS;
-	r->ss = KERNEL_DS;
+	r->gs = GDT_OFFSET(GDT_GS);
+	r->fs = GDT_OFFSET(GDT_FS);
+	r->es = GDT_OFFSET(GDT_KERNEL_DATA);
+	r->ds = GDT_OFFSET(GDT_KERNEL_DATA);
+	r->ss = GDT_OFFSET(GDT_KERNEL_DATA);
 
-	r->cs = KERNEL_CS;
+	r->cs = GDT_OFFSET(GDT_KERNEL_CODE);
 	r->flags = EFLAGS_IF | EFLAGS_ID;
 }
