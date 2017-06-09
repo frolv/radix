@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/kernel.h>
 #include <radix/rbtree.h>
 
 #define RB_BLACK 0
@@ -170,4 +171,82 @@ void rb_balance(struct rb_root *root, struct rb_node *node)
 		rb_rotate_right(root, gp);
 	else
 		rb_rotate_left(root, gp);
+}
+
+/*
+ * rb_replace_deleted:
+ * Find the predecessor or successor of `node` if it exists,
+ * swap `node` with it, and return node.
+ */
+static struct rb_node *rb_replace_deleted(struct rb_root *root,
+                                          struct rb_node *node)
+{
+	struct rb_node **npos, **rpos, *npa, *rpa, *rep;
+
+	npa = rb_parent(node);
+	if (!npa)
+		npos = &root->root_node;
+	else
+		npos = (node == npa->left) ? &npa->left : &npa->right;
+
+	if (node->left) {
+		/*
+		 * The predecessor of `node` is the rightmost
+		 * node in its left subtree.
+		 */
+		rep = node->left;
+		while (rep->right)
+			rep = rep->right;
+	} else if (node->right) {
+		/*
+		 * The successor of `node` is the leftmost
+		 * node in its right subtree.
+		 */
+		rep = node->right;
+		while (rep->left)
+			rep = rep->left;
+	} else {
+		return node;
+	}
+
+	rpa = rb_parent(rep);
+	rpos = (rep == rpa->left) ? &rpa->left : &rpa->right;
+
+	/* swap the positions of `rep` and `node` in the tree */
+	*rpos = node;
+	*npos = rep;
+
+	rb_set_parent(node, rpa);
+	rb_set_parent(rep, npa);
+
+	swap(rep->left, node->left);
+	swap(rep->right, node->right);
+
+	return node;
+}
+
+/*
+ * rb_remove:
+ * Remove `node` from the tree rooted at `root`.
+ * Precondition: `node` has at most one child.
+ */
+static void rb_remove(struct rb_root *root, struct rb_node *node)
+{
+}
+
+/*
+ * rb_delete:
+ * Delete `node` from the tree rooted at `root`.
+ */
+void rb_delete(struct rb_root *root, struct rb_node *node)
+{
+	struct rb_node *n;
+
+	/* `node` is not part of a tree */
+	if (rb_parent(node) == node)
+		return;
+
+	n = rb_replace_deleted(root, node);
+	rb_remove(root, n);
+	rb_init(n);
 }
