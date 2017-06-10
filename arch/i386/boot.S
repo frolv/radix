@@ -56,7 +56,7 @@ kernel_pgtbl:
 _start:
 	# Physical address of the kernel's page table.
 	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %edi
-	movl $0, %esi
+	xorl %esi, %esi
 	movl $0x400, %ecx
 
 1:
