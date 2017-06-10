@@ -54,8 +54,8 @@ static __always_inline int interrupts_active(void)
 {
 	uint32_t flags;
 
-	asm volatile("pushf;"
-	             "pop %0;"
+	asm volatile("pushf\n\t"
+	             "pop %0"
 	             :"=g"(flags));
 	return flags & __INTERRUPT_BIT;
 }

@@ -783,7 +783,7 @@ static void read_cpuid4(void)
 		 * This is typically 0: L1d, 1: L1i, 2: L2, 3: L3.
 		 * We keep trying until we run out of caches.
 		 */
-		asm volatile("movl %0, %%ecx;" : : "r"(i) : "%ecx");
+		asm volatile("movl %0, %%ecx" : : "r"(i) : "%ecx");
 		cpuid(4, buf[0], buf[1], buf[2], buf[3]);
 
 		/* Identify the actual level of the cache. */

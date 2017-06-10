@@ -163,14 +163,14 @@ static __always_inline unsigned long cpuid_supported(void)
 {
 	unsigned long res;
 
-	asm volatile("pushf;"
-	             "pop %%eax;"
-	             "movl %%eax, %%ecx;"
-	             "xorl $0x200000, %%eax;"
-	             "push %%eax;"
-	             "popf;"
-	             "pushf;"
-	             "pop %%eax;"
+	asm volatile("pushf\n\t"
+	             "pop %%eax\n\t"
+	             "movl %%eax, %%ecx\n\t"
+	             "xorl $0x200000, %%eax\n\t"
+	             "push %%eax\n\t"
+	             "popf\n\t"
+	             "pushf\n\t"
+	             "pop %%eax\n\t"
 	             "xorl %%ecx, %%eax"
 	             : "=a"(res)
 	             :
@@ -179,18 +179,18 @@ static __always_inline unsigned long cpuid_supported(void)
 }
 
 #define cpuid(eax, a, b, c, d) \
-	asm volatile("xchg %%ebx, %1;" \
-	             "cpuid;" \
+	asm volatile("xchg %%ebx, %1\n\t" \
+	             "cpuid\n\t" \
 	             "xchg %%ebx, %1" \
 	             : "=a"(a), "=r"(b), "=c"(c), "=d"(d) \
 	             : "0"(eax))
 
 #define __modify_control_register(cr, clear, set) \
-	asm volatile("movl %%" cr ", %%eax;" \
-	             "movl %0, %%edx;" \
-	             "notl %%edx;" \
-	             "andl %%edx, %%eax;" \
-	             "orl %1, %%eax;" \
+	asm volatile("movl %%" cr ", %%eax\n\t" \
+	             "movl %0, %%edx\n\t" \
+	             "notl %%edx\n\t" \
+	             "andl %%edx, %%eax\n\t" \
+	             "orl %1, %%eax\n\t" \
 	             "movl %%eax, %%" cr \
 	             : \
 	             : "r"(clear), "r"(set) \

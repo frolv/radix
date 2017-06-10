@@ -28,7 +28,7 @@ static __always_inline void invlpg(addr_t addr)
 
 static __always_inline void __tlb_flush_nonglobal(void)
 {
-	asm volatile("movl %%cr3, %%eax;"
+	asm volatile("movl %%cr3, %%eax\n\t"
 	             "movl %%eax, %%cr3"
 	             :::"%eax");
 }
