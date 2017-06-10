@@ -49,8 +49,9 @@ struct slab_desc {
 	unsigned int	next;		/* index of next object to allocate */
 };
 
-/* Cache flags */
-#define SLAB_HW_CACHE_ALIGN     (1 << 16)
+/* Slab cache creation flags */
+#define SLAB_HW_CACHE_ALIGN     (1 << 16) /* align objects to CPU cache */
+#define SLAB_PANIC              (1 << 17) /* panic if slab creation fails */
 
 struct slab_cache *create_cache(const char *name, size_t size,
                                 size_t align, unsigned long flags,
@@ -63,8 +64,8 @@ int shrink_cache(struct slab_cache *cache);
 void *alloc_cache(struct slab_cache *cache);
 void free_cache(struct slab_cache *cache, void *obj);
 
-#define MIN_ALIGN __alignof__(unsigned long long)
-#define MIN_OBJ_SIZE (sizeof (unsigned long long))
+#define SLAB_MIN_ALIGN __alignof__(unsigned long long)
+#define SLAB_MIN_OBJ_SIZE (sizeof (unsigned long long))
 
 #define KMALLOC_MAX_SIZE 0x2000
 

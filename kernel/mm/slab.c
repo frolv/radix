@@ -53,7 +53,7 @@ void slab_init(void)
 	list_init(&slab_caches);
 
 	__init_cache(&cache_cache, "cache_cache", sizeof (struct slab_cache),
-	             MIN_ALIGN, SLAB_HW_CACHE_ALIGN, NULL, NULL);
+	             SLAB_MIN_ALIGN, SLAB_HW_CACHE_ALIGN, NULL, NULL);
 	list_add(&slab_caches, &cache_cache.list);
 
 	/* preemptively allocate space for some caches */
@@ -69,6 +69,7 @@ static struct slab_desc *init_slab(struct slab_cache *cache);
 static int destroy_slab(struct slab_cache *cache, struct slab_desc *s);
 
 /*
+ * create_cache:
  * Create a new cache containing elements of size specified by size.
  * The cache is inserted into the cache list.
  */
@@ -78,12 +79,18 @@ struct slab_cache *create_cache(const char *name, size_t size,
 {
 	struct slab_cache *cache;
 
-	if (unlikely(!name || size < MIN_OBJ_SIZE || size > KMALLOC_MAX_SIZE))
+	if (unlikely(!name || size < SLAB_MIN_OBJ_SIZE ||
+	             size > KMALLOC_MAX_SIZE))
 		return ERR_PTR(EINVAL);
 
 	cache = alloc_cache(&cache_cache);
-	if (IS_ERR(cache))
+	if (IS_ERR(cache)) {
+		if (flags & SLAB_PANIC)
+			panic("failed to allocate slab_cache %s: %s\n",
+			      name, strerror(ERR_VAL(cache)));
+
 		return (void *)cache;
+	}
 
 	__init_cache(cache, name, size, align, flags, ctor, dtor);
 	list_ins(&slab_caches, &cache->list);
@@ -91,7 +98,10 @@ struct slab_cache *create_cache(const char *name, size_t size,
 	return cache;
 }
 
-/* Frees all slabs from a cache and removes the cache from the system. */
+/*
+ * destroy_cache:
+ * Frees all slabs from a cache and removes the cache from the system.
+ */
 void destroy_cache(struct slab_cache *cache)
 {
 	struct list *l, *tmp;
@@ -115,7 +125,10 @@ void destroy_cache(struct slab_cache *cache)
 
 #define FREE_OBJ_ARR(s) ((uint16_t *)(s + 1))
 
-/* Allocates a single object from the given cache. */
+/*
+ * alloc_cache:
+ * Allocates a single object from the given cache.
+ */
 void *alloc_cache(struct slab_cache *cache)
 {
 	struct slab_desc *s;
@@ -154,7 +167,10 @@ void *alloc_cache(struct slab_cache *cache)
 	return obj;
 }
 
-/* Free an object from the given cache. */
+/*
+ * free_cache:
+ * Free an object from the given cache.
+ */
 void free_cache(struct slab_cache *cache, void *obj)
 {
 	struct slab_desc *s;
@@ -193,7 +209,10 @@ void free_cache(struct slab_cache *cache, void *obj)
 	s->in_use--;
 }
 
-/* Allocate a new slab for the given cache. */
+/*
+ * grow_cache:
+ * Allocate a new slab for the given cache.
+ */
 int grow_cache(struct slab_cache *cache)
 {
 	struct slab_desc *s;
@@ -215,6 +234,7 @@ int grow_cache(struct slab_cache *cache)
 }
 
 /*
+ * shrink_cache:
  * Remove (and deallocate) all free slabs from the given cache.
  * Return the number of pages freed.
  */
@@ -232,7 +252,10 @@ int shrink_cache(struct slab_cache *cache)
 	return n;
 }
 
-/* Initialize a new slab and its objects from the given cache. */
+/*
+ * init_slab:
+ * Initialize a new slab and its objects from the given cache.
+ */
 static struct slab_desc *init_slab(struct slab_cache *cache)
 {
 	struct slab_desc *s;
@@ -277,7 +300,10 @@ static struct slab_desc *init_slab(struct slab_cache *cache)
 	return s;
 }
 
-/* Destroy all objects on a slab and deallocate all used pages. */
+/*
+ * destroy_slab:
+ * Destroy all objects on a slab and deallocate all used pages.
+ */
 static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
 {
 	struct page *p;
@@ -305,6 +331,7 @@ static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
 }
 
 /*
+ * calculate_align:
  * Calcuate the alignment of objects in a slab based on a user specified
  * alignment and the object size.
  */
@@ -320,13 +347,14 @@ static size_t calculate_align(unsigned long flags, size_t align, size_t size)
 		align = max(align, cache_align);
 	}
 
-	if (align < MIN_ALIGN)
-		align = MIN_ALIGN;
+	if (align < SLAB_MIN_ALIGN)
+		align = SLAB_MIN_ALIGN;
 
 	return ALIGN(align, sizeof (void *));
 }
 
 /*
+ * calculate_count:
  * Calculate how many object will fit on a slab with the given
  * offset between objects.
  */
@@ -397,6 +425,7 @@ static struct slab_cache *kmalloc_lg_caches[6];
 static int kmalloc_active = 0;
 
 /*
+ * kmalloc_init:
  * Initialize all caches used by kmalloc.
  */
 void kmalloc_init(void)
@@ -412,7 +441,8 @@ void kmalloc_init(void)
 	for (i = 1; i <= 24; ++i) {
 		sz = i * 8;
 		sprintf(name, "kmalloc-%u", sz);
-		cache = create_cache(name, sz, MIN_ALIGN, 0, NULL, NULL);
+		cache = create_cache(name, sz, SLAB_MIN_ALIGN,
+		                     SLAB_PANIC, NULL, NULL);
 
 		for (j = 0; j < 32; ++j) {
 			if ((err = grow_cache(cache)))
@@ -424,7 +454,8 @@ void kmalloc_init(void)
 	for (i = 0; i < 6; ++i) {
 		sz = 256 * pow2(i);
 		sprintf(name, "kmalloc-%u", sz);
-		cache = create_cache(name, sz, MIN_ALIGN, 0, NULL, NULL);
+		cache = create_cache(name, sz, SLAB_MIN_ALIGN,
+		                     SLAB_PANIC, NULL, NULL);
 		if ((err = grow_cache(cache)))
 			goto err_grow;
 		if ((err = grow_cache(cache)))
