@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/radix/arch_irq.h
+ * arch/i386/include/radix/asm/irq.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,9 @@
 #ifndef ARCH_I386_RADIX_IRQ_H
 #define ARCH_I386_RADIX_IRQ_H
 
-#include <radix/compiler.h>
+#ifndef RADIX_IRQ_H
+#error only <radix/irq.h> can be included directly
+#endif
 
 #define __ARCH_SYSCALL_VECTOR   0x30
 
@@ -34,8 +36,6 @@
 #define __arch_irq_install      install_interrupt_handler
 #define __arch_irq_uninstall    uninstall_interrupt_handler
 
-#define __INTERRUPT_BIT (1 << 9)
-
 #include <radix/regs.h>
 
 void idt_init(void);
@@ -48,6 +48,8 @@ int uninstall_exception_handler(uint32_t intno);
 int install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
 int uninstall_interrupt_handler(uint32_t intno);
 
+#include <radix/compiler.h>
+#include <radix/cpu.h>
 #include <radix/types.h>
 
 static __always_inline int interrupts_active(void)
@@ -56,8 +58,9 @@ static __always_inline int interrupts_active(void)
 
 	asm volatile("pushf\n\t"
 	             "pop %0"
-	             :"=g"(flags));
-	return flags & __INTERRUPT_BIT;
+	             : "=g"(flags));
+
+	return flags & EFLAGS_IF;
 }
 
 #endif /* ARCH_I386_RADIX_IRQ_H */

@@ -19,9 +19,9 @@
 #ifndef RADIX_IRQ_H
 #define RADIX_IRQ_H
 
-#define SYSCALL_INTERRUPT 0x80
+#include <radix/asm/irq.h>
 
-#include <radix/arch_irq.h>
+#define SYSCALL_INTERRUPT 0x80
 
 #define SYSCALL_VECTOR  __ARCH_SYSCALL_VECTOR
 
