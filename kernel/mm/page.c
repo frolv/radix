@@ -19,7 +19,6 @@
 #include <radix/bits.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
-#include <radix/page.h>
 #include <rlibc/string.h>
 
 #include "buddy.h"

@@ -24,7 +24,6 @@
 #include <radix/error.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
-#include <radix/page.h>
 
 #include "apic.h"
 

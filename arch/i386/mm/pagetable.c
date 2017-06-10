@@ -19,7 +19,6 @@
 #include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
-#include <radix/page.h>
 #include <rlibc/string.h>
 
 #define get_page_table(x) (pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
@@ -265,7 +264,6 @@ static int __unmap(addr_t virt, int freetable)
 /*
  * i386_set_cache_policy:
  * Set the CPU caching policy for a single virtual page.
- * TODO: flush caches
  */
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 {

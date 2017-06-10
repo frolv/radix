@@ -22,7 +22,6 @@
 #include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
-#include <radix/page.h>
 #include <radix/slab.h>
 
 #include <rlibc/stdio.h>
