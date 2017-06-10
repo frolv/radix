@@ -33,12 +33,10 @@ void tasking_init(void)
 {
 	struct task *curr;
 
-	task_cache = create_cache("task_cache", sizeof (struct task), MIN_ALIGN,
-	                          SLAB_HW_CACHE_ALIGN, task_init, task_init);
-	if (IS_ERR(task_cache)) {
-		panic("failed to allocate cache for tasks: %s\n",
-		      strerror(ERR_VAL(task_cache)));
-	}
+	task_cache = create_cache("task_cache", sizeof (struct task),
+	                          SLAB_MIN_ALIGN,
+	                          SLAB_HW_CACHE_ALIGN | SLAB_PANIC,
+	                          task_init, task_init);
 	sched_init();
 
 	/*
