@@ -232,6 +232,135 @@ static struct rb_node *rb_replace_deleted(struct rb_root *root,
  */
 static void rb_remove(struct rb_root *root, struct rb_node *node)
 {
+	struct rb_node *pa, *child, *sl, **nptr;
+
+	pa = rb_parent(node);
+	child = node->left ? node->left : node->right;
+
+	if (!pa)
+		nptr = &root->root_node;
+	else if (node == pa->left)
+		nptr = &pa->left;
+	else
+		nptr = &pa->right;
+
+	/* Replace `node` with its child (which might be NULL) */
+	*nptr = child;
+
+	/*
+	 * If `node` is red, then it cannot have any children and therefore
+	 * can be replaced with a black NULL leaf without violating any
+	 * tree properties.
+	 */
+	if (rb_colour(node) == RB_RED)
+		return;
+
+	/*
+	 * If `node` is black and its child is red, then its child can
+	 * be repainted black to preserve all tree properties.
+	 *
+	 * Note that checking for the existence of `child` is sufficent:
+	 * if `node` has a child, it must be red, otherwise property 5
+	 * would be violated.
+	 */
+	if (child) {
+		rb_set_colour(child, RB_BLACK);
+		rb_set_parent(child, pa);
+		return;
+	}
+
+	node = NULL;
+
+begin_rebalance:
+	/*
+	 * case 1: `node` was the root.
+	 * The tree is now empty.
+	 */
+	if (!pa)
+		return;
+
+	sl = (node == pa->left) ? pa->right : pa->left;
+
+	/*
+	 * case 2: sibling of `node` is red.
+	 * This means that the parent must be black. Swap colours of parent
+	 * and sibling and rotate them to set up case 4, 5, or 6.
+	 */
+	if (rb_colour(sl) == RB_RED) {
+		rb_set_colour(pa, RB_RED);
+		rb_set_colour(sl, RB_BLACK);
+		if (sl == pa->left)
+			rb_rotate_right(root, pa);
+		else
+			rb_rotate_left(root, pa);
+
+		sl = (node == pa->left) ? pa->right : pa->left;
+	}
+
+	/*
+	 * case 3: sibling and its children are black, and so is parent.
+	 * Sibling's side of the tree has one more black node than node's,
+	 * which is corrected by changing sibling to red. However, this results
+	 * in all paths passing through parent having one fewer black node than
+	 * before, so a rebalance is performed on parent.
+	 *
+	 * case 4: sibling and its children are black but parent is red.
+	 * The colours of sibling and parent are swapped, adding one black node
+	 * to paths going through `node`, without changing the number of black
+	 * nodes in paths going through sibling, thus balancing the tree.
+	 */
+	if ((!sl->left || rb_colour(sl->left) == RB_BLACK) &&
+	    (!sl->right || rb_colour(sl->right) == RB_BLACK)) {
+		if (rb_colour(pa) == RB_BLACK) {
+			rb_set_colour(sl, RB_RED);
+			node = pa;
+			pa = rb_parent(node);
+			goto begin_rebalance;
+		} else {
+			rb_set_colour(sl, RB_RED);
+			rb_set_colour(pa, RB_BLACK);
+			return;
+		}
+	}
+
+	/*
+	 * case 5: sibling's red child is on the opposite side of sibling
+	 *         than sibling is of parent.
+	 * Rotate around sibling and change its colour, placing node's new
+	 * sibling and its red child on the same side, setting up case 6.
+	 */
+	if (sl == pa->right &&
+	    sl->left && rb_colour(sl->left) == RB_RED) {
+		rb_set_colour(sl, RB_RED);
+		rb_set_colour(sl->left, RB_BLACK);
+		rb_rotate_right(root, sl);
+		sl = pa->right;
+	} else if (sl == pa->left &&
+		   sl->right && rb_colour(sl->right) == RB_RED) {
+		rb_set_colour(sl, RB_RED);
+		rb_set_colour(sl->right, RB_BLACK);
+		rb_rotate_left(root, sl);
+		sl = pa->left;
+	}
+
+	/*
+	 * case 6: sibling's red child is on the same side of sibling
+	 *         as sibling is of parent.
+	 * The colours of parent and sibling are exchanged, sibling's red child
+	 * is made black, and a rotation is performed around parent. This makes
+	 * sibling the new root of the subtree, with the same colour as the old
+	 * root, and adds one extra black node to all paths through `node`.
+	 * Done.
+	 */
+	rb_set_colour(sl, rb_colour(pa));
+	rb_set_colour(pa, RB_BLACK);
+	if (sl == pa->right) {
+		rb_set_colour(sl->right, RB_BLACK);
+		rb_rotate_left(root, pa);
+	} else {
+		rb_set_colour(sl->left, RB_BLACK);
+		rb_rotate_right(root, pa);
+	}
 }
 
 /*
