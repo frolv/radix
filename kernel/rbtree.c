@@ -216,11 +216,19 @@ static struct rb_node *rb_replace_deleted(struct rb_root *root,
 	*rpos = node;
 	*npos = rep;
 
-	rb_set_parent(node, rpa);
-	rb_set_parent(rep, npa);
-
+	/* swap and update rep's and node's children */
+	swap(rep->__parent, node->__parent);
 	swap(rep->left, node->left);
+	if (rep->left)
+		rb_set_parent(rep->left, rep);
+	if (node->left)
+		rb_set_parent(node->left, node);
+
 	swap(rep->right, node->right);
+	if (rep->right)
+		rb_set_parent(rep->right, rep);
+	if (node->right)
+		rb_set_parent(node->right, node);
 
 	return node;
 }
@@ -372,7 +380,7 @@ void rb_delete(struct rb_root *root, struct rb_node *node)
 	struct rb_node *n;
 
 	/* `node` is not part of a tree */
-	if (rb_parent(node) == node)
+	if (unlikely(!node || rb_parent(node) == node))
 		return;
 
 	n = rb_replace_deleted(root, node);
