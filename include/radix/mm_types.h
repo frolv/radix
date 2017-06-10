@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/radix/mm_types.h
+ * include/radix/mm_types.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,40 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_RADIX_MM_TYPES_H
-#define ARCH_I386_RADIX_MM_TYPES_H
+#ifndef RADIX_MM_TYPES_H
+#define RADIX_MM_TYPES_H
 
-/* Pages containing ACPI tables are mapped starting at this virtual address. */
-#define __ARCH_ACPI_VIRT_BASE     0xFFBF0000UL
-
-/* 16 reserved pages for up to 16 I/O APICs */
-#define __ARCH_IOAPIC_VIRT_BASE   0xFFBE0000UL
-/* Local APIC register page */
-#define __ARCH_APIC_VIRT_PAGE     0xFFBDF000UL
-
-/* Kernel available virtual address range */
-#define __ARCH_KERNEL_VIRT_BASE   0xC0000000UL
-#define __ARCH_RESERVED_VIRT_BASE __ARCH_APIC_VIRT_PAGE
-
-#define __ARCH_MEM_LIMIT          0x100000000ULL
-
-typedef unsigned long addr_t;
-
-typedef unsigned long pdeval_t;
-typedef unsigned long pteval_t;
-
-typedef struct {
-	pdeval_t pde;
-} pde_t;
-
-typedef struct {
-	pteval_t pte;
-} pte_t;
-
+#include <radix/asm/mm_types.h>
 #include <radix/list.h>
 
 /*
- * x86 page status (32-bit):
+ * page status (32-bit):
  * FFFFFFFFFFFFFFFFxxxZARIMUUUUOOOO
  *
  * x    - currently unused
@@ -65,16 +39,24 @@ typedef struct {
 #define __ORDER_MASK            0x0000000F
 #define __MAX_ORDER_MASK        0x000000F0
 #define __OFFSET_MASK           0xFFFF0000
-#define __ARCH_INNER_ORDER      0xF
-#define __PAGE_BLOCK_ORDER(p)   (((p)->status) & __ORDER_MASK)
-#define __PAGE_MAX_ORDER(p)     ((((p)->status) & __MAX_ORDER_MASK) >> 4)
-#define __PAGE_BLOCK_OFFSET(p)  ((((p)->status) & __OFFSET_MASK) >> 16)
-#define __SET_BLOCK_ORDER(p, ord) \
+
+/*
+ * The first page in a block stores the order of the whole block.
+ * The rest are assigned the PAGE_ORDER_INNER value.
+ */
+#define PM_PAGE_ORDER_INNER     0xF
+#define PM_PAGE_BLOCK_ORDER(p)  (((p)->status) & __ORDER_MASK)
+#define PM_PAGE_MAX_ORDER(p)    ((((p)->status) & __MAX_ORDER_MASK) >> 4)
+
+#define PM_PAGE_BLOCK_OFFSET(p) ((((p)->status) & __OFFSET_MASK) >> 16)
+#define PM_SET_BLOCK_ORDER(p, ord) \
 	(p)->status = ((((p)->status) & ~__ORDER_MASK) | (ord))
-#define __SET_MAX_ORDER(p, ord) \
+#define PM_SET_MAX_ORDER(p, ord) \
 	(p)->status = ((((p)->status) & ~__MAX_ORDER_MASK) | ((ord) << 4))
-#define __SET_PAGE_OFFSET(p, off) \
+#define PM_SET_PAGE_OFFSET(p, off) \
 	(p)->status = ((((p)->status) & ~__OFFSET_MASK) | ((off) << 16))
+
+#define PAGE_UNINIT_MAGIC       0xDEADFEED
 
 #define PM_PAGE_MAPPED          (1 << 8)
 #define PM_PAGE_INVALID         (1 << 9)
@@ -86,8 +68,8 @@ struct page {
 	void            *slab_cache;    /* address of slab cache */
 	void            *slab_desc;     /* address of slab descriptor */
 	void            *mem;           /* start of the page itself */
-	unsigned int    status;         /* information about state */
+	unsigned long   status;         /* information about state */
 	struct list     list;           /* buddy allocator list */
 };
 
-#endif /* ARCH_I386_RADIX_MM_TYPES_H */
+#endif /* RADIX_MM_TYPES_H */

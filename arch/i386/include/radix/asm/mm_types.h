@@ -1,5 +1,5 @@
 /*
- * kernel/mm/page.c
+ * arch/i386/include/radix/asm/mm_types.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,19 +16,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KERNEL_MM_BUDDY_H
-#define KERNEL_MM_BUDDY_H
+#ifndef ARCH_I386_RADIX_MM_TYPES_H
+#define ARCH_I386_RADIX_MM_TYPES_H
 
-#include <radix/list.h>
-#include <radix/mm.h>
-#include <radix/mm_types.h>
+#ifndef RADIX_MM_TYPES_H
+#error only <radix/mm_types.h> can be included directly
+#endif
 
-struct buddy {
-	struct list     ord[PA_MAX_ORDER];      /* lists of 2^i size blocks */
-	size_t          len[PA_MAX_ORDER];      /* length of each list */
-	size_t          max_ord;                /* maximum available order */
-	size_t          total_pages;            /* total pages in this zone */
-	size_t          alloc_pages;            /* number of allocated pages */
-};
+typedef unsigned long addr_t;
 
-#endif /* KERNEL_MM_BUDDY_H */
+typedef unsigned long pdeval_t;
+typedef unsigned long pteval_t;
+
+typedef struct {
+	pdeval_t pde;
+} pde_t;
+
+typedef struct {
+	pteval_t pte;
+} pte_t;
+
+#endif /* ARCH_I386_RADIX_MM_TYPES_H */

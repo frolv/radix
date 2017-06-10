@@ -22,23 +22,28 @@
 #include <radix/error.h>
 #include <radix/mm_types.h>
 #include <radix/multiboot.h>
-#include <radix/page.h>
 #include <radix/types.h>
+
+#include <radix/asm/mm_limits.h>
+#include <radix/asm/page.h>
 
 #define KERNEL_VIRTUAL_BASE     __ARCH_KERNEL_VIRT_BASE
 #define KERNEL_SIZE             0x00400000
 #define RESERVED_VIRT_BASE      __ARCH_RESERVED_VIRT_BASE
-
+#define RESERVED_SIZE           (PGDIR_BASE - RESERVED_VIRT_BASE)
 #define ACPI_TABLES_VIRT_BASE   __ARCH_ACPI_VIRT_BASE
+#define MEM_LIMIT               __ARCH_MEM_LIMIT
 
 /*
- * Page map starts at 16 MiB in physical memory, directly after the DMA zone.
+ * The final entry in the page directory is mapped to the page directory itself.
  */
+#define PGDIR_BASE              __ARCH_PGDIR_BASE
+#define PGDIR_VADDR             __ARCH_PGDIR_VADDR
+
+/* Page map starts at 16 MiB in physical memory, directly after the DMA zone. */
 #define __PAGE_MAP_PHYS_BASE    0x01000000
 #define PAGE_MAP_BASE           phys_to_virt(__PAGE_MAP_PHYS_BASE)
 
-
-#define MEM_LIMIT __ARCH_MEM_LIMIT
 
 uint64_t totalmem(void);
 
@@ -53,26 +58,18 @@ void buddy_init(struct multiboot_info *mbt);
 #define PA_MAX_ORDER 10
 
 /* Low level page allocation flags */
-#define __PA_ZONE_REG   0x0     /* allocate from regular (kernel) zone */
-#define __PA_ZONE_DMA   0x1     /* allocate from DMA zone */
-#define __PA_ZONE_USR   0x2     /* allocate from user zone */
-#define __PA_NO_MAP     0x4     /* do not map pages to a virtual address */
+#define __PA_ZONE_REG   (1 << 1)        /* allocate from kernel zone */
+#define __PA_ZONE_DMA   (1 << 2)        /* allocate from DMA zone */
+#define __PA_ZONE_USR   (1 << 3)        /* allocate from user zone */
+#define __PA_NO_MAP     (1 << 4)        /* don't map pages to virtual address */
+#define __PA_ZERO       (1 << 5)        /* zero pages when allocated */
+#define __PA_READONLY   (1 << 6)        /* mark pages as readonly */
 
 /* Page allocation flags */
 #define PA_STANDARD     (__PA_ZONE_REG)
 #define PA_DMA          (__PA_ZONE_DMA | __PA_NO_MAP)
 #define PA_USER         (__PA_ZONE_USR | __PA_NO_MAP)
-#define PA_PAGETABLE    (__PA_ZONE_REG | __PA_NO_MAP)
-
-#define PAGE_UNINIT_MAGIC       0xDEADFEED
-
-/*
- * The first page in a block stores the order of the whole block.
- * The rest are assigned the PAGE_ORDER_INNER value.
- */
-#define PM_PAGE_ORDER_INNER             __ARCH_INNER_ORDER
-#define PM_PAGE_BLOCK_ORDER(p)          __PAGE_BLOCK_ORDER(p)
-#define PM_PAGE_MAX_ORDER(p)            __PAGE_MAX_ORDER(p)
+#define PA_PAGETABLE    (__PA_ZONE_REG | __PA_NO_MAP | __PA_ZERO)
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);

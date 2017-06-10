@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/radix/page.h
+ * arch/i386/include/radix/asm/page.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,10 @@
 
 #ifndef ARCH_I386_RADIX_PAGE_H
 #define ARCH_I386_RADIX_PAGE_H
+
+#if !defined(RADIX_MM_H) && !defined(RADIX_VMM_H)
+#error <radix/asm/page.h> cannot be included directly
+#endif
 
 #define PTRS_PER_PGDIR          0x400
 #define PTRS_PER_PGTBL          0x400
@@ -53,8 +57,8 @@
 #define PAGE_GLOBAL     (((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
 #include <radix/compiler.h>
-
-#include <radix/mm_types.h>
+#include <radix/asm/mm_types.h>
+#include <radix/asm/mm_limits.h>
 
 #define PDE(x) ((x).pde)
 #define PTE(x) ((x).pte)
@@ -68,15 +72,6 @@ static __always_inline pte_t make_pte(pteval_t val)
 {
 	return (pte_t){ val };
 }
-
-/*
- * The final entry in the page directory is mapped to the page directory itself.
- * The virtual address 0xFFC00000 is therefore the starting address of the page
- * directory, interpreted as a page table.
- * Virtual address 0xFFFFF000 is the page containing the actual page directory.
- */
-#define PGDIR_BASE      0xFFC00000UL
-#define PGDIR_VADDR     0xFFFFF000UL
 
 #include <radix/types.h>
 
