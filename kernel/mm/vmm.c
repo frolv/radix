@@ -84,6 +84,25 @@ static void vmm_size_tree_insert(struct rb_root *tree, struct vmm_block *block)
 }
 
 /*
+ * vmm_size_tree_delete:
+ * Delete `block` from the given VMM block size tree.
+ */
+static __always_inline void vmm_size_tree_delete(struct rb_root *tree,
+                                                 struct vmm_block *block)
+{
+	struct vmm_block *new;
+
+	if (!list_empty(&block->size_list)) {
+		new = list_first_entry(&block->size_list,
+		                       struct vmm_block, size_list);
+		rb_replace(tree, &block->size_node, &new->size_node);
+		list_del(&block->size_list);
+	} else {
+		rb_delete(tree, &block->size_node);
+	}
+}
+
+/*
  * vmm_addr_tree_insert:
  * Insert `block` into given VMM block address tree.
  */
@@ -130,7 +149,7 @@ static __always_inline void vmm_tree_delete(struct vmm_structures *s,
                                             struct vmm_block *block)
 {
 	rb_delete(&s->addr_tree, &block->addr_node);
-	rb_delete(&s->size_tree, &block->size_node);
+	vmm_size_tree_delete(&s->size_tree, block);
 }
 
 void vmm_init(void)
@@ -175,7 +194,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 	/* create a new block [block->area.base, base) */
 	if (new_size) {
 		block->area.size = new_size;
-		rb_delete(&s->size_tree, &block->size_node);
+		vmm_size_tree_delete(&s->size_tree, block);
 		vmm_size_tree_insert(&s->size_tree, block);
 
 		new = alloc_cache(vmm_block_cache);
