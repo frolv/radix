@@ -132,7 +132,7 @@ void read_cpu_info(void)
 	extended_processor_info();
 }
 
-unsigned long cpu_cache_line_size(void)
+unsigned long i386_cache_line_size(void)
 {
 	return cache_info.line_size;
 }
@@ -971,10 +971,10 @@ static char *print_caches(char *pos)
 }
 
 /*
- * cpu_cache_str:
+ * i386_cache_str:
  * Return a beautifully formatted string detailing CPU cache information.
  */
-char *cpu_cache_str(void)
+char *i386_cache_str(void)
 {
 	char *pos;
 

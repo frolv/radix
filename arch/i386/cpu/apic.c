@@ -124,10 +124,10 @@ static void apic_reg_write(uint16_t reg, uint32_t value)
 }
 
 /*
- * processor_id:
+ * i386_processor_id:
  * Return the local APIC ID of the executing processor.
  */
-uint32_t processor_id(void)
+uint32_t i386_processor_id(void)
 {
 	uint32_t eax, edx;
 

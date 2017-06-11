@@ -49,7 +49,7 @@ int install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
 int uninstall_interrupt_handler(uint32_t intno);
 
 #include <radix/compiler.h>
-#include <radix/cpu.h>
+#include <radix/asm/cpu_defs.h>
 #include <radix/types.h>
 
 static __always_inline int interrupts_active(void)
