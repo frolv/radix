@@ -387,3 +387,26 @@ void rb_delete(struct rb_root *root, struct rb_node *node)
 	rb_remove(root, n);
 	rb_init(n);
 }
+
+/*
+ * rb_replace:
+ * Replace node `old` with `new` in the tree rooted at `root`.
+ * If `new` does not fit in the same position as `old`, this breaks the tree.
+ */
+void rb_replace(struct rb_root *root, struct rb_node *old, struct rb_node *new)
+{
+	struct rb_node *pa, **pos;
+
+	pa = rb_parent(old);
+	if (!pa)
+		pos = &root->root_node;
+	else
+		pos = (old == pa->left) ? &pa->left : &pa->right;
+
+	*pos = new;
+	new->__parent = old->__parent;
+	new->left = old->left;
+	new->right = old->right;
+
+	rb_init(old);
+}

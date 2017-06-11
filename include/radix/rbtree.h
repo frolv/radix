@@ -61,5 +61,6 @@ static __always_inline void rb_link(struct rb_node *node,
 
 void rb_balance(struct rb_root *root, struct rb_node *node);
 void rb_delete(struct rb_root *root, struct rb_node *node);
+void rb_replace(struct rb_root *root, struct rb_node *old, struct rb_node *new);
 
 #endif /* RADIX_RBTREE_H */
