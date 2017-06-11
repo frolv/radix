@@ -24,8 +24,7 @@
 #include <rlibc/string.h>
 
 struct vmm_block {
-	addr_t          base;
-	size_t          size;
+	struct vmm_area area;
 	unsigned long   flags;
 	struct list     global_list;
 	struct list     size_list;
@@ -47,6 +46,7 @@ static void vmm_block_init(void *p)
 {
 	struct vmm_block *block = p;
 
+	block->flags = 0;
 	list_init(&block->global_list);
 	list_init(&block->size_list);
 	rb_init(&block->size_node);
@@ -69,9 +69,9 @@ static void vmm_size_tree_insert(struct rb_root *tree, struct vmm_block *block)
 		curr = rb_entry(*pos, struct vmm_block, size_node);
 		parent = *pos;
 
-		if (block->size < curr->size) {
+		if (block->area.size < curr->area.size) {
 			pos = &(*pos)->left;
-		} else if (block->size > curr->size) {
+		} else if (block->area.size > curr->area.size) {
 			pos = &(*pos)->right;
 		} else {
 			list_ins(&curr->size_list, &block->size_list);
@@ -99,9 +99,9 @@ static void vmm_addr_tree_insert(struct rb_root *tree, struct vmm_block *block)
 		curr = rb_entry(*pos, struct vmm_block, addr_node);
 		parent = *pos;
 
-		if (block->base < curr->base)
+		if (block->area.base < curr->area.base)
 			pos = &(*pos)->left;
-		else if (block->base > curr->base)
+		else if (block->area.base > curr->area.base)
 			pos = &(*pos)->right;
 		else
 			return;
@@ -146,8 +146,8 @@ void vmm_init(void)
 		panic("failed to allocate intial vmm_block: %s\n",
 		      strerror(ERR_VAL(first)));
 
-	first->base = RESERVED_VIRT_BASE;
-	first->size = RESERVED_SIZE;
+	first->area.base = RESERVED_VIRT_BASE;
+	first->area.size = RESERVED_SIZE;
 	first->flags = 0;
 
 	list_add(&vmm_kernel.block_list, &first->global_list);
@@ -169,12 +169,12 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 	struct vmm_block *new;
 	size_t new_size, end;
 
-	new_size = base - block->base;
-	end = block->base + block->size;
+	new_size = base - block->area.base;
+	end = block->area.base + block->area.size;
 
-	/* create a new block [block->base, base) */
+	/* create a new block [block->area.base, base) */
 	if (new_size) {
-		block->size = new_size;
+		block->area.size = new_size;
 		rb_delete(&s->size_tree, &block->size_node);
 		vmm_size_tree_insert(&s->size_tree, block);
 
@@ -182,28 +182,26 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 		if (IS_ERR(new))
 			return new;
 
-		new->base = base;
-		new->size = size;
-		new->flags = 0;
+		new->area.base = base;
+		new->area.size = size;
 		list_add(&block->global_list, &new->global_list);
 		block = new;
-	} else if (size != block->size) {
-		/* base == block->base */
-		block->size = size;
+	} else if (size != block->area.size) {
+		/* base == block->area.base */
+		block->area.size = size;
 		vmm_tree_delete(s, block);
 	}
 
-	new_size = end - (block->base + block->size);
+	new_size = end - (block->area.base + block->area.size);
 
-	/* create a new block [block->base + block->size, end) */
+	/* create a new block [block->area.base + block->area.size, end) */
 	if (new_size) {
 		new = alloc_cache(vmm_block_cache);
 		if (IS_ERR(new))
 			return new;
 
-		new->base = block->base + block->size;
-		new->size = new_size;
-		new->flags = 0;
+		new->area.base = block->area.base + block->area.size;
+		new->area.size = new_size;
 		list_add(&block->global_list, &new->global_list);
 		vmm_tree_insert(s, new);
 	}

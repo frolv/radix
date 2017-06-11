@@ -23,6 +23,12 @@
 #include <radix/list.h>
 #include <radix/mm_types.h>
 #include <radix/rbtree.h>
+#include <radix/types.h>
+
+struct vmm_area {
+	addr_t base;
+	size_t size;
+};
 
 struct vmm_structures {
 	struct list    block_list;
