@@ -21,6 +21,9 @@
 
 #include <radix/types.h>
 
+#define IDT_ENTRIES 256
+
+void idt_init_early(void);
 void idt_set(size_t intno, uintptr_t intfn, uint16_t sel, uint8_t flags);
 
 #endif /* ARCH_I386_IDT_H */

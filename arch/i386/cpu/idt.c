@@ -18,12 +18,15 @@
 
 #include <radix/bootmsg.h>
 #include <radix/irq.h>
+#include <radix/percpu.h>
 
 #include "idt.h"
 #include "isr.h"
 
-/* Interrupt Descriptor Table */
-static uint64_t idt[256];
+DEFINE_PER_CPU(uint64_t, idt[IDT_ENTRIES]);
+
+/* Empty IDT used in early boot process */
+static uint64_t null_idt[IDT_ENTRIES];
 
 extern void idt_load(void *base, size_t s);
 
@@ -43,4 +46,9 @@ void idt_set(size_t intno, uintptr_t intfn, uint16_t sel, uint8_t flags)
 	idt[intno] <<= 32;
 	idt[intno] |= (uint32_t)sel << 16;
 	idt[intno] |= intfn & 0x0000FFFF;
+}
+
+void idt_init_early(void)
+{
+	idt_load(null_idt, sizeof null_idt);
 }
