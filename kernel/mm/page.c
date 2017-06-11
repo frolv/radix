@@ -79,10 +79,10 @@ void buddy_init(struct multiboot_info *mbt)
 
 	/*
 	 * The regular zone is the memory that is set aside for kernel usage.
-	 * It extends from the end of the DMA zone up to 1/4 of total memory,
-	 * or a maximum of 1 GiB.
+	 * It extends from the end of the DMA zone up to 1/8 of total memory,
+	 * or a maximum of 256 MiB.
 	 */
-	zone_reg_end = memsize / 4;
+	zone_reg_end = memsize / 8;
 	if (zone_reg_end < MIB(20))
 		zone_reg_end = memsize > MIB(16) ? MIB(20) : 0;
 	else if (zone_reg_end > RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE)
