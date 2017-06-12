@@ -28,10 +28,6 @@
 #include "isr.h"
 #include "pic.h"
 
-#define NUM_ISR_VECTORS 256
-#define NUM_EXCEPTIONS  32
-#define IRQ_BASE        0x20
-
 static void (*isr_vectors[])(void) = {
 	isr_0, isr_1, isr_2, isr_3, isr_4, isr_5, isr_6, isr_7,
 	isr_8, isr_9, isr_10, isr_11, isr_12, isr_13, isr_14, isr_15,
@@ -83,12 +79,8 @@ void load_interrupt_routines(void)
 	for (i = 0; i < NUM_ISR_VECTORS; ++i)
 		idt_set(i, (uintptr_t)isr_vectors[i], 0x08, 0x8E);
 
-	/* remap IRQs to vectors 0x20 through 0x2F */
-	pic_remap(IRQ_BASE, IRQ_BASE + 8);
-
 	if (cpu_supports(CPUID_APIC | CPUID_MSR) && apic_parse_madt() == 0) {
 		/* APIC is available; use it. */
-		pic_disable();
 		apic_init();
 	}
 }
