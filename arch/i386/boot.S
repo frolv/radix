@@ -129,6 +129,7 @@ higher_half_start:
 
 	# Initialize basic structures for the bootstrap processor.
 	call bsp_init
+	sti
 
 	# Intitialize the TTY.
 	call tty_init
