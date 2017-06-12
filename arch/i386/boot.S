@@ -127,37 +127,11 @@ higher_half_start:
 	# Call global constructors.
 	call _init
 
-	# Find out information about the CPU.
-	call read_cpu_info
+	# Initialize basic structures for the bootstrap processor.
+	call bsp_init
 
-	# Check if the CPU supports global pages and enable them if so.
-	# Note: this constant is CPUID_PGE defined in cpu.h.
-	pushl $0x00000000
-	pushl $0x00002000
-	call cpu_supports
-	addl $8, %esp
-
-	test %eax, %eax
-	jz no_pge
-
-	# Enable global pages in CR4.
-	movl %cr4, %eax
-	orl $0x00000080, %eax
-	movl %eax, %cr4
-
-no_pge:
 	# Intitialize the TTY.
 	call tty_init
-
-# Load the global descriptor table.
-load_gdt:
-	call gdt_init
-
-	# Print a message indicating successful GDT load.
-	pushl len_gdt_msg
-	pushl $gdt_msg
-	call tty_write
-	addl $8, %esp
 
 kernel_start:
 	# ebx contains the physical address of the multiboot_info
@@ -175,10 +149,3 @@ kernel_start:
 
 # set the size of _start symbol to the current location '.' minus its start
 .size _start, . - _start
-
-.section .data
-.align 4
-gdt_msg:
-	.ascii "[ \x1b[1;32mOK\x1b[37m ] GDT loaded\n"
-len_gdt_msg:
-	.long . - gdt_msg

@@ -22,6 +22,9 @@
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
+#include "gdt.h"
+#include "idt.h"
+
 static long cpuid_max;
 
 /* CPU vendor string */
@@ -991,4 +994,14 @@ char *i386_cache_str(void)
 	}
 
 	return cache_info_buf;
+}
+
+void bsp_init(void)
+{
+	gdt_init();
+	idt_init_early();
+	read_cpu_info();
+
+	if (cpu_supports(CPUID_PGE))
+		cpu_modify_cr4(0, CR4_PGE);
 }
