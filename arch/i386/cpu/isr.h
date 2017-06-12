@@ -19,6 +19,43 @@
 #ifndef ARCH_I386_ISR_H
 #define ARCH_I386_ISR_H
 
+#define NUM_ISR_VECTORS 256
+#define NUM_EXCEPTIONS  32
+#define IRQ_BASE        0x20
+
+void early_isr_0(void);
+void early_isr_1(void);
+void early_isr_2(void);
+void early_isr_3(void);
+void early_isr_4(void);
+void early_isr_5(void);
+void early_isr_6(void);
+void early_isr_7(void);
+void early_isr_8(void);
+void early_isr_9(void);
+void early_isr_10(void);
+void early_isr_11(void);
+void early_isr_12(void);
+void early_isr_13(void);
+void early_isr_14(void);
+void early_isr_15(void);
+void early_isr_16(void);
+void early_isr_17(void);
+void early_isr_18(void);
+void early_isr_19(void);
+void early_isr_20(void);
+void early_isr_21(void);
+void early_isr_22(void);
+void early_isr_23(void);
+void early_isr_24(void);
+void early_isr_25(void);
+void early_isr_26(void);
+void early_isr_27(void);
+void early_isr_28(void);
+void early_isr_29(void);
+void early_isr_30(void);
+void early_isr_31(void);
+
 void isr_0(void);
 void isr_1(void);
 void isr_2(void);
