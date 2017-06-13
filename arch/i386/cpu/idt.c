@@ -16,7 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/bootmsg.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/percpu.h>
@@ -25,10 +24,7 @@
 #include "isr.h"
 #include "pic.h"
 
-DEFINE_PER_CPU(uint64_t, idt[IDT_ENTRIES]);
-
-/* IDT used in early boot process */
-static uint64_t early_idt[NUM_EXCEPTIONS];
+static uint64_t idt[IDT_ENTRIES];
 
 static void (*early_isr_fn[])(void) = {
 	early_isr_0, early_isr_1, early_isr_2, early_isr_3,
@@ -46,8 +42,6 @@ extern void idt_load(void *base, size_t s);
 void idt_init(void)
 {
 	load_interrupt_routines();
-	idt_load(idt, sizeof idt);
-	BOOT_OK_MSG("IDT loaded\n");
 }
 
 static uint64_t idt_pack(uintptr_t intfn, uint16_t sel, uint8_t flags)
@@ -80,10 +74,10 @@ void idt_init_early(void)
 	size_t i;
 
 	for (i = 0; i < ARRAY_SIZE(early_isr_fn); ++i)
-		early_idt[i] = idt_pack((uintptr_t)early_isr_fn[i], 0x08, 0x8E);
+		idt[i] = idt_pack((uintptr_t)early_isr_fn[i], 0x08, 0x8E);
 
 	pic_remap(IRQ_BASE, IRQ_BASE + 8);
 	pic_disable();
 
-	idt_load(early_idt, sizeof early_idt);
+	idt_load(idt, sizeof idt);
 }
