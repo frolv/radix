@@ -22,9 +22,9 @@
 #include <rlibc/stdio.h>
 
 #define BOOT_OK_MSG(msg, ...) \
-	printf("[ \x1B[1;32mOK\x1B[37m ] " msg, ##__VA_ARGS__)
+	printf("[  \x1B[1;32mOK\x1B[37m  ] " msg, ##__VA_ARGS__)
 
 #define BOOT_FAIL_MSG(msg, ...) \
-	printf("[ \x1B[1;34mFAILED\x1B[37m ] " msg, ##__VA_ARGS__)
+	printf("[ \x1B[1;34mFAIL\x1B[37m ] " msg, ##__VA_ARGS__)
 
 #endif /* RADIX_BOOTMSG_H */
