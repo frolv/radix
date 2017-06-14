@@ -998,7 +998,7 @@ char *i386_cache_str(void)
 
 void bsp_init(void)
 {
-	gdt_init();
+	gdt_init_early();
 	idt_init_early();
 	read_cpu_info();
 

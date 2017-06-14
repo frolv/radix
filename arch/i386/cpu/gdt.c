@@ -16,22 +16,64 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/percpu.h>
 #include <rlibc/string.h>
 
 #include "gdt.h"
 
-/* Global Descriptor Table */
-static uint64_t gdt[8];
-
-/* Task State Segment */
-static uint32_t tss[26];
+DEFINE_PER_CPU(uint64_t, gdt[8]);
+DEFINE_PER_CPU(uint32_t, tss[26]);
 
 extern void gdt_load(void *base, size_t s);
 extern void tss_load(uintptr_t gdt_offset);
 
 static void tss_init(uint32_t esp0, uint32_t ss0);
 static void gdt_set(size_t entry, uint32_t base, uint32_t lim,
-                    int8_t access, uint8_t flags);
+                    uint8_t access, uint8_t flags);
+
+/*
+ * gdt_entry:
+ * Compress given values into a GDT descriptor.
+ */
+static uint64_t gdt_entry(uint32_t base, uint32_t lim,
+                          int8_t access, uint8_t flags)
+{
+	uint64_t ret;
+
+	/* top half of entry */
+	ret = lim & 0x000F0000;
+	ret |= ((uint32_t)flags << 20) & 0x00F00000;
+	ret |= ((uint16_t)access << 8) & 0x0000FF00;
+	ret |= (base >> 16) & 0x000000FF;
+	ret |= base & 0xFF000000;
+
+	/* bottom half of entry */
+	ret <<= 32;
+	ret |= lim & 0x0000FFFF;
+	ret |= base << 16;
+
+	return ret;
+}
+
+void gdt_init_early(void)
+{
+	uintptr_t tss_base;
+
+	tss_base = (uintptr_t)tss;
+	tss_init(0x0, 0x10);
+
+	gdt[GDT_NULL] = gdt_entry(0, 0, 0, 0);
+	gdt[GDT_KERNEL_CODE] = gdt_entry(0, 0xFFFFFFFF, 0x9A, 0x0C);
+	gdt[GDT_KERNEL_DATA] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
+	gdt[GDT_USER_CODE] = gdt_entry(0, 0xFFFFFFFF, 0xFA, 0x0C);
+	gdt[GDT_USER_DATA] = gdt_entry(0, 0xFFFFFFFF, 0xF2, 0x0C);
+	gdt[GDT_TSS] = gdt_entry(tss_base, tss_base + sizeof tss, 0x89, 0x04);
+	gdt[GDT_FS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
+	gdt[GDT_GS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
+
+	gdt_load(gdt, sizeof gdt);
+	tss_load(GDT_OFFSET(GDT_TSS));
+}
 
 /* gdt_init: populate the global descriptor table */
 void gdt_init(void)
@@ -51,7 +93,7 @@ void gdt_init(void)
 	gdt_set(GDT_GS, 0, 0xFFFFFFFF, 0x92, 0x0C);
 
 	gdt_load(gdt, sizeof gdt);
-	tss_load(0x28);
+	tss_load(GDT_OFFSET(GDT_TSS));
 }
 
 void gdt_set_fsbase(uint32_t base)
@@ -86,17 +128,7 @@ static void tss_init(uint32_t esp0, uint32_t ss0)
 
 /* gdt_set: create an entry in the global descriptor table */
 static void gdt_set(size_t entry, uint32_t base, uint32_t lim,
-                    int8_t access, uint8_t flags)
+                    uint8_t access, uint8_t flags)
 {
-	/* top half of entry */
-	gdt[entry] = lim & 0x000F0000;
-	gdt[entry] |= ((uint32_t)flags << 20) & 0x00F00000;
-	gdt[entry] |= ((uint16_t)access << 8) & 0xFF00;
-	gdt[entry] |= (base >> 16) & 0x000000FF;
-	gdt[entry] |= base & 0xFF000000;
-
-	/* bottom half of entry */
-	gdt[entry] <<= 32;
-	gdt[entry] |= lim & 0x0000FFFF;
-	gdt[entry] |= base << 16;
+	gdt[entry] = gdt_entry(base, lim, access, flags);
 }
