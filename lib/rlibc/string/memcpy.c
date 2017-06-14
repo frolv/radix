@@ -18,6 +18,7 @@
 
 #include <rlibc/string.h>
 
+#ifndef __ARCH_HAS_MEMCPY
 void *memcpy(void *__restrict dst, const void *__restrict src, size_t n)
 {
 	unsigned char *d = dst;
@@ -28,3 +29,4 @@ void *memcpy(void *__restrict dst, const void *__restrict src, size_t n)
 
 	return dst;
 }
+#endif /* !__ARCH_HAS_MEMCPY */

@@ -22,9 +22,17 @@
 #include <radix/types.h>
 #include <rlibc/asm/string.h>
 
+#ifndef __ARCH_HAS_MEMCMP
 int memcmp(const void *s1, const void *s2, size_t n);
+#endif
+
+#ifndef __ARCH_HAS_MEMCPY
 void *memcpy(void *__restrict dst, const void *__restrict src, size_t n);
+#endif
+
+#ifndef __ARCH_HAS_MEMMOVE
 void *memmove(void *dst, const void *src, size_t n);
+#endif
 
 #ifndef __ARCH_HAS_MEMSET
 void *memset(void *s, int c, size_t n);

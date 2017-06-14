@@ -39,4 +39,24 @@ static __always_inline void *memset(void *s, int c, size_t n)
 	return s;
 }
 
+#define __ARCH_HAS_MEMCPY
+static __always_inline void *memcpy(void *dst, const void *src, size_t n)
+{
+	int a, b, c;
+
+	asm volatile("rep\n\t"
+	             "movsl\n\t"
+	             "movl %4, %%ecx\n\t"
+	             "andl $3, %%ecx\n\t"
+	             "jz 1f\n\t"
+	             "rep\n\t"
+	             "movsb\n\t"
+	             "1:"
+	             : "=&c"(a), "=&D"(b), "=&S"(c)
+	             : "0"(n / sizeof (long)), "g"(n), "1"(dst), "2"(src)
+	             : "memory");
+
+	return dst;
+}
+
 #endif /* ARCH_I386_RLIBC_STRING_H */
