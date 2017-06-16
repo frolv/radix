@@ -19,14 +19,47 @@
 #ifndef RLIBC_CTYPE_H
 #define RLIBC_CTYPE_H
 
-int isalnum(int c);
-int isalpha(int c);
-int isdigit(int c);
-int isspace(int c);
-int islower(int c);
-int isupper(int c);
+#include <radix/compiler.h>
 
-int tolower(int c);
-int toupper(int c);
+static __always_inline int isspace(int c)
+{
+	return c == ' ' || c == '\n' || c == '\t'
+	    || c == '\v' || c == '\f' || c == '\r';
+}
+
+static __always_inline int isupper(int c)
+{
+	return c >= 'A' && c <= 'Z';
+}
+
+static __always_inline int islower(int c)
+{
+	return c >= 'a' && c <= 'z';
+}
+
+static __always_inline int isdigit(int c)
+{
+	return c >= '0' && c <= '9';
+}
+
+static __always_inline int isalpha(int c)
+{
+	return islower(c) || isupper(c);
+}
+
+static __always_inline int isalnum(int c)
+{
+	return isalpha(c) || isdigit(c);
+}
+
+static __always_inline int tolower(int c)
+{
+	return isupper(c) ? c ^ (1 << 5) : c;
+}
+
+static __always_inline int toupper(int c)
+{
+	return islower(c) ? c ^ (1 << 5) : c;
+}
 
 #endif /* RLIBC_CTYPE_H */
