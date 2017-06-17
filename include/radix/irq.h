@@ -20,6 +20,7 @@
 #define RADIX_IRQ_H
 
 #include <radix/asm/irq.h>
+#include <radix/compiler.h>
 
 #define SYSCALL_INTERRUPT 0x80
 
@@ -31,8 +32,19 @@
 #define irq_init        __arch_irq_init
 #define in_irq          __arch_in_irq
 #define irq_active      __arch_irq_active
-#define irq_disable     __arch_irq_disable
-#define irq_enable      __arch_irq_enable
+
+#define irq_disable()                   \
+	do {                            \
+		barrier();              \
+		__arch_irq_disable();   \
+	} while (0)
+
+#define irq_enable()                    \
+	do {                            \
+		barrier();              \
+		__arch_irq_enable();    \
+	} while (0)
+
 #define irq_install     __arch_irq_install
 #define irq_uninstall   __arch_irq_uninstall
 

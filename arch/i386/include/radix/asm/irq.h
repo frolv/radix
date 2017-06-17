@@ -31,8 +31,8 @@
 #define __arch_irq_init         idt_init
 #define __arch_in_irq           in_interrupt
 #define __arch_irq_active       interrupts_active
-#define __arch_irq_disable      interrupt_disable
-#define __arch_irq_enable       interrupt_enable
+#define __arch_irq_disable()    interrupt_disable()
+#define __arch_irq_enable()     interrupt_enable()
 #define __arch_irq_install      install_interrupt_handler
 #define __arch_irq_uninstall    uninstall_interrupt_handler
 
