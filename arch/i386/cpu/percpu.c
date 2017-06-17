@@ -1,5 +1,5 @@
 /*
- * include/radix/percpu.h
+ * arch/i386/cpu/percpu.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_PERCPU_H
-#define RADIX_PERCPU_H
+#include <radix/percpu.h>
 
-#include <radix/asm/percpu.h>
-
-void percpu_sections_init(void);
-
-#endif /* RADIX_PERCPU_H */
+DEFINE_PER_CPU(unsigned long, __this_cpu_offset);

@@ -21,9 +21,13 @@
 
 #define __ARCH_PER_CPU_SECTION ".percpu_data"
 #define __ARCH_PER_CPU_SEGMENT "fs"
+#define __ARCH_PER_CPU_REG     "%%" __ARCH_PER_CPU_SEGMENT
 
 #define __percpu_arg(num) \
-	"%%" __ARCH_PER_CPU_SEGMENT ":%" #num
+	__ARCH_PER_CPU_REG ":%" #num
+
+#define __arch_this_cpu_offset() \
+	__percpu_from_op("movl", __this_cpu_offset)
 
 #define this_cpu_read_1(var)            __percpu_from_op("movb", var)
 #define this_cpu_read_2(var)            __percpu_from_op("movw", var)
@@ -33,20 +37,24 @@
 #define this_cpu_write_2(var, val)      __percpu_to_op("movw", var, val)
 #define this_cpu_write_4(var, val)      __percpu_to_op("movl", var, val)
 
-#define __percpu_from_op(op, var) \
-({ \
-	typeof(var) __pfo_ret; \
-	asm(op " " __percpu_arg(1) ", %0" \
-	    : "=q"(__pfo_ret) \
-	    : "m"(var)); \
-	__pfo_ret; \
+#define __percpu_from_op(op, var)               \
+({                                              \
+	typeof(var) __pfo_ret;                  \
+	asm(op " " __percpu_arg(1) ", %0"	\
+	    : "=q"(__pfo_ret)                   \
+	    : "m"(var));                        \
+	__pfo_ret;                              \
 })
 
-#define __percpu_to_op(op, var, val) \
-	do { \
-		asm(op " %1, " __percpu_arg(0) \
-		    : "+m"(var) \
-		    : "ri"(val)); \
+#define __percpu_to_op(op, var, val)            \
+	do {                                    \
+		asm(op " %1, " __percpu_arg(0)  \
+		    : "+m"(var)                 \
+		    : "ri"(val));               \
 	} while (0)
+
+#include <radix/percpu_defs.h>
+
+DECLARE_PER_CPU(unsigned long, __this_cpu_offset);
 
 #endif /* ARCH_I386_RADIX_PERCPU_H */
