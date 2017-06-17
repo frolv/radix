@@ -43,10 +43,10 @@
 })
 
 #define __percpu_to_op(op, var, val) \
-({ \
-	asm(op " %1, " __percpu_arg(0) \
-	    : "+m"(var) \
-	    : "ri"(val)); \
-})
+	do { \
+		asm(op " %1, " __percpu_arg(0) \
+		    : "+m"(var) \
+		    : "ri"(val)); \
+	} while (0)
 
 #endif /* ARCH_I386_RADIX_PERCPU_H */
