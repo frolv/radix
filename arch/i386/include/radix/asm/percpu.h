@@ -20,5 +20,33 @@
 #define ARCH_I386_RADIX_PERCPU_H
 
 #define __ARCH_PER_CPU_SECTION ".percpu_data"
+#define __ARCH_PER_CPU_SEGMENT "fs"
+
+#define __percpu_arg(num) \
+	"%%" __ARCH_PER_CPU_SEGMENT ":%" #num
+
+#define this_cpu_read_1(var)            __percpu_from_op("movb", var)
+#define this_cpu_read_2(var)            __percpu_from_op("movw", var)
+#define this_cpu_read_4(var)            __percpu_from_op("movl", var)
+
+#define this_cpu_write_1(var, val)       __percpu_to_op("movb", var, val)
+#define this_cpu_write_2(var, val)       __percpu_to_op("movw", var, val)
+#define this_cpu_write_4(var, val)       __percpu_to_op("movl", var, val)
+
+#define __percpu_from_op(op, var) \
+({ \
+	typeof(var) __pfo_ret; \
+	asm(op " " __percpu_arg(1) ", %0" \
+	    : "=q"(__pfo_ret) \
+	    : "m"(var)); \
+	__pfo_ret; \
+})
+
+#define __percpu_to_op(op, var, val) \
+({ \
+	asm(op " %1, " __percpu_arg(0) \
+	    : "+m"(var) \
+	    : "ri"(val)); \
+})
 
 #endif /* ARCH_I386_RADIX_PERCPU_H */
