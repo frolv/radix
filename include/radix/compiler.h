@@ -38,4 +38,6 @@
 
 #define is_immediate(exp) (__builtin_constant_p(exp))
 
+#define barrier() asm volatile("" : : : "memory")
+
 #endif /* RADIX_COMPILER_H */
