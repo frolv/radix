@@ -54,13 +54,11 @@ static __always_inline unsigned long cpuid_supported(void)
 
 #define __modify_control_register(cr, clear, set)               \
 	asm volatile("movl %%" cr ", %%eax\n\t"                 \
-	             "movl %0, %%edx\n\t"                       \
-	             "notl %%edx\n\t"                           \
-	             "andl %%edx, %%eax\n\t"                    \
+	             "andl %0, %%eax\n\t"                       \
 	             "orl %1, %%eax\n\t"                        \
 	             "movl %%eax, %%" cr                        \
 	             :                                          \
-	             : "r"(clear), "r"(set)                     \
+	             : "r"(~clear), "r"(set)                    \
 	             : "%eax", "%edx")
 
 #define cpu_modify_cr0(clear, set) \
