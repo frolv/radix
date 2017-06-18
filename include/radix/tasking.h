@@ -1,5 +1,5 @@
 /*
- * include/radix/kthread.h
+ * include/radix/tasking.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,22 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_KTHREAD_H
-#define RADIX_KTHREAD_H
+#ifndef RADIX_TASKING_H
+#define RADIX_TASKING_H
 
 #include <radix/task.h>
 
-#define KTHREAD_NAME_LEN 0x40
+void tasking_init(void);
+struct task *kthread_task(void);
+void task_free(struct task *task);
 
-struct task *kthread_create(void (*func)(void *), void *arg,
-                            int page_order, char *name, ...);
+void switch_to_task(struct task *task);
 
-struct task *kthread_run(void (*func)(void *), void *arg,
-                         int page_order, char *name, ...);
-
-void kthread_start(struct task *thread);
-void kthread_stop(struct task *thread);
-
-__noreturn void kthread_exit(void);
-
-#endif /* RADIX_KTHREAD_H */
+#endif /* RADIX_TASKING_H */

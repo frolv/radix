@@ -21,7 +21,7 @@
 #include <radix/kthread.h>
 #include <radix/sched.h>
 #include <radix/slab.h>
-#include <radix/task.h>
+#include <radix/tasking.h>
 
 #include <rlibc/string.h>
 

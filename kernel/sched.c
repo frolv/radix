@@ -18,7 +18,7 @@
 
 #include <radix/irq.h>
 #include <radix/sched.h>
-#include <radix/task.h>
+#include <radix/tasking.h>
 
 DEFINE_PER_CPU(struct task *, current_task) = NULL;
 

@@ -18,11 +18,13 @@
 
 #include <acpi/acpi.h>
 
+#include <radix/bootmsg.h>
 #include <radix/irq.h>
+#include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/multiboot.h>
-#include <radix/kernel.h>
-#include <radix/task.h>
+#include <radix/tasking.h>
+#include <radix/vmm.h>
 
 #include "mm/slab.h"
 
@@ -33,19 +35,17 @@ int kmain(struct multiboot_info *mbt)
 
 	buddy_init(mbt);
 	slab_init();
+	vmm_init();
+
 	acpi_init();
 	irq_init();
 
 	tasking_init();
 	irq_enable();
 
-	/* TEMP: until modules are implemented (so a while) */
 	extern void kbd_install(void);
 	kbd_install();
-	printf("\nWelcome to RADIX\n");
-
-	while (1)
-		;
+	printf("\nWelcome to radix\n");
 
 	return 0;
 }

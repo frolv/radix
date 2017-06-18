@@ -20,6 +20,7 @@
 #include <radix/irq.h>
 #include <radix/mutex.h>
 #include <radix/sched.h>
+#include <radix/tasking.h>
 
 void mutex_init(struct mutex *m)
 {
