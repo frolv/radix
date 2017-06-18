@@ -51,7 +51,6 @@ all: kernel
 
 kernel: libk drivers $(KERNEL_NAME)
 
-.PHONY: $(KERNEL_NAME)
 $(KERNEL_NAME): $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
 		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
