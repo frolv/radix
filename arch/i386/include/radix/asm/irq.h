@@ -36,7 +36,7 @@
 #define __arch_irq_install      install_interrupt_handler
 #define __arch_irq_uninstall    uninstall_interrupt_handler
 
-#include <radix/regs.h>
+#include <radix/asm/regs.h>
 
 void idt_init(void);
 int in_interrupt(void);

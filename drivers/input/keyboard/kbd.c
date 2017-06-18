@@ -16,9 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/regs.h>
 #include <radix/io.h>
 #include <radix/irq.h>
-#include <radix/regs.h>
 
 void kbd_handler(struct regs *r)
 {

@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/regs.h>
 #include <radix/io.h>
 #include <radix/irq.h>
 #include <radix/sched.h>
-#include <radix/regs.h>
 #include <radix/types.h>
 
 #include <rlibc/string.h>
