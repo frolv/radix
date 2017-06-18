@@ -23,6 +23,7 @@
 #include <radix/list.h>
 #include <radix/mm_types.h>
 #include <radix/rbtree.h>
+#include <radix/task.h>
 #include <radix/types.h>
 
 struct vmm_area {
@@ -34,6 +35,11 @@ struct vmm_structures {
 	struct list    block_list;
 	struct rb_root addr_tree;
 	struct rb_root size_tree;
+};
+
+struct vmm_data {
+	struct vmm_structures   structures;
+	struct list             vmm_list;
 };
 
 void vmm_init(void);

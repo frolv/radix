@@ -33,19 +33,20 @@ struct vmm_data;
  * the switch_to_task function.
  */
 struct task {
-	int state;
-	int priority;
-	int exit_code;
-	int interrupt_depth;
-	pid_t pid;
-	uid_t uid;
-	gid_t gid;
-	mode_t umask;
-	struct regs regs;
-	struct list queue;
-	void *stack_base;
-	char **cmdline;
-	char *cwd;
+	int             state;
+	int             priority;
+	int             exit_code;
+	int             interrupt_depth;
+	pid_t           pid;
+	uid_t           uid;
+	gid_t           gid;
+	mode_t          umask;
+	struct regs     regs;
+	struct list     queue;
+	struct vmm_data *vmm;
+	void            *stack_base;
+	char            **cmdline;
+	char            *cwd;
 };
 
 enum task_state {
