@@ -67,6 +67,7 @@ void buddy_init(struct multiboot_info *mbt);
 
 /* Page allocation flags */
 #define PA_STANDARD     (__PA_ZONE_REG)
+#define PA_READONLY     (__PA_ZONE_REG | __PA_READONLY)
 #define PA_DMA          (__PA_ZONE_DMA | __PA_NO_MAP)
 #define PA_USER         (__PA_ZONE_USR | __PA_NO_MAP)
 #define PA_PAGETABLE    (__PA_ZONE_REG | __PA_NO_MAP | __PA_ZERO)

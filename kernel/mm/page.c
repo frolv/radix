@@ -175,6 +175,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 {
 	struct page *p;
 	addr_t virt;
+	int prot;
 
 	if (unlikely(ord > zone->max_ord))
 		return ERR_PTR(ENOMEM);
@@ -196,12 +197,16 @@ static struct page *__alloc_pages(struct buddy *zone,
 		/* TODO: fix this check to properly detect kernel/user pages */
 		if (zone == &zone_reg) {
 			virt = phys_to_virt(page_to_phys(p));
-			map_pages_kernel(virt, page_to_phys(p), PROT_WRITE,
+			prot = flags & __PA_READONLY ? PROT_READ : PROT_WRITE;
+			map_pages_kernel(virt, page_to_phys(p), prot,
 			                 PAGE_CP_DEFAULT, pow2(ord));
 		} else {
 			/* TODO: find free virtual address range, map pages */
 			virt = 0;
 		}
+
+		if (flags & __PA_ZERO)
+			memset((void *)virt, 0, pow2(ord) * PAGE_SIZE);
 
 		p->mem = (void *)virt;
 		p->status |= PM_PAGE_MAPPED;
