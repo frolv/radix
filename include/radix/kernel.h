@@ -19,12 +19,6 @@
 #ifndef RADIX_KERNEL_H
 #define RADIX_KERNEL_H
 
-#define HALT()  asm volatile("hlt")
-#define DIE() \
-	do { \
-		HALT(); \
-	} while (1)
-
 #define ALIGN(x, a)             __ALIGN_MASK(x, ((typeof (x))(a) - 1))
 #define __ALIGN_MASK(x, mask)   (((x) + (mask)) & ~(mask))
 #define PTR_ALIGN(p, a)         ((typeof (p))ALIGN((unsigned long)(p), (a)))
@@ -33,28 +27,35 @@
 
 #define FIELD_SIZEOF(t, f)      (sizeof (((t *)0)->f))
 
-#define max(a, b) ({ \
-	typeof(a) _maxa = (a); \
-	typeof(b) _maxb = (b); \
-	_maxa > _maxb ? _maxa : _maxb; })
+#define max(a, b)                       \
+({                                      \
+	typeof(a) _maxa = (a);          \
+	typeof(b) _maxb = (b);          \
+	_maxa > _maxb ? _maxa : _maxb;  \
+})
 
-#define min(a, b) ({ \
-	typeof(a) _mina = (a); \
-	typeof(b) _minb = (b); \
-	_mina > _minb ? _mina : _minb; })
+#define min(a, b)                       \
+({                                      \
+	typeof(a) _mina = (a);          \
+	typeof(b) _minb = (b);          \
+	_mina > _minb ? _mina : _minb;  \
+})
 
-#define swap(a, b) \
-	do { \
-		typeof(a) __tmp = (a); \
-		(a) = (b); \
-		(b) = __tmp; \
-	} while (0)
+#define swap(a, b)                      \
+do {                                    \
+	typeof(a) __tmp = (a);          \
+	(a) = (b);                      \
+	(b) = __tmp;                    \
+} while (0)
 
 #define KIB(n) ((n)    * 1024UL)
 #define MIB(n) (KIB(n) * 1024UL)
 #define GIB(n) (MIB(n) * 1024UL)
 
 #define ARRAY_SIZE(a) (sizeof (a) / sizeof ((a)[0]))
+
+
+#include <radix/asm/halt.h>
 
 void panic(const char *err, ...);
 
