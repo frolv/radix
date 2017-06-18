@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/radix/asm/arch_io.h
+ * arch/i386/include/radix/asm/io.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_RADIX_ASM_IO_H
-#define ARCH_I386_RADIX_ASM_IO_H
+#ifndef ARCH_I386_RADIX_IO_H
+#define ARCH_I386_RADIX_IO_H
+
+#ifndef RADIX_IO_H
+#error only <radix/io.h> can be included directly
+#endif
 
 #include <radix/compiler.h>
 #include <radix/types.h>
@@ -76,4 +80,4 @@ static __always_inline void x86_io_wait(void)
 	asm volatile("outb %%al, $0x80" : : "a"(0));
 }
 
-#endif /* ARCH_I386_RADIX_ASM_IO_H */
+#endif /* ARCH_I386_RADIX_IO_H */

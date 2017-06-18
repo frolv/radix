@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_ASM_IO_H
-#define RADIX_ASM_IO_H
+#ifndef RADIX_IO_H
+#define RADIX_IO_H
 
-#include <radix/asm/arch_io.h>
+#include <radix/asm/io.h>
 
 #define outb __arch_outb
 #define outw __arch_outw
@@ -31,4 +31,4 @@
 
 #define io_wait __arch_io_wait
 
-#endif /* RADIX_ASM_IO_H */
+#endif /* RADIX_IO_H */

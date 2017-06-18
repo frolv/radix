@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/asm/io.h>
+#include <radix/io.h>
 #include <radix/irq.h>
 #include <radix/sched.h>
 #include <radix/regs.h>
