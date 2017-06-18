@@ -68,4 +68,6 @@ do {                                            \
 
 DECLARE_PER_CPU(unsigned long, __this_cpu_offset);
 
+void arch_percpu_init_early(void);
+
 #endif /* ARCH_I386_RADIX_PERCPU_H */

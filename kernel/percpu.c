@@ -1,5 +1,5 @@
 /*
- * include/radix/percpu.h
+ * kernel/percpu.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_PERCPU_H
-#define RADIX_PERCPU_H
+#include <radix/bits.h>
+#include <radix/cpu.h>
+#include <radix/kernel.h>
+#include <radix/mm.h>
+#include <radix/percpu.h>
+#include <radix/slab.h>
 
-#include <radix/asm/percpu.h>
+#include <rlibc/string.h>
 
-void percpu_init_early(void);
-void percpu_sections_init(void);
+extern int __percpu_start;
+extern int __percpu_end;
 
-#endif /* RADIX_PERCPU_H */
+static addr_t percpu_start = (addr_t)&__percpu_start;
+static addr_t percpu_end = (addr_t)&__percpu_end;
+
+addr_t __percpu_offset[MAX_CPUS];
+
+void percpu_init_early(void)
+{
+	memset(__percpu_offset, 0, sizeof __percpu_offset);
+	arch_percpu_init_early();
+}
