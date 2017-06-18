@@ -46,6 +46,7 @@
 
 
 uint64_t totalmem(void);
+uint64_t usedmem(void);
 
 void buddy_init(struct multiboot_info *mbt);
 

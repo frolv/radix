@@ -35,6 +35,7 @@ static struct buddy zone_usr;
 
 /* total amount of usable memory in the system */
 static uint64_t memsize = 0;
+static uint64_t memused = 0;
 
 static uint64_t zone_reg_end = 0;
 
@@ -46,6 +47,11 @@ static void buddy_populate(void);
 uint64_t totalmem(void)
 {
 	return memsize;
+}
+
+uint64_t usedmem(void)
+{
+	return memused;
 }
 
 void buddy_init(struct multiboot_info *mbt)
@@ -158,6 +164,7 @@ void free_pages(struct page *p)
 
 	ord = PM_PAGE_BLOCK_ORDER(p);
 	zone->alloc_pages -= pow2(ord);
+	memused -= pow2(ord) * PAGE_SIZE;
 
 	if (ord < PM_PAGE_MAX_ORDER(p)) {
 		p = buddy_coalesce(zone, p);
@@ -192,6 +199,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 			zone->max_ord--;
 	}
 	zone->alloc_pages += pow2(ord);
+	memused += pow2(ord) * PAGE_SIZE;
 
 	if (!(flags & __PA_NO_MAP) && !(p->status & PM_PAGE_MAPPED)) {
 		/* TODO: fix this check to properly detect kernel/user pages */
@@ -516,11 +524,15 @@ static size_t zone_init(size_t pfn, size_t section_end,
 		}
 
 		/* ignore invalid pages */
-		if (zone && !(page_map[pfn].status & PM_PAGE_INVALID)) {
-			list_add(&zone->ord[ord], &page_map[pfn].list);
-			zone->len[ord]++;
-			zone->max_ord = max(ord, zone->max_ord);
-			zone->total_pages += pow2(ord);
+		if (!(page_map[pfn].status & PM_PAGE_INVALID)) {
+			if (zone) {
+				list_add(&zone->ord[ord], &page_map[pfn].list);
+				zone->len[ord]++;
+				zone->max_ord = max(ord, zone->max_ord);
+				zone->total_pages += pow2(ord);
+			}
+			if (flags & PM_PAGE_RESERVED)
+				memused += pow2(ord) * PAGE_SIZE;
 		}
 		start = pfn;
 		for (; pfn < end; ++pfn) {
