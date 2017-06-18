@@ -32,9 +32,11 @@
 
 #define offsetof(type, member) __builtin_offsetof(type, member)
 
-#define container_of(ptr, type, member) \
-	({ const typeof(((type *)0)->member) *__ptr = (ptr); \
-	(type *)((char *)__ptr - offsetof(type, member)); })
+#define container_of(ptr, type, member)                         \
+({                                                              \
+	const typeof(((type *)0)->member) *__ptr = (ptr);       \
+	(type *)((char *)__ptr - offsetof(type, member));       \
+})
 
 #define is_immediate(exp) (__builtin_constant_p(exp))
 

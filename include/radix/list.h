@@ -84,17 +84,19 @@ static __always_inline int list_empty(struct list *head)
 	list_entry((head)->next, type, member);
 
 #define list_for_each(pos, head) \
-	for (pos = (head)->next; pos != (head); pos = pos->next)
+	for ((pos) = (head)->next; (pos) != (head); (pos) = (pos)->next)
 
 #define list_for_each_r(pos, head) \
-	for (pos = (head)->prev; pos != (head); pos = pos->prev)
+	for ((pos) = (head)->prev; (pos) != (head); (pos) = (pos)->prev)
 
-#define list_for_each_safe(pos, n, head) \
-	for (pos = (head)->next, n = pos->next; pos != (head); \
-			pos = n, n = pos->next)
+#define list_for_each_safe(pos, n, head)                        \
+	for ((pos) = (head)->next, (n) = (pos)->next;           \
+	     (pos) != (head);                                   \
+	     (pos) = (n), (n) = (pos)->next)
 
-#define list_for_each_safe_r(pos, n, head) \
-	for (pos = (head)->prev, n = pos->prev; pos != (head); \
-			pos = n, n = pos->prev)
+#define list_for_each_safe_r(pos, n, head)                      \
+	for ((pos) = (head)->prev, (n) = (pos)->prev;           \
+	     (pos) != (head);                                   \
+	     (pos) = (n), (n) = (pos)->prev)
 
 #endif /* RADIX_LIST_H */

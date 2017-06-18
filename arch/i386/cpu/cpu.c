@@ -953,10 +953,10 @@ static char *print_tlb(char *pos)
 	return pos;
 }
 
-#define assoc_char(a) \
-	(((a) == CACHE_TYPE_DATA) \
-		? 'd' \
-		: ((a) == CACHE_TYPE_INSTRUCTION ? 'i' : 'u'))
+#define assoc_char(a)                                   \
+	(((a) == CACHE_TYPE_DATA)        ? 'd' :        \
+	 ((a) == CACHE_TYPE_INSTRUCTION) ? 'i' :        \
+	 'u')
 
 static char *print_caches(char *pos)
 {
