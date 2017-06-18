@@ -117,6 +117,16 @@ void gdt_init(void)
 	irq_enable();
 }
 
+/*
+ * gdt_set_initial_fsbase:
+ * Called by the BSP during early boot before interrupts/percpu vars are active.
+ */
+void gdt_set_initial_fsbase(uint32_t base)
+{
+	gdt[GDT_FS] = gdt_entry(base, 0xFFFFFFFF, 0x92, 0x0C);
+	asm volatile("mov %0, %%fs" : : "r"(GDT_OFFSET(GDT_FS)));
+}
+
 void gdt_set_fsbase(uint32_t base)
 {
 	irq_disable();

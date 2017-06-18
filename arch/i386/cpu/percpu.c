@@ -26,6 +26,6 @@ DEFINE_PER_CPU(unsigned long, __this_cpu_offset);
 
 void arch_percpu_init_early(void)
 {
-	gdt_set_fsbase(BOOT_PERCPU_OFFSET);
+	gdt_set_initial_fsbase(BOOT_PERCPU_OFFSET);
 	this_cpu_write(__this_cpu_offset, BOOT_PERCPU_OFFSET);
 }
