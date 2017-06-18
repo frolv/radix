@@ -74,11 +74,9 @@ static __always_inline unsigned long cpuid_supported(void)
 int cpu_supports(uint64_t features);
 
 #define __arch_cache_line_size i386_cache_line_size
-#define __arch_processor_id    i386_processor_id
 #define __arch_cache_str       i386_cache_str
 
 unsigned long i386_cache_line_size(void);
-uint32_t i386_processor_id(void);
 char *i386_cache_str(void);
 
 #endif /* ARCH_I386_RADIX_CPU_H */

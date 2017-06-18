@@ -1,5 +1,5 @@
 /*
- * include/radix/cpu.h
+ * include/radix/cpumask.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_CPU_H
-#define RADIX_CPU_H
+#ifndef RADIX_CPUMASK_H
+#define RADIX_CPUMASK_H
 
-#include <radix/asm/cpu.h>
+#define MAX_CPUS 64
 
-#define cpu_cache_line_size __arch_cache_line_size
-#define cpu_cache_str       __arch_cache_str
-
-#endif /* RADIX_CPU_H */
+#endif /* RADIX_CPUMASK_H */

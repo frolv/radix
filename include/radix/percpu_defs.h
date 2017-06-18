@@ -74,11 +74,10 @@ do {                                                                    \
 #define raw_cpu_write(var, val)  __percpu_by_size(raw_cpu_write, var, val)
 
 
+#include <radix/cpumask.h>
 #include <radix/mm_types.h>
 #include <radix/irq.h>
 
-/* TODO: move MAX_CPUS definition elsewhere to avoid including cpu.h here */
-#include <radix/cpu.h>
 extern addr_t __percpu_offset[MAX_CPUS];
 
 /*
