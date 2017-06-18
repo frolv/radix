@@ -19,9 +19,9 @@
 #ifndef RADIX_TASK_H
 #define RADIX_TASK_H
 
+#include <radix/asm/regs.h>
 #include <radix/list.h>
 #include <radix/percpu.h>
-#include <radix/regs.h>
 #include <radix/types.h>
 
 struct vmm_space;
