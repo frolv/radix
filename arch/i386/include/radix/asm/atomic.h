@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/radix/asm/arch_atomic.h
+ * arch/i386/include/radix/asm/atomic.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,8 +17,12 @@
  */
 
 
-#ifndef ARCH_I386_RADIX_ASM_ATOMIC_H
-#define ARCH_I386_RADIX_ASM_ATOMIC_H
+#ifndef ARCH_I386_RADIX_ATOMIC_H
+#define ARCH_I386_RADIX_ATOMIC_H
+
+#ifndef RADIX_ATOMIC_H
+#error only <radix/atomic.h> can be included directly
+#endif
 
 #include <radix/compiler.h>
 
@@ -30,4 +34,4 @@ static __always_inline int x86_atomic_swap(int *a, int b)
 	return b;
 }
 
-#endif /* ARCH_I386_RADIX_ASM_ATOMIC_H */
+#endif /* ARCH_I386_RADIX_ATOMIC_H */

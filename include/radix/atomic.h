@@ -1,5 +1,5 @@
 /*
- * include/radix/asm/atomic.h
+ * include/radix/atomic.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_ASM_ATOMIC_H
-#define RADIX_ASM_ATOMIC_H
+#ifndef RADIX_ATOMIC_H
+#define RADIX_ATOMIC_H
 
-#include <radix/asm/arch_atomic.h>
+#include <radix/asm/atomic.h>
 
 #define atomic_swap __arch_atomic_swap
 
-#endif /* RADIX_ASM_ATOMIC_H */
+#endif /* RADIX_ATOMIC_H */

@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/asm/atomic.h>
+#include <radix/atomic.h>
 #include <radix/irq.h>
 #include <radix/mutex.h>
 #include <radix/sched.h>
