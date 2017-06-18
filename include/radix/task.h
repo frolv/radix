@@ -24,7 +24,7 @@
 #include <radix/regs.h>
 #include <radix/types.h>
 
-struct vmm_data;
+struct vmm_space;
 
 /*
  * A single task (process/kthread) in the system.
@@ -33,20 +33,20 @@ struct vmm_data;
  * the switch_to_task function.
  */
 struct task {
-	int             state;
-	int             priority;
-	int             exit_code;
-	int             interrupt_depth;
-	pid_t           pid;
-	uid_t           uid;
-	gid_t           gid;
-	mode_t          umask;
-	struct regs     regs;
-	struct list     queue;
-	struct vmm_data *vmm;
-	void            *stack_base;
-	char            **cmdline;
-	char            *cwd;
+	int                     state;
+	int                     priority;
+	int                     exit_code;
+	int                     interrupt_depth;
+	pid_t                   pid;
+	uid_t                   uid;
+	gid_t                   gid;
+	mode_t                  umask;
+	struct regs             regs;
+	struct list             queue;
+	struct vmm_space        *vmm;
+	void                    *stack_base;
+	char                    **cmdline;
+	char                    *cwd;
 };
 
 enum task_state {

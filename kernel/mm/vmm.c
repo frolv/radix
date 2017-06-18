@@ -26,6 +26,7 @@
 struct vmm_block {
 	struct vmm_area area;
 	unsigned long   flags;
+	struct page     *mapped;
 	struct list     global_list;
 	struct list     size_list;
 	struct rb_node  size_node;
@@ -35,6 +36,7 @@ struct vmm_block {
 #define VMM_ALLOCATED (1 << 0)
 
 static struct slab_cache *vmm_block_cache;
+static struct slab_cache *vmm_space_cache;
 
 static struct vmm_structures vmm_kernel = {
 	.block_list = LIST_INIT(vmm_kernel.block_list),
@@ -42,15 +44,35 @@ static struct vmm_structures vmm_kernel = {
 	.size_tree = RB_ROOT
 };
 
+/* List of vmm_blocks allocated for kernel use. */
+static struct list vmm_kernel_list = LIST_INIT(vmm_kernel_list);
+
 static void vmm_block_init(void *p)
 {
 	struct vmm_block *block = p;
 
 	block->flags = 0;
+	block->mapped = NULL;
 	list_init(&block->global_list);
 	list_init(&block->size_list);
 	rb_init(&block->size_node);
 	rb_init(&block->addr_node);
+}
+
+static void vmm_structures_init(struct vmm_structures *s)
+{
+	list_init(&s->block_list);
+	s->addr_tree = RB_ROOT;
+	s->size_tree = RB_ROOT;
+}
+
+static void vmm_space_init(void *p)
+{
+	struct vmm_space *vmm = p;
+
+	vmm_structures_init(&vmm->structures);
+	list_init(&vmm->vmm_list);
+	vmm->pages = 0;
 }
 
 /*
@@ -152,6 +174,36 @@ static __always_inline void vmm_tree_delete(struct vmm_structures *s,
 	vmm_size_tree_delete(&s->size_tree, block);
 }
 
+/*
+ * vmm_find_by_size:
+ * Find the smallest block in `s` which is greater than or equal to `size`.
+ */
+static struct vmm_block *vmm_find_by_size(struct vmm_structures *s, size_t size)
+{
+	struct vmm_block *block, *best;
+	struct rb_node *curr;
+
+	curr = s->size_tree.root_node;
+	best = NULL;
+
+	while (curr) {
+		block = rb_entry(curr, struct vmm_block, size_node);
+
+		if (size == block->area.size) {
+			return block;
+		} else if (size > block->area.size) {
+			curr = curr->right;
+		} else {
+			if (!best || block->area.size < best->area.size)
+				best = block;
+
+			curr = curr->left;
+		}
+	}
+
+	return best;
+}
+
 void vmm_init(void)
 {
 	struct vmm_block *first;
@@ -159,6 +211,9 @@ void vmm_init(void)
 	vmm_block_cache = create_cache("vmm_block", sizeof (struct vmm_block),
 	                               SLAB_MIN_ALIGN, SLAB_PANIC,
 	                               vmm_block_init, vmm_block_init);
+	vmm_space_cache = create_cache("vmm_space", sizeof (struct vmm_space),
+	                               SLAB_MIN_ALIGN, SLAB_PANIC,
+	                               vmm_space_init, vmm_space_init);
 
 	first = alloc_cache(vmm_block_cache);
 	if (IS_ERR(first))
@@ -226,4 +281,75 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 	}
 
 	return block;
+}
+
+static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
+{
+	struct vmm_block *block;
+	addr_t base;
+	int err;
+
+	/* TODO: lock vmm_kernel_lock */
+	block = vmm_find_by_size(&vmm_kernel, size);
+	if (!block) {
+		err = ENOMEM;
+		goto out_err;
+	}
+
+	base = block->area.base + block->area.size - size;
+	block = vmm_split(block, &vmm_kernel, base, size);
+	if (IS_ERR(block)) {
+		err = ERR_VAL(block);
+		goto out_err;
+	}
+
+	block->flags |= VMM_ALLOCATED;
+	list_ins(&vmm_kernel_list, &block->area.list);
+	/* TODO: unlock vmm_kernel_lock */
+
+	if (flags & VMM_ALLOC_UPFRONT) {
+		/* TODO */
+	}
+
+	return (struct vmm_area *)block;
+
+out_err:
+	/* TODO: unlock vmm_kernel_lock */
+	return ERR_PTR(err);
+}
+
+static struct vmm_area *__vmm_alloc_size(struct vmm_space *vmm, size_t size,
+                                         unsigned long flags)
+{
+	(void)vmm;
+	(void)size;
+	(void)flags;
+
+	return ERR_PTR(ENOMEM);
+}
+
+/*
+ * vmm_alloc_size:
+ * Allocate
+ */
+struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
+                                unsigned long flags)
+{
+	size = ALIGN(size, PAGE_SIZE);
+
+	if (!vmm)
+		return vmm_alloc_size_kernel(size, flags);
+	else
+		return __vmm_alloc_size(vmm, size, flags);
+}
+
+void *vmalloc(size_t size)
+{
+	struct vmm_area *area;
+
+	area = vmm_alloc_size(NULL, size, 0);
+	if (IS_ERR(area))
+		return NULL;
+
+	return (void *)area->base;
 }

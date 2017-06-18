@@ -27,8 +27,9 @@
 #include <radix/types.h>
 
 struct vmm_area {
-	addr_t base;
-	size_t size;
+	addr_t          base;
+	size_t          size;
+	struct list     list;
 };
 
 struct vmm_structures {
@@ -37,11 +38,19 @@ struct vmm_structures {
 	struct rb_root size_tree;
 };
 
-struct vmm_data {
+struct vmm_space {
 	struct vmm_structures   structures;
 	struct list             vmm_list;
+	int                     pages;
 };
 
 void vmm_init(void);
+
+#define VMM_ALLOC_UPFRONT (1 << 0)
+
+struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
+                                unsigned long flags);
+
+void *vmalloc(size_t size);
 
 #endif /* RADIX_VMM_H */
