@@ -43,17 +43,17 @@ struct printf_format {
 	signed int      precision:16;
 } __attribute__((packed));
 
-#define va_int_type(i, ap, p, sign) \
-	do { \
-		if (p.flags & FLAGS_LLONG) \
-			i = va_arg(ap, sign long long); \
-		else if (p.flags & FLAGS_LONG) \
-			i = (sign long)va_arg(ap, sign long); \
-		else if (p.flags & FLAGS_SHORT)\
-			i = (sign short)va_arg(ap, sign int); \
-		else \
-			i = (sign int)va_arg(ap, sign int); \
-	} while (0)
+#define va_int_type(i, ap, p, sign)                     \
+do {                                                    \
+	if (p.flags & FLAGS_LLONG)                      \
+		i = va_arg(ap, sign long long);         \
+	else if (p.flags & FLAGS_LONG)                  \
+		i = (sign long)va_arg(ap, sign long);   \
+	else if (p.flags & FLAGS_SHORT)                 \
+		i = (sign short)va_arg(ap, sign int);   \
+	else                                            \
+		i = (sign int)va_arg(ap, sign int);     \
+} while (0)
 
 int get_format(const char *format, struct printf_format *p);
 

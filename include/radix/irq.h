@@ -34,16 +34,16 @@
 #define irq_active      __arch_irq_active
 
 #define irq_disable()                   \
-	do {                            \
-		barrier();              \
-		__arch_irq_disable();   \
-	} while (0)
+do {                                    \
+	barrier();                      \
+	__arch_irq_disable();           \
+} while (0)
 
 #define irq_enable()                    \
-	do {                            \
-		barrier();              \
-		__arch_irq_enable();    \
-	} while (0)
+do {                                    \
+	barrier();                      \
+	__arch_irq_enable();            \
+} while (0)
 
 #define irq_install     __arch_irq_install
 #define irq_uninstall   __arch_irq_uninstall

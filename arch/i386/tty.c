@@ -172,11 +172,11 @@ void tty_flush(void)
 	mutex_unlock(&flush_lock);
 }
 
-#define tty_nextcol() \
-	do { \
-		if (++vga_col == VGA_WIDTH) \
-			tty_nextrow(); \
-	} while (0)
+#define tty_nextcol()                   \
+do {                                    \
+	if (++vga_col == VGA_WIDTH)     \
+		tty_nextrow();          \
+} while (0)
 
 /* __tty_flush_unlocked: write tty buffer to vga text buffer */
 static void __tty_flush_unlocked(void)
