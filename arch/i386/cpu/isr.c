@@ -71,6 +71,17 @@ static void (*exception_handlers[NUM_EXCEPTIONS])(struct regs *, int);
 /* hardware interrupt handler functions */
 static void (*irq_handlers[NUM_ISR_VECTORS])(struct regs *);
 
+static void debug_pf(struct regs *r, int errno)
+{
+	unsigned long addr;
+
+	asm volatile("movl %%cr2, %0" : "=r"(addr));
+	panic("page fault at address 0x%08lX\n", addr);
+
+	(void)r;
+	(void)errno;
+}
+
 void load_interrupt_routines(void)
 {
 	size_t i;
@@ -83,6 +94,8 @@ void load_interrupt_routines(void)
 		/* APIC is available; use it. */
 		apic_init();
 	}
+
+	install_exception_handler(0x0E, debug_pf);
 }
 
 /* install_exception_handler: set a function to handle exception `intno` */
@@ -128,20 +141,26 @@ int uninstall_interrupt_handler(uint32_t intno)
 /* interrupt_disable: disable IRQs */
 void interrupt_disable(void)
 {
+	struct task *curr;
+
 	asm volatile("cli");
 
-	if (likely(current_task))
-		current_task->interrupt_depth++;
+	curr = current_task();
+	if (likely(curr))
+		curr->interrupt_depth++;
 }
 
 /* interrupt_enable: enable IRQs */
 void interrupt_enable(void)
 {
-	if (likely(current_task)) {
-		if (current_task->interrupt_depth)
-			current_task->interrupt_depth--;
+	struct task *curr;
 
-		if (!current_task->interrupt_depth)
+	curr = current_task();
+	if (likely(curr)) {
+		if (curr->interrupt_depth)
+			curr->interrupt_depth--;
+
+		if (!curr->interrupt_depth)
 			asm volatile("sti");
 	} else {
 		asm volatile("sti");

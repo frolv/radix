@@ -20,7 +20,7 @@
 #include <radix/sched.h>
 #include <radix/task.h>
 
-struct task *current_task = NULL;
+DEFINE_PER_CPU(struct task *, current_task) = NULL;
 
 /* For temporary basic RR scheduler. */
 static struct list task_queue;
@@ -42,7 +42,7 @@ void sched_init(void)
  */
 void schedule(int preempt)
 {
-	struct task *next;
+	struct task *curr, *next;
 
 	if (unlikely(list_empty(&task_queue)))
 		return;
@@ -54,15 +54,16 @@ void schedule(int preempt)
 	if (preempt)
 		irq_disable();
 
+	curr = current_task();
 	next = list_first_entry(&task_queue, struct task, queue);
 
 	/*
 	 * The current task may be blocked, in which case it should not
 	 * be added to the ready queue.
 	 */
-	if (current_task && current_task->state == TASK_RUNNING) {
-		current_task->state = TASK_READY;
-		list_ins(&task_queue, &current_task->queue);
+	if (curr && curr->state == TASK_RUNNING) {
+		curr->state = TASK_READY;
+		list_ins(&task_queue, &curr->queue);
 	}
 	list_del(&next->queue);
 
@@ -70,8 +71,8 @@ void schedule(int preempt)
 		switch_to_task(next);
 		irq_enable();
 	} else {
-		current_task = next;
-		current_task->state = TASK_RUNNING;
+		this_cpu_write(current_task, next);
+		next->state = TASK_RUNNING;
 	}
 }
 

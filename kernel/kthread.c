@@ -92,7 +92,7 @@ __noreturn void kthread_exit(void)
 	char **s;
 
 	irq_disable();
-	thread = current_task;
+	thread = current_task();
 	free_pages(thread->stack_base);
 
 	for (s = thread->cmdline; *s; ++s)
@@ -100,7 +100,7 @@ __noreturn void kthread_exit(void)
 	kfree(thread->cmdline);
 
 	task_free(thread);
-	current_task = NULL;
+	this_cpu_write(current_task, NULL);
 	schedule(1);
 	__builtin_unreachable();
 }

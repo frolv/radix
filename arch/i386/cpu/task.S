@@ -34,10 +34,10 @@ switch_to_task:
 
 	# Load current task struct.
 	push %eax
-	movl current_task, %eax
+	movl %fs:current_task, %eax
 	# Check if current_task is zero (NULL). If it is, skip register saving.
 	test %eax, %eax
-	jz load_registers
+	je load_registers
 
 	# Store registers into current task's struct regs.
 	# Struct regs starts at offset of 32.
@@ -111,7 +111,7 @@ load_registers:
 
 	# Change task state to TASK_RUNNING and set it as current_task.
 	movl $3, 0(%eax)
-	movl %eax, current_task
+	movl %eax, %fs:current_task
 
 	pop %eax
 	pop %ecx

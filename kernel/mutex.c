@@ -34,6 +34,8 @@ void mutex_init(struct mutex *m)
  */
 void mutex_lock(struct mutex *m)
 {
+	struct task *curr;
+
 	if (unlikely(in_irq()))
 		return;
 
@@ -43,8 +45,9 @@ void mutex_lock(struct mutex *m)
 		 * when multiprocessing is added
 		 */
 		irq_disable();
-		current_task->state = TASK_BLOCKED;
-		list_ins(&m->queue, &current_task->queue);
+		curr = current_task();
+		curr->state = TASK_BLOCKED;
+		list_ins(&m->queue, &curr->queue);
 		schedule(1);
 		irq_enable();
 	}

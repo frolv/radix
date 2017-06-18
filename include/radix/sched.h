@@ -20,6 +20,7 @@
 #define RADIX_SCHED_H
 
 #include <radix/list.h>
+#include <radix/percpu.h>
 #include <radix/regs.h>
 #include <radix/types.h>
 
@@ -53,7 +54,8 @@ enum {
 	TASK_ZOMBIE
 };
 
-extern struct task *current_task;
+DECLARE_PER_CPU(struct task *, current_task);
+#define current_task() (this_cpu_read(current_task))
 
 void schedule(int preempt);
 

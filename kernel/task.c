@@ -55,7 +55,7 @@ void tasking_init(void)
 	strcpy(curr->cmdline[0], "kernel_boot_thread");
 	curr->cmdline[1] = NULL;
 
-	current_task = curr;
+	this_cpu_write(current_task, curr);
 }
 
 /* Allocate and initialize a new task struct for a kthread. */

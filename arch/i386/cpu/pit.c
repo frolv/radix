@@ -49,9 +49,9 @@ static void pit_start(uint16_t divisor)
  */
 void pit_irq0(struct regs *r)
 {
-	memcpy(&current_task->regs, r, sizeof *r);
+	memcpy(&(current_task()->regs), r, sizeof *r);
 	schedule(0);
-	memcpy(r, &current_task->regs, sizeof *r);
+	memcpy(r, &(current_task()->regs), sizeof *r);
 }
 
 void pit_init(void)
