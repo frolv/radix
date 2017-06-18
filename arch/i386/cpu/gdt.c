@@ -16,7 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/compiler.h>
+#include <radix/irq.h>
 #include <radix/percpu.h>
+
 #include <rlibc/string.h>
 
 #include "gdt.h"
@@ -24,12 +27,13 @@
 DEFINE_PER_CPU(uint64_t, gdt[8]);
 DEFINE_PER_CPU(uint32_t, tss[26]);
 
+#define GDT_SIZE (sizeof gdt)
+#define TSS_SIZE (sizeof tss)
+
 extern void gdt_load(void *base, size_t s);
 extern void tss_load(uintptr_t gdt_offset);
 
-static void tss_init(uint32_t esp0, uint32_t ss0);
-static void gdt_set(size_t entry, uint32_t base, uint32_t lim,
-                    uint8_t access, uint8_t flags);
+static void tss_init(uint32_t *tss_ptr, uint32_t esp0, uint32_t ss0);
 
 /*
  * gdt_entry:
@@ -55,57 +59,78 @@ static uint64_t gdt_entry(uint32_t base, uint32_t lim,
 	return ret;
 }
 
+/* gdt_set: create an entry in the global descriptor table */
+static __always_inline void gdt_set(size_t entry, uint32_t base, uint32_t lim,
+                                    uint8_t access, uint8_t flags)
+{
+	raw_cpu_write(gdt[entry], gdt_entry(base, lim, access, flags));
+}
+
+/*
+ * gdt_init_early:
+ * Populate and load a GDT for the bootstrap processor.
+ */
 void gdt_init_early(void)
 {
 	uintptr_t tss_base;
 
 	tss_base = (uintptr_t)tss;
-	tss_init(0x0, 0x10);
+	tss_init(&tss[0], 0x0, 0x10);
 
 	gdt[GDT_NULL] = gdt_entry(0, 0, 0, 0);
 	gdt[GDT_KERNEL_CODE] = gdt_entry(0, 0xFFFFFFFF, 0x9A, 0x0C);
 	gdt[GDT_KERNEL_DATA] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
 	gdt[GDT_USER_CODE] = gdt_entry(0, 0xFFFFFFFF, 0xFA, 0x0C);
 	gdt[GDT_USER_DATA] = gdt_entry(0, 0xFFFFFFFF, 0xF2, 0x0C);
-	gdt[GDT_TSS] = gdt_entry(tss_base, tss_base + sizeof tss, 0x89, 0x04);
+	gdt[GDT_TSS] = gdt_entry(tss_base, tss_base + TSS_SIZE, 0x89, 0x04);
 	gdt[GDT_FS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
 	gdt[GDT_GS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
 
-	gdt_load(gdt, sizeof gdt);
+	gdt_load(gdt, GDT_SIZE);
 	tss_load(GDT_OFFSET(GDT_TSS));
 }
 
-/* gdt_init: populate the global descriptor table */
+/* gdt_init: populate and load the global descriptor table */
 void gdt_init(void)
 {
-	uintptr_t tss_base;
+	uint32_t *tss_ptr, tss_base;
 
-	tss_base = (uintptr_t)tss;
-	tss_init(0x0, 0x10);
+	irq_disable();
+
+	tss_ptr = raw_cpu_ptr(&tss[0]);
+	tss_base = (uintptr_t)tss_ptr;
+
+	tss_init(tss_ptr, 0x0, 0x10);
 
 	gdt_set(GDT_NULL, 0, 0, 0, 0);
 	gdt_set(GDT_KERNEL_CODE, 0, 0xFFFFFFFF, 0x9A, 0x0C);
 	gdt_set(GDT_KERNEL_DATA, 0, 0xFFFFFFFF, 0x92, 0x0C);
 	gdt_set(GDT_USER_CODE, 0, 0xFFFFFFFF, 0xFA, 0x0C);
 	gdt_set(GDT_USER_DATA, 0, 0xFFFFFFFF, 0xF2, 0x0C);
-	gdt_set(GDT_TSS, tss_base, tss_base + sizeof tss, 0x89, 0x04);
+	gdt_set(GDT_TSS, tss_base, tss_base + TSS_SIZE, 0x89, 0x04);
 	gdt_set(GDT_FS, 0, 0xFFFFFFFF, 0x92, 0x0C);
 	gdt_set(GDT_GS, 0, 0xFFFFFFFF, 0x92, 0x0C);
 
-	gdt_load(gdt, sizeof gdt);
+	gdt_load(raw_cpu_ptr(&gdt[0]), GDT_SIZE);
 	tss_load(GDT_OFFSET(GDT_TSS));
+
+	irq_enable();
 }
 
 void gdt_set_fsbase(uint32_t base)
 {
+	irq_disable();
 	gdt_set(GDT_FS, base, 0xFFFFFFFF, 0x92, 0x0C);
 	asm volatile("mov %0, %%fs" : : "r"(GDT_OFFSET(GDT_FS)));
+	irq_enable();
 }
 
 void gdt_set_gsbase(uint32_t base)
 {
+	irq_disable();
 	gdt_set(GDT_GS, base, 0xFFFFFFFF, 0x92, 0x0C);
 	asm volatile("mov %0, %%gs" : : "r"(GDT_OFFSET(GDT_GS)));
+	irq_enable();
 }
 
 /*
@@ -114,21 +139,14 @@ void gdt_set_gsbase(uint32_t base)
  * ESP0 holds the value assigned to the stack pointer after a syscall interrupt.
  * SS0 holds the offset of the kernel's data segment entry in the GDT.
  */
-static void tss_init(uint32_t esp0, uint32_t ss0)
+static void tss_init(uint32_t *tss_ptr, uint32_t esp0, uint32_t ss0)
 {
-	memset(tss, 0, sizeof tss);
+	memset(tss_ptr, 0, TSS_SIZE);
 
 	/* ESP0 at offset 0x4 */
-	tss[1] = esp0;
+	tss_ptr[1] = esp0;
 	/* SS0 at offset 0x8 */
-	tss[2] = ss0;
+	tss_ptr[2] = ss0;
 	/* IOPB at offset 0x66 */
-	tss[25] = sizeof tss << 16;
-}
-
-/* gdt_set: create an entry in the global descriptor table */
-static void gdt_set(size_t entry, uint32_t base, uint32_t lim,
-                    uint8_t access, uint8_t flags)
-{
-	gdt[entry] = gdt_entry(base, lim, access, flags);
+	tss_ptr[25] = TSS_SIZE << 16;
 }
