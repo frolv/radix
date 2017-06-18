@@ -40,18 +40,18 @@
 #define __percpu_from_op(op, var)               \
 ({                                              \
 	typeof(var) __pfo_ret;                  \
-	asm(op " " __percpu_arg(1) ", %0"	\
+	asm(op " " __percpu_arg(1) ", %0"       \
 	    : "=q"(__pfo_ret)                   \
 	    : "m"(var));                        \
 	__pfo_ret;                              \
 })
 
 #define __percpu_to_op(op, var, val)            \
-	do {                                    \
-		asm(op " %1, " __percpu_arg(0)  \
-		    : "+m"(var)                 \
-		    : "ri"(val));               \
-	} while (0)
+do {                                            \
+	asm(op " %1, " __percpu_arg(0)          \
+	    : "+m"(var)                         \
+	    : "ri"(val));                       \
+} while (0)
 
 #include <radix/percpu_defs.h>
 

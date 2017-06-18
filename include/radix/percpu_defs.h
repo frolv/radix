@@ -50,15 +50,15 @@ void this_cpu_bad_size_call(void);
 })
 
 #define __percpu_by_size(action, var, ...)                              \
-	do {                                                            \
-		switch (sizeof (var)) {                                 \
-		case 1: this_cpu_##action##_1(var, __VA_ARGS__); break; \
-		case 2: this_cpu_##action##_2(var, __VA_ARGS__); break; \
-		case 4: this_cpu_##action##_4(var, __VA_ARGS__); break; \
-		case 8: this_cpu_##action##_8(var, __VA_ARGS__); break; \
-		default: this_cpu_bad_size_call();                      \
-		}                                                       \
-	} while (0)
+do {                                                                    \
+	switch (sizeof (var)) {                                         \
+	case 1: this_cpu_##action##_1(var, __VA_ARGS__); break;         \
+	case 2: this_cpu_##action##_2(var, __VA_ARGS__); break;         \
+	case 4: this_cpu_##action##_4(var, __VA_ARGS__); break;         \
+	case 8: this_cpu_##action##_8(var, __VA_ARGS__); break;         \
+	default: this_cpu_bad_size_call();                              \
+	}                                                               \
+} while (0)
 
 
 /* Interrupt-safe per-CPU variable operations. */
@@ -100,6 +100,11 @@ extern addr_t __percpu_offset[MAX_CPUS];
 	*raw_cpu_ptr(&(var));                   \
 })
 
+#define raw_cpu_op_generic(var, val, op)        \
+do {                                            \
+	*raw_cpu_ptr(&(var)) op val;            \
+} while (0)
+
 #define this_cpu_read_generic(var)              \
 ({                                              \
 	typeof(var) __rg_ret;                   \
@@ -109,11 +114,13 @@ extern addr_t __percpu_offset[MAX_CPUS];
 	__rg_ret;                               \
 })
 
-/* TODO */
 #define this_cpu_write_generic(var, val)        \
 ({                                              \
-	(void)0;                                \
+	irq_disable();                          \
+	raw_cpu_op_generic(var, val, =);        \
+	irq_enable();                           \
 })
+
 
 
 #ifndef this_cpu_read_1
