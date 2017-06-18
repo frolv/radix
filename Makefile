@@ -81,7 +81,8 @@ ISONAME := $(PROJECT_NAME)-$(HOSTARCH).iso
 iso: kernel
 	mkdir -p $(ISODIR)/boot/grub
 	cp $(KERNEL_NAME) $(ISODIR)/boot
-	util/mkgrubconfig > $(ISODIR)/boot/grub/grub.cfg
+	util/mkgrubconfig $(PROJECT_NAME) $(KERNEL_NAME) \
+		> $(ISODIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISONAME) $(ISODIR)
 
 .PHONY: ctags

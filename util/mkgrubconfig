@@ -1,8 +1,10 @@
 #!/bin/sh
 
-echo 'menuentry "radix" {'
-echo '    multiboot /boot/kradix'
-echo '}'
+[ $# -ne 2 ] && exit 1
+
+echo "menuentry \"$1\" {"
+echo "    multiboot /boot/$2"
+echo "}"
 
 echo 'menuentry "System shutdown" {'
 echo '    echo "System shutting down..."'
