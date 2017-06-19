@@ -123,6 +123,7 @@ higher_half_start:
 
 	# Set stack pointer to point to the top of the stack.
 	movl $stack_top, %esp
+	cld
 
 	# Call global constructors.
 	call _init

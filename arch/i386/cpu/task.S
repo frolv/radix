@@ -117,4 +117,5 @@ load_registers:
 	pop %ecx
 
 	popf
+	cld
 	ret

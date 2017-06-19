@@ -127,7 +127,7 @@ isr_common:
 
 # Push all registers onto the stack as part of a struct regs.
 # The order in which these are pushed is important; see
-# arch/i386/include/radix/sys.h for the struct definition.
+# arch/i386/include/radix/asm/regs.h for the struct definition.
 register_push:
 	# segment registers
 	push %ds
@@ -144,6 +144,7 @@ register_push:
 	pushl %esi
 	pushl %edi
 
+	cld
 	call interrupt_handler
 
 register_pop:
