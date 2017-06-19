@@ -53,6 +53,7 @@ static void vmm_block_init(void *p)
 
 	block->flags = 0;
 	block->mapped = NULL;
+	list_init(&block->area.list);
 	list_init(&block->global_list);
 	list_init(&block->size_list);
 	rb_init(&block->size_node);
@@ -248,13 +249,13 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
 	/* create a new block [block->area.base, base) */
 	if (new_size) {
-		block->area.size = new_size;
-		vmm_size_tree_delete(&s->size_tree, block);
-		vmm_size_tree_insert(&s->size_tree, block);
-
 		new = alloc_cache(vmm_block_cache);
 		if (IS_ERR(new))
 			return new;
+
+		block->area.size = new_size;
+		vmm_size_tree_delete(&s->size_tree, block);
+		vmm_size_tree_insert(&s->size_tree, block);
 
 		new->area.base = base;
 		new->area.size = size;
@@ -271,8 +272,11 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 	/* create a new block [block->area.base + block->area.size, end) */
 	if (new_size) {
 		new = alloc_cache(vmm_block_cache);
-		if (IS_ERR(new))
+		if (IS_ERR(new)) {
+			block->area.size += new_size;
+			vmm_tree_insert(s, block);
 			return new;
+		}
 
 		new->area.base = block->area.base + block->area.size;
 		new->area.size = new_size;
@@ -330,7 +334,8 @@ static struct vmm_area *__vmm_alloc_size(struct vmm_space *vmm, size_t size,
 
 /*
  * vmm_alloc_size:
- * Allocate
+ * Allocate a block of virtual pages of at least `size`
+ * from the address space specified by `vmm`.
  */
 struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
                                 unsigned long flags)
