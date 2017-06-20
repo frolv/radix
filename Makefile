@@ -49,9 +49,9 @@ INCLUDE := $(patsubst %,-I%,$(_INCLUDE))
 
 all: kernel
 
-kernel: libk drivers $(KERNEL_NAME)
+kernel: $(KERNEL_NAME)
 
-$(KERNEL_NAME): $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
+$(KERNEL_NAME): $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
 		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
 
