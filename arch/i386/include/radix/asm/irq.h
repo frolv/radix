@@ -36,6 +36,27 @@
 #define __arch_irq_install      install_interrupt_handler
 #define __arch_irq_uninstall    uninstall_interrupt_handler
 
+#define X86_EXCEPTION_DE        0x00
+#define X86_EXCEPTION_DB        0x01
+#define X86_NMI                 0x02
+#define X86_EXCEPTION_BP        0x03
+#define X86_EXCEPTION_OF        0x04
+#define X86_EXCEPTION_BR        0x05
+#define X86_EXCEPTION_UD        0x06
+#define X86_EXCEPTION_NM        0x07
+#define X86_EXCEPTION_DF        0x08
+#define X86_EXCEPTION_TS        0x0A
+#define X86_EXCEPTION_NP        0x0B
+#define X86_EXCEPTION_SS        0x0C
+#define X86_EXCEPTION_GP        0x0D
+#define X86_EXCEPTION_PF        0x0E
+#define X86_EXCEPTION_MF        0x10
+#define X86_EXCEPTION_AC        0x11
+#define X86_EXCEPTION_MC        0x12
+#define X86_EXCEPTION_XM        0x13
+#define X86_EXCEPTION_VE        0x14
+#define X86_EXCEPTION_SX        0x1E
+
 #include <radix/asm/regs.h>
 
 void idt_init(void);
