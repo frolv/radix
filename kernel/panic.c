@@ -26,7 +26,7 @@
  * Print error message and halt the system.
  * This function never returns.
  */
-void panic(const char *err, ...)
+__noreturn void panic(const char *err, ...)
 {
 	va_list ap;
 
@@ -40,4 +40,5 @@ void panic(const char *err, ...)
 	tty_flush();
 
 	DIE();
+	__builtin_unreachable();
 }

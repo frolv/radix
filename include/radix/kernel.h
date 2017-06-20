@@ -56,7 +56,8 @@ do {                                    \
 
 
 #include <radix/asm/halt.h>
+#include <radix/compiler.h>
 
-void panic(const char *err, ...);
+__noreturn void panic(const char *err, ...);
 
 #endif /* RADIX_KERNEL_H */
