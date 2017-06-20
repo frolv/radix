@@ -310,6 +310,7 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 
 	block->flags |= VMM_ALLOCATED;
 	list_ins(&vmm_kernel.alloc_list, &block->area.list);
+	vmm_addr_tree_insert(&vmm_kernel.alloc_tree, block);
 	/* TODO: unlock vmm_kernel_lock */
 
 	if (flags & VMM_ALLOC_UPFRONT) {

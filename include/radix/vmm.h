@@ -33,11 +33,11 @@ struct vmm_area {
 };
 
 struct vmm_structures {
-	struct list    block_list;
-	struct list    alloc_list;
-	struct rb_root addr_tree;
-	struct rb_root size_tree;
-	struct rb_root alloc_tree;
+	struct list    block_list;      /* all blocks in address space */
+	struct list    alloc_list;      /* allocated blocks in address space */
+	struct rb_root addr_tree;       /* unallocated blocks by address */
+	struct rb_root size_tree;       /* unallocated blocks by size */
+	struct rb_root alloc_tree;      /* allocated blocks by address */
 };
 
 struct vmm_space {
