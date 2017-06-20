@@ -1,6 +1,6 @@
 /*
  * kernel/mm/vmm.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <radix/slab.h>
 #include <radix/vmm.h>
 
+#include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
 struct vmm_block {
@@ -178,7 +179,8 @@ static __always_inline void vmm_tree_delete(struct vmm_structures *s,
 
 /*
  * vmm_find_by_size:
- * Find the smallest block in `s` which is greater than or equal to `size`.
+ * Find the smallest block in `s->size_tree` which is greater than
+ * or equal to `size`.
  */
 static struct vmm_block *vmm_find_by_size(struct vmm_structures *s, size_t size)
 {
@@ -204,6 +206,32 @@ static struct vmm_block *vmm_find_by_size(struct vmm_structures *s, size_t size)
 	}
 
 	return best;
+}
+
+/*
+ * vmm_find_addr:
+ * Check if virtual address `addr` has been allocated in the given
+ * address space.
+ */
+static struct vmm_block *vmm_find_addr(struct vmm_structures *s, addr_t addr)
+{
+	struct vmm_block *block;
+	struct rb_node *curr;
+
+	curr = s->alloc_tree.root_node;
+
+	while (curr) {
+		block = rb_entry(curr, struct vmm_block, addr_node);
+
+		if (addr < block->area.base)
+			curr = curr->left;
+		else if (addr > block->area.base + block->area.size)
+			curr = curr->right;
+		else
+			return block;
+	}
+
+	return NULL;
 }
 
 void vmm_init(void)
@@ -359,4 +387,36 @@ void *vmalloc(size_t size)
 		return NULL;
 
 	return (void *)area->base;
+}
+
+/*
+ * vmm_get_allocated_area:
+ * Check if `addr` is allocated in address space `vmm`,
+ * and return its vmm_area if so.
+ */
+struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr)
+{
+	struct vmm_block *block;
+
+	block = vmm_find_addr(vmm ? &vmm->structures : &vmm_kernel, addr);
+	return (struct vmm_area *)block;
+}
+
+void vmm_area_dump(struct vmm_space *vmm)
+{
+	struct vmm_structures *s;
+	struct vmm_block *block;
+	struct list *l;
+	int i;
+
+	s = vmm ? &vmm->structures : &vmm_kernel;
+
+	i = 0;
+	list_for_each(l, &s->block_list) {
+		block = list_entry(l, struct vmm_block, global_list);
+		printf("%d 0x%08lX-0x%08lX [%c]\n",
+		       i++, block->area.base,
+		       block->area.base + block->area.size,
+		       block->flags & VMM_ALLOCATED ? 'A' : '-');
+	}
 }

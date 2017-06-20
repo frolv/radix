@@ -1,6 +1,6 @@
 /*
  * include/radix/vmm.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,5 +54,7 @@ struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
                                 unsigned long flags);
 
 void *vmalloc(size_t size);
+
+struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr);
 
 #endif /* RADIX_VMM_H */
