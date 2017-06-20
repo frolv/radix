@@ -62,8 +62,10 @@ static void vmm_block_init(void *p)
 static void vmm_structures_init(struct vmm_structures *s)
 {
 	list_init(&s->block_list);
+	list_init(&s->alloc_list);
 	s->addr_tree = RB_ROOT;
 	s->size_tree = RB_ROOT;
+	s->alloc_tree = RB_ROOT;
 }
 
 static void vmm_space_init(void *p)
