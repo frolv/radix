@@ -45,6 +45,14 @@ static __always_inline unsigned long cpuid_supported(void)
 	return res;
 }
 
+static __always_inline unsigned long cpu_read_cr2(void)
+{
+	unsigned long ret;
+
+	asm volatile("mov %%cr2, %0" : "=r"(ret));
+	return ret;
+}
+
 #define cpuid(eax, a, b, c, d)                                  \
 	asm volatile("xchg %%ebx, %1\n\t"                       \
 	             "cpuid\n\t"                                \
