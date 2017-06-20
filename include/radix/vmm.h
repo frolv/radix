@@ -34,8 +34,10 @@ struct vmm_area {
 
 struct vmm_structures {
 	struct list    block_list;
+	struct list    alloc_list;
 	struct rb_root addr_tree;
 	struct rb_root size_tree;
+	struct rb_root alloc_tree;
 };
 
 struct vmm_space {

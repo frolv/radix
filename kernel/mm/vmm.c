@@ -40,12 +40,11 @@ static struct slab_cache *vmm_space_cache;
 
 static struct vmm_structures vmm_kernel = {
 	.block_list = LIST_INIT(vmm_kernel.block_list),
+	.alloc_list = LIST_INIT(vmm_kernel.alloc_list),
 	.addr_tree = RB_ROOT,
-	.size_tree = RB_ROOT
+	.size_tree = RB_ROOT,
+	.alloc_tree = RB_ROOT
 };
-
-/* List of vmm_blocks allocated for kernel use. */
-static struct list vmm_kernel_list = LIST_INIT(vmm_kernel_list);
 
 static void vmm_block_init(void *p)
 {
@@ -308,7 +307,7 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	}
 
 	block->flags |= VMM_ALLOCATED;
-	list_ins(&vmm_kernel_list, &block->area.list);
+	list_ins(&vmm_kernel.alloc_list, &block->area.list);
 	/* TODO: unlock vmm_kernel_lock */
 
 	if (flags & VMM_ALLOC_UPFRONT) {
