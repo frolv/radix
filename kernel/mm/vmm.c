@@ -25,13 +25,14 @@
 #include <rlibc/string.h>
 
 struct vmm_block {
-	struct vmm_area area;
-	unsigned long   flags;
-	struct page     *mapped;
-	struct list     global_list;
-	struct list     size_list;
-	struct rb_node  size_node;
-	struct rb_node  addr_node;
+	struct vmm_area         area;
+	struct page             *mapped;
+	struct vmm_space        *vmm;
+	unsigned long           flags;
+	unsigned long           padding;
+	struct list             global_list;
+	struct rb_node          size_node;
+	struct rb_node          addr_node;
 };
 
 #define VMM_ALLOCATED (1 << 0)
@@ -55,7 +56,6 @@ static void vmm_block_init(void *p)
 	block->mapped = NULL;
 	list_init(&block->area.list);
 	list_init(&block->global_list);
-	list_init(&block->size_list);
 	rb_init(&block->size_node);
 	rb_init(&block->addr_node);
 }
@@ -99,7 +99,7 @@ static void vmm_size_tree_insert(struct rb_root *tree, struct vmm_block *block)
 		} else if (block->area.size > curr->area.size) {
 			pos = &(*pos)->right;
 		} else {
-			list_ins(&curr->size_list, &block->size_list);
+			list_ins(&curr->area.list, &block->area.list);
 			return;
 		}
 	}
@@ -117,11 +117,11 @@ static __always_inline void vmm_size_tree_delete(struct rb_root *tree,
 {
 	struct vmm_block *new;
 
-	if (!list_empty(&block->size_list)) {
-		new = list_first_entry(&block->size_list,
-		                       struct vmm_block, size_list);
+	if (!list_empty(&block->area.list)) {
+		new = list_first_entry(&block->area.list,
+		                       struct vmm_block, area.list);
 		rb_replace(tree, &block->size_node, &new->size_node);
-		list_del(&block->size_list);
+		list_del(&block->area.list);
 	} else {
 		rb_delete(tree, &block->size_node);
 	}
@@ -410,8 +410,8 @@ void vmm_area_dump(struct vmm_space *vmm)
 	int i;
 
 	s = vmm ? &vmm->structures : &vmm_kernel;
-
 	i = 0;
+
 	list_for_each(l, &s->block_list) {
 		block = list_entry(l, struct vmm_block, global_list);
 		printf("%d 0x%08lX-0x%08lX [%c]\n",
