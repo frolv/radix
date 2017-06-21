@@ -252,7 +252,7 @@ void vmm_init(void)
 
 	first->area.base = RESERVED_VIRT_BASE;
 	first->area.size = RESERVED_SIZE;
-	first->flags = 0;
+	first->vmm = NULL;
 
 	list_add(&vmm_kernel.block_list, &first->global_list);
 	vmm_tree_insert(&vmm_kernel, first);
@@ -267,12 +267,14 @@ void vmm_init(void)
  * `block` MUST be large enough to fit `base` + `size`.
  */
 static struct vmm_block *vmm_split(struct vmm_block *block,
-                                   struct vmm_structures *s,
+                                   struct vmm_space *vmm,
                                    addr_t base, size_t size)
 {
+	struct vmm_structures *s;
 	struct vmm_block *new;
 	size_t new_size, end;
 
+	s = vmm ? &vmm->structures : &vmm_kernel;
 	new_size = base - block->area.base;
 	end = block->area.base + block->area.size;
 
@@ -288,6 +290,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
 		new->area.base = base;
 		new->area.size = size;
+		new->vmm = vmm;
 		list_add(&block->global_list, &new->global_list);
 		block = new;
 	} else if (size != block->area.size) {
@@ -309,6 +312,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
 		new->area.base = block->area.base + block->area.size;
 		new->area.size = new_size;
+		new->vmm = vmm;
 		list_add(&block->global_list, &new->global_list);
 		vmm_tree_insert(s, new);
 	}
@@ -330,7 +334,7 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	}
 
 	base = block->area.base + block->area.size - size;
-	block = vmm_split(block, &vmm_kernel, base, size);
+	block = vmm_split(block, NULL, base, size);
 	if (IS_ERR(block)) {
 		err = ERR_VAL(block);
 		goto out_err;
