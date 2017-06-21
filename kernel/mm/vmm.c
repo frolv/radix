@@ -349,7 +349,7 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 		/* TODO */
 	}
 
-	return (struct vmm_area *)block;
+	return &block->area;
 
 out_err:
 	/* TODO: unlock vmm_kernel_lock */
