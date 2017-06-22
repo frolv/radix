@@ -63,6 +63,14 @@ static void do_kernel_pf(addr_t fault_addr, int error)
 	 * determine whether optimization is necessary.
 	 */
 	p = alloc_page(PA_USER);
+	if (IS_ERR(p)) {
+		/*
+		 * TODO: figure out the best actions to take
+		 * here depending on the error that occurred.
+		 */
+		panic("do_kernel_pf: could not allocate physical page\n");
+	}
+
 	map_page_kernel(page, page_to_phys(p), PROT_WRITE, PAGE_CP_DEFAULT);
 	vmm_add_area_pages(area, p);
 }
