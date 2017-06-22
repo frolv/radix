@@ -24,8 +24,8 @@
 #include <radix/mm_types.h>
 
 struct buddy {
-	struct list     ord[PA_MAX_ORDER];      /* lists of 2^i size blocks */
-	size_t          len[PA_MAX_ORDER];      /* length of each list */
+	struct list     ord[PA_ORDERS];         /* lists of 2^i size blocks */
+	size_t          len[PA_ORDERS];         /* length of each list */
 	size_t          max_ord;                /* maximum available order */
 	size_t          total_pages;            /* total pages in this zone */
 	size_t          alloc_pages;            /* number of allocated pages */

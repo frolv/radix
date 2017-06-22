@@ -95,7 +95,7 @@ void buddy_init(struct multiboot_info *mbt)
 		zone_reg_end = RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE;
 
 	/* initialize buddy zones */
-	for (i = 0; i < PA_MAX_ORDER; ++i) {
+	for (i = 0; i < PA_ORDERS; ++i) {
 		list_init(&zone_dma.ord[i]);
 		zone_dma.len[i] = 0;
 		list_init(&zone_reg.ord[i]);
@@ -124,7 +124,7 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 {
 	struct buddy *zone;
 
-	if (ord > PA_MAX_ORDER - 1)
+	if (ord > PA_MAX_ORDER)
 		return ERR_PTR(EINVAL);
 
 	if (flags & __PA_ZONE_DMA)
@@ -374,9 +374,9 @@ static void init_region(addr_t base, uint64_t len, unsigned int flags)
 	while (len) {
 		pages = len / PAGE_SIZE;
 
-		/* determine the size of the block, up the the maximum 2^9 */
-		if ((ord = log2(pages)) > PA_MAX_ORDER - 1)
-			ord = PA_MAX_ORDER - 1;
+		/* determine the size of the block, up the the maximum */
+		if ((ord = log2(pages)) > PA_MAX_ORDER)
+			ord = PA_MAX_ORDER;
 		if (pages < pow2(ord))
 			--ord;
 

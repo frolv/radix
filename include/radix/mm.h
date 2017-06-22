@@ -52,11 +52,11 @@ void buddy_init(struct multiboot_info *mbt);
 
 
 /*
- * Page allocation order.
  * The maximum amount of pages that can be allocated
- * at a time is 2^(PAGE_MAX_ORDER - 1).
+ * at a time is 2^{PA_MAX_ORDER}.
  */
-#define PA_MAX_ORDER 10
+#define PA_ORDERS    10U
+#define PA_MAX_ORDER (PA_ORDERS - 1U)
 
 /* Low level page allocation flags */
 #define __PA_ZONE_REG   (1 << 1)        /* allocate from kernel zone */
