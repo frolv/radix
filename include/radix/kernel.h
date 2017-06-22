@@ -38,7 +38,7 @@
 ({                                      \
 	typeof(a) _mina = (a);          \
 	typeof(b) _minb = (b);          \
-	_mina > _minb ? _mina : _minb;  \
+	_mina < _minb ? _mina : _minb;  \
 })
 
 #define swap(a, b)                      \
