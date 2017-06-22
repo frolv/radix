@@ -349,6 +349,51 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 	return block;
 }
 
+static __always_inline void __vmm_add_area_pages(struct vmm_block *block,
+                                                 struct page *p)
+{
+	if (!block->mapped)
+		block->mapped = p;
+	else
+		list_ins(&block->mapped->list, &p->list);
+}
+
+/*
+ * vmm_alloc_block_pages:
+ * Allocate physical pages for the whole address range of the given vmm_block.
+ * Note: this is almost always a _bad_ idea.
+ */
+static void vmm_alloc_block_pages(struct vmm_block *block)
+{
+	struct page *p;
+	addr_t base, end;
+	size_t ord;
+	int pages;
+
+	base = block->area.base;
+	end = block->area.base + block->area.size;
+	pages = block->area.size / PAGE_SIZE;
+
+	while (base < end) {
+		ord = min(log2(pages), PA_MAX_ORDER);
+
+		p = alloc_pages(PA_USER, ord);
+		/*
+		 * It's OK if this fails; there will be a second chance
+		 * when the page fault handler is hit.
+		 */
+		if (IS_ERR(p))
+			return;
+
+		map_pages_kernel(base, page_to_phys(p), PROT_WRITE,
+		                 PAGE_CP_DEFAULT, pow2(ord));
+		__vmm_add_area_pages(block, p);
+
+		pages -= pow2(ord);
+		base += pow2(ord) * PAGE_SIZE;
+	}
+}
+
 static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 {
 	struct vmm_block *block;
@@ -374,9 +419,8 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	vmm_addr_tree_insert(&vmm_kernel.alloc_tree, block);
 	/* TODO: unlock vmm_kernel_lock */
 
-	if (flags & VMM_ALLOC_UPFRONT) {
-		/* TODO */
-	}
+	if (flags & VMM_ALLOC_UPFRONT)
+		vmm_alloc_block_pages(block);
 
 	return &block->area;
 
@@ -388,9 +432,11 @@ out_err:
 static struct vmm_area *__vmm_alloc_size(struct vmm_space *vmm, size_t size,
                                          unsigned long flags)
 {
+	if (flags & VMM_ALLOC_UPFRONT)
+		return ERR_PTR(EINVAL);
+
 	(void)vmm;
 	(void)size;
-	(void)flags;
 
 	return ERR_PTR(ENOMEM);
 }
@@ -449,13 +495,10 @@ void vmm_add_area_pages(struct vmm_area *area, struct page *p)
 	if (vmm)
 		vmm->pages += pow2(PM_PAGE_BLOCK_ORDER(p));
 
-	if (!block->mapped)
-		block->mapped = p;
-	else
-		list_ins(&block->mapped->list, &p->list);
+	__vmm_add_area_pages(block, p);
 }
 
-void vmm_area_dump(struct vmm_space *vmm)
+void vmm_space_dump(struct vmm_space *vmm)
 {
 	struct vmm_structures *s;
 	struct vmm_block *block;
