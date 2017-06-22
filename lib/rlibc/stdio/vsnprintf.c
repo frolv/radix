@@ -67,13 +67,13 @@ int vsnprintf(char *str, size_t size, const char *format, va_list ap)
 			n += tmp;
 			break;
 		case FORMAT_INT:
-			va_int_type(i, ap, p, signed);
+			i = va_int_type(ap, p, signed);
 			tmp = write_int(str, size - 1 - n, i, &p);
 			str += tmp;
 			n += tmp;
 			break;
 		case FORMAT_UINT:
-			va_int_type(u, ap, p, unsigned);
+			u = va_int_type(ap, p, unsigned);
 			tmp = write_uint(str, size - 1 - n, u, &p);
 			str += tmp;
 			n += tmp;

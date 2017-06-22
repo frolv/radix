@@ -60,11 +60,11 @@ int vprintf(const char *format, va_list ap)
 			n += print_str(va_arg(ap, const char *), &p);
 			break;
 		case FORMAT_INT:
-			va_int_type(i, ap, p, signed);
+			i = va_int_type(ap, p, signed);
 			n += print_int(i, &p);
 			break;
 		case FORMAT_UINT:
-			va_int_type(u, ap, p, unsigned);
+			u = va_int_type(ap, p, unsigned);
 			n += print_uint(u, &p);
 			break;
 		case FORMAT_PERCENT:
