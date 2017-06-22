@@ -26,7 +26,11 @@ static int atoi_skip(const char **format);
 /* get_format: parse a complete single format sequence from format */
 int get_format(const char *format, struct printf_format *p)
 {
-	const char *start = format;
+	const char *start;
+	int done;
+
+	start = format;
+	done = 0;
 
 	p->width = -1;
 	p->precision = -1;
@@ -34,8 +38,19 @@ int get_format(const char *format, struct printf_format *p)
 	p->flags = 0;
 	p->type = FORMAT_NONE;
 
-	while (*++format == '0')
-		p->flags |= FLAGS_ZERO;
+	while (!done) {
+		switch (*++format) {
+		case '0':
+			p->flags |= FLAGS_ZERO;
+			break;
+		case '#':
+			p->flags |= FLAGS_SPECIAL;
+			break;
+		default:
+			done = 1;
+			break;
+		}
+	}
 
 	if (isdigit(*format))
 		p->width = atoi_skip(&format);
@@ -105,17 +120,24 @@ static int atoi_skip(const char **format)
 	return i;
 }
 
-int oct_num(char *out, unsigned long long i)
+int oct_num(char *out, unsigned long long i, int sp)
 {
-	int len = 0;
+	int len, written;
+
+	len = written = 0;
+	if (sp) {
+		*out++ = '0';
+		++written;
+	}
 
 	do {
 		out[len++] = (i % 8) + '0';
 	} while ((i /= 8));
 	out[len] = '\0';
+	written += len;
 	strrev(out);
 
-	return len;
+	return written;
 }
 
 int dec_num(char *out, unsigned long long i)
@@ -131,11 +153,17 @@ int dec_num(char *out, unsigned long long i)
 	return len;
 }
 
-int hex_num(char *out, unsigned long long i, struct printf_format *p)
+int hex_num(char *out, unsigned long long i, struct printf_format *p, int sp)
 {
 	static const char *hex_char = "ABCDEF";
-	int c;
-	int len = 0;
+	int len, written, c;
+
+	len = written = 0;
+	if (sp) {
+		*out++ = '0';
+		*out++ = 'x';
+		written += 2;
+	}
 
 	do {
 		if ((c = i % 16) < 10) {
@@ -148,7 +176,8 @@ int hex_num(char *out, unsigned long long i, struct printf_format *p)
 		}
 	} while ((i /= 16));
 	out[len] = '\0';
+	written += len;
 	strrev(out);
 
-	return len;
+	return written;
 }

@@ -176,27 +176,56 @@ static int write_int(char *str, size_t n, long long i, struct printf_format *p)
 static int write_uint(char *str, size_t n, unsigned long long u, struct printf_format *p)
 {
 	size_t len, tmp;
-	int pad;
+	int pad, special;
 	char buf[32];
+
+	len = 0;
+	special = p->flags & FLAGS_SPECIAL;
 
 	tmp = n;
 	switch (p->base) {
 	case 010:
-		len = oct_num(buf, u);
+		if (special && (p->flags & FLAGS_ZERO)) {
+			if (!n)
+				return 0;
+
+			*str++ = '0';
+			special = 0;
+			--n;
+			++len;
+		}
+		len += oct_num(buf, u, special);
 		break;
 	case 0x10:
-		len = hex_num(buf, u, p);
+		if (special && (p->flags & FLAGS_ZERO)) {
+			switch (n) {
+			case 0:
+				return 0;
+			case 1:
+				*str++ = '0';
+				return 1;
+			default:
+				*str++ = '0';
+				*str++ = 'x';
+				n -= 2;
+				break;
+			}
+			special = 0;
+			len += 2;
+		}
+		len += hex_num(buf, u, p, special);
 		break;
 	default:
-		len = dec_num(buf, u);
+		len += dec_num(buf, u);
 		break;
 	}
 
 	if ((pad = p->width - len) > 0) {
 		u = (p->flags & FLAGS_ZERO) ? '0': ' ';
-		while (pad-- && n) {
+		while (n && pad) {
 			*str++ = u;
 			--n;
+			--pad;
 		}
 	}
 

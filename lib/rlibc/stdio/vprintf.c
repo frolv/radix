@@ -131,26 +131,41 @@ static int print_int(long long i, struct printf_format *p)
 /* print_uint: print an unsigned integer in octal, decimal or hex format */
 static int print_uint(unsigned long long u, struct printf_format *p)
 {
-	int pad, len;
+	int pad, len, buflen, special;
 	char buf[32];
+
+	len = 0;
+	special = p->flags & FLAGS_SPECIAL;
 
 	switch (p->base) {
 	case 010:
-		len = oct_num(buf, u);
+		if (special && (p->flags & FLAGS_ZERO)) {
+			putchar('0');
+			special = 0;
+			++len;
+		}
+		buflen = oct_num(buf, u, special);
 		break;
 	case 0x10:
-		len = hex_num(buf, u, p);
+		if (special && (p->flags & FLAGS_ZERO)) {
+			putchar('0');
+			putchar('x');
+			special = 0;
+			len += 2;
+		}
+		buflen = hex_num(buf, u, p, special);
 		break;
 	default:
-		len = dec_num(buf, u);
+		buflen = dec_num(buf, u);
 		break;
 	}
 
+	len += buflen;
 	if ((pad = p->width - len) > 0) {
 		u = (p->flags & FLAGS_ZERO) ? '0': ' ';
 		while (pad--)
 			tty_putchar(u);
 	}
-	tty_write(buf, len);
+	tty_write(buf, buflen);
 	return max((int)p->width, len);
 }

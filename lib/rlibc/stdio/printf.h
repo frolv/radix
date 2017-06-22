@@ -19,11 +19,12 @@
 #ifndef LIB_RLIBC_STDIO_PRINTF_H
 #define LIB_RLIBC_STDIO_PRINTF_H
 
-#define FLAGS_ZERO      0x01    /* pad with zeros */
-#define FLAGS_LOWER     0x02    /* lowercase in hex */
-#define FLAGS_SHORT     0x04    /* short int */
-#define FLAGS_LONG      0x08    /* long int */
-#define FLAGS_LLONG     0x10    /* long long int */
+#define FLAGS_ZERO      (1 << 0)        /* pad with zeros */
+#define FLAGS_LOWER     (1 << 1)        /* lowercase in hex */
+#define FLAGS_SHORT     (1 << 2)        /* short int */
+#define FLAGS_LONG      (1 << 3)        /* long int */
+#define FLAGS_LLONG     (1 << 4)        /* long long int */
+#define FLAGS_SPECIAL   (1 << 5)        /* add special characters */
 
 enum format_type {
 	FORMAT_NONE,
@@ -53,8 +54,8 @@ struct printf_format {
 
 int get_format(const char *format, struct printf_format *p);
 
-int oct_num(char *out, unsigned long long i);
+int oct_num(char *out, unsigned long long i, int sp);
 int dec_num(char *out, unsigned long long i);
-int hex_num(char *out, unsigned long long i, struct printf_format *p);
+int hex_num(char *out, unsigned long long i, struct printf_format *p, int sp);
 
 #endif /* LIB_RLIBC_STDIO_PRINTF_H */
