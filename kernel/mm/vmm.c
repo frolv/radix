@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/bits.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/slab.h>
@@ -34,6 +35,32 @@ struct vmm_block {
 	struct rb_node          size_node;
 	struct rb_node          addr_node;
 };
+
+/*
+ * Alright. There's a bit of list/tree stuff going on here, so listen carefully.
+ *
+ * When a vmm_block is *not* allocated:
+ * 1. global_list is in the list of all vmm_blocks in the address space.
+ * 2. area.list is either in the list of all unallocated vmm_blocks of a
+ *    certain size, or empty. See size_node below.
+ * 3. size_node is either the position of the block in the tree of unallocated
+ *    blocks by size, or not in any tree. When it is the latter, there are other
+ *    vmm_blocks of the same size in the address space, one of which is the tree
+ *    node, with the rest stored in its area.list.
+ * 4. addr_node is in the tree of unallocated vmm_blocks sorted by base address.
+ * 5. mapped is NULL.
+ *
+ * When a vmm_block *is* allocated:
+ * 1. global_list is in the list of all vmm_blocks in the address space.
+ *    (This doesn't change.)
+ * 2. area.list is in the list of all allocated vmm_blocks in the address space.
+ * 3. size_node is not used.
+ * 4. addr_node is in the tree of all allocated vmm_blocks in the address space,
+ *    sorted by base address.
+ * 5. mapped is either NULL or a pointer to a struct page representing a group
+ *    of physical pages allocated for this vmm_block. The struct page's list
+ *    stores all of the other physical page groups allocated for this block.
+ */
 
 #define VMM_ALLOCATED (1 << 0)
 
@@ -404,6 +431,26 @@ struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr)
 
 	block = vmm_find_addr(vmm ? &vmm->structures : &vmm_kernel, addr);
 	return (struct vmm_area *)block;
+}
+
+/*
+ * vmm_add_area_pages:
+ * Add the block of physical pages represented by `p` to `area`.
+ */
+void vmm_add_area_pages(struct vmm_area *area, struct page *p)
+{
+	struct vmm_block *block;
+	struct vmm_space *vmm;
+
+	block = (struct vmm_block *)area;
+	vmm = block->vmm;
+	if (vmm)
+		vmm->pages += pow2(PM_PAGE_BLOCK_ORDER(p));
+
+	if (!block->mapped)
+		block->mapped = p;
+	else
+		list_ins(&block->mapped->list, &p->list);
 }
 
 void vmm_area_dump(struct vmm_space *vmm)

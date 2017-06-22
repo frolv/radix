@@ -56,5 +56,6 @@ struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
 void *vmalloc(size_t size);
 
 struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr);
+void vmm_add_area_pages(struct vmm_area *area, struct page *p);
 
 #endif /* RADIX_VMM_H */
