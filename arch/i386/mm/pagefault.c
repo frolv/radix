@@ -43,13 +43,13 @@ static void do_kernel_pf(addr_t fault_addr, int error)
 	access = error & X86_PF_WRITE ? "write to" : "read from";
 
 	if (error & X86_PF_PROTECTION) {
-		panic("illegal %s virtual address 0x%08lX\n",
+		panic("illegal %s virtual address %p\n",
 		      access, fault_addr);
 	}
 
 	area = vmm_get_allocated_area(NULL, fault_addr);
 	if (!area) {
-		panic("attempt to %s non-allocated page 0x%08lX\n",
+		panic("attempt to %s non-allocated page %p\n",
 		      access, page);
 	}
 

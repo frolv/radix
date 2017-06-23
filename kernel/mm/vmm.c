@@ -510,7 +510,7 @@ void vmm_space_dump(struct vmm_space *vmm)
 
 	list_for_each(l, &s->block_list) {
 		block = list_entry(l, struct vmm_block, global_list);
-		printf("%d 0x%08lX-0x%08lX [%c]\n",
+		printf("%d %p-%p [%c]\n",
 		       i++, block->area.base,
 		       block->area.base + block->area.size,
 		       block->flags & VMM_ALLOCATED ? 'A' : '-');
