@@ -387,6 +387,7 @@ static void vmm_alloc_block_pages(struct vmm_block *block)
 
 		map_pages_kernel(base, page_to_phys(p), PROT_WRITE,
 		                 PAGE_CP_DEFAULT, pow2(ord));
+		p->mem = (void *)base;
 		__vmm_add_area_pages(block, p);
 
 		pages -= pow2(ord);
@@ -508,6 +509,7 @@ void vmm_space_dump(struct vmm_space *vmm)
 	s = vmm ? &vmm->structures : &vmm_kernel;
 	i = 0;
 
+	printf("vmm_space:\n");
 	list_for_each(l, &s->block_list) {
 		block = list_entry(l, struct vmm_block, global_list);
 		printf("%d %p-%p [%c]\n",
@@ -515,4 +517,35 @@ void vmm_space_dump(struct vmm_space *vmm)
 		       block->area.base + block->area.size,
 		       block->flags & VMM_ALLOCATED ? 'A' : '-');
 	}
+}
+
+static void vmm_page_dump(struct page *p)
+{
+	addr_t phys;
+	size_t npages;
+
+	phys = page_to_phys(p);
+	npages = pow2(PM_PAGE_BLOCK_ORDER(p));
+
+	printf("%p-%p [%3d page%c]\n",
+	       phys, phys + npages * PAGE_SIZE,
+	       npages, npages > 1 ? 's' : ' ');
+}
+
+void vmm_block_dump(struct vmm_block *block)
+{
+	struct page *p;
+	struct list *l;
+
+	printf("vmm_block:\n%p-%p [%u KiB]\n",
+	       block->area.base,
+	       block->area.base + block->area.size,
+	       (block->area.base + block->area.size) / KIB(1));
+
+	if (!(p = block->mapped))
+		return;
+
+	vmm_page_dump(p);
+	list_for_each(l, &p->list)
+		vmm_page_dump(list_entry(l, struct page, list));
 }
