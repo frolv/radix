@@ -54,8 +54,8 @@ struct printf_format {
 
 int get_format(const char *format, struct printf_format *p);
 
-int oct_num(char *out, unsigned long long i, int sp);
-int dec_num(char *out, unsigned long long i);
-int hex_num(char *out, unsigned long long i, struct printf_format *p, int sp);
+int oct_num(struct printf_format *p, char *out, unsigned long long i, int sp);
+int dec_num(struct printf_format *p, char *out, unsigned long long i);
+int hex_num(struct printf_format *p, char *out, unsigned long long i, int sp);
 
 #endif /* LIB_RLIBC_STDIO_PRINTF_H */

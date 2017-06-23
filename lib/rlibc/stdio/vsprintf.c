@@ -33,7 +33,7 @@ static int write_uint(char *str, unsigned long long u, struct printf_format *p);
  * Supports:
  * %c and %s,
  * %d, %u, %o, %x, %X (in regular, short (h) and long (l, ll) forms),
- * field width and zero-padding.
+ * special characters (#), field width, precision, and zero-padding.
  */
 int vsprintf(char *str, const char *format, va_list ap)
 {
@@ -114,7 +114,7 @@ static int write_char(char *str, int c, struct printf_format *p)
 static int write_int(char *str, long long i, struct printf_format *p)
 {
 	int pad, len, n;
-	char buf[32];
+	char buf[64];
 
 	len = 0;
 	if (i < 0) {
@@ -123,7 +123,7 @@ static int write_int(char *str, long long i, struct printf_format *p)
 		i = -i;
 	}
 
-	n = dec_num(buf, i);
+	n = dec_num(p, buf, i);
 	len += n;
 
 	if ((pad = p->width - len) > 0) {
@@ -138,7 +138,7 @@ static int write_int(char *str, long long i, struct printf_format *p)
 static int write_uint(char *str, unsigned long long u, struct printf_format *p)
 {
 	int pad, len, special;
-	char buf[32];
+	char buf[64];
 
 	len = 0;
 	special = p->flags & FLAGS_SPECIAL;
@@ -150,7 +150,7 @@ static int write_uint(char *str, unsigned long long u, struct printf_format *p)
 			special = 0;
 			++len;
 		}
-		len += oct_num(buf, u, special);
+		len += oct_num(p, buf, u, special);
 		break;
 	case 0x10:
 		if (special && (p->flags & FLAGS_ZERO)) {
@@ -159,10 +159,10 @@ static int write_uint(char *str, unsigned long long u, struct printf_format *p)
 			special = 0;
 			len += 2;
 		}
-		len += hex_num(buf, u, p, special);
+		len += hex_num(p, buf, u, special);
 		break;
 	default:
-		len += dec_num(buf, u);
+		len += dec_num(p, buf, u);
 		break;
 	}
 

@@ -30,12 +30,13 @@ static int write_uint(char *str, size_t n, unsigned long long u,
 		      struct printf_format *p);
 
 /*
- * vsnprintf: write a formatted string to buffer str.
+ * vsnprintf: write a formatted string to buffer str, up to a maximum
+ * of `size` characters.
  *
  * Supports:
  * %c and %s,
  * %d, %u, %o, %x, %X (in regular, short (h) and long (l, ll) forms),
- * field width and zero-padding.
+ * special characters (#), field width, precision, and zero-padding.
  */
 int vsnprintf(char *str, size_t size, const char *format, va_list ap)
 {
@@ -138,7 +139,7 @@ static int write_int(char *str, size_t n, long long i, struct printf_format *p)
 {
 	size_t len, blen, tmp;
 	int pad;
-	char buf[32];
+	char buf[64];
 
 	if (!n)
 		return 0;
@@ -152,7 +153,7 @@ static int write_int(char *str, size_t n, long long i, struct printf_format *p)
 		i = -i;
 	}
 
-	blen = dec_num(buf, i);
+	blen = dec_num(p, buf, i);
 	len += blen;
 
 	if ((pad = p->width - len) > 0) {
@@ -177,7 +178,7 @@ static int write_uint(char *str, size_t n, unsigned long long u, struct printf_f
 {
 	size_t len, tmp;
 	int pad, special;
-	char buf[32];
+	char buf[64];
 
 	len = 0;
 	special = p->flags & FLAGS_SPECIAL;
@@ -194,7 +195,7 @@ static int write_uint(char *str, size_t n, unsigned long long u, struct printf_f
 			--n;
 			++len;
 		}
-		len += oct_num(buf, u, special);
+		len += oct_num(p, buf, u, special);
 		break;
 	case 0x10:
 		if (special && (p->flags & FLAGS_ZERO)) {
@@ -213,10 +214,10 @@ static int write_uint(char *str, size_t n, unsigned long long u, struct printf_f
 			special = 0;
 			len += 2;
 		}
-		len += hex_num(buf, u, p, special);
+		len += hex_num(p, buf, u, special);
 		break;
 	default:
-		len += dec_num(buf, u);
+		len += dec_num(p, buf, u);
 		break;
 	}
 

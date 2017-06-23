@@ -35,7 +35,7 @@ static int print_uint(unsigned long long u, struct printf_format *p);
  * Supports:
  * %c and %s,
  * %d, %u, %o, %x, %X (in regular, short (h) and long (l, ll) forms),
- * field width and zero-padding.
+ * special characters (#), field width, precision, and zero-padding.
  */
 int vprintf(const char *format, va_list ap)
 {
@@ -107,7 +107,7 @@ static int print_char(int c, struct printf_format *p)
 static int print_int(long long i, struct printf_format *p)
 {
 	int pad, len, n;
-	char buf[32];
+	char buf[64];
 
 	len = 0;
 	if (i < 0) {
@@ -116,7 +116,7 @@ static int print_int(long long i, struct printf_format *p)
 		i = -i;
 	}
 
-	n = dec_num(buf, i);
+	n = dec_num(p, buf, i);
 	len += n;
 
 	if ((pad = p->width - len) > 0) {
@@ -132,7 +132,7 @@ static int print_int(long long i, struct printf_format *p)
 static int print_uint(unsigned long long u, struct printf_format *p)
 {
 	int pad, len, buflen, special;
-	char buf[32];
+	char buf[64];
 
 	len = 0;
 	special = p->flags & FLAGS_SPECIAL;
@@ -144,7 +144,7 @@ static int print_uint(unsigned long long u, struct printf_format *p)
 			special = 0;
 			++len;
 		}
-		buflen = oct_num(buf, u, special);
+		buflen = oct_num(p, buf, u, special);
 		break;
 	case 0x10:
 		if (special && (p->flags & FLAGS_ZERO)) {
@@ -153,10 +153,10 @@ static int print_uint(unsigned long long u, struct printf_format *p)
 			special = 0;
 			len += 2;
 		}
-		buflen = hex_num(buf, u, p, special);
+		buflen = hex_num(p, buf, u, special);
 		break;
 	default:
-		buflen = dec_num(buf, u);
+		buflen = dec_num(p, buf, u);
 		break;
 	}
 

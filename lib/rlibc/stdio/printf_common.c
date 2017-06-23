@@ -33,7 +33,7 @@ int get_format(const char *format, struct printf_format *p)
 	done = 0;
 
 	p->width = -1;
-	p->precision = -1;
+	p->precision = 0;
 	p->base = 10;
 	p->flags = 0;
 	p->type = FORMAT_NONE;
@@ -59,6 +59,8 @@ int get_format(const char *format, struct printf_format *p)
 		p->precision = atoi_skip(&format);
 		if (p->precision < 0)
 			p->precision = 0;
+		else if (p->precision > 32)
+			p->precision = 32;
 	}
 
 	if (*format == 'h') {
@@ -120,7 +122,7 @@ static int atoi_skip(const char **format)
 	return i;
 }
 
-int oct_num(char *out, unsigned long long i, int sp)
+int oct_num(struct printf_format *p, char *out, unsigned long long i, int sp)
 {
 	int len, written;
 
@@ -133,6 +135,10 @@ int oct_num(char *out, unsigned long long i, int sp)
 	do {
 		out[len++] = (i % 8) + '0';
 	} while ((i /= 8));
+
+	while (len < p->precision)
+		out[len++] = '0';
+
 	out[len] = '\0';
 	written += len;
 	strrev(out);
@@ -140,20 +146,24 @@ int oct_num(char *out, unsigned long long i, int sp)
 	return written;
 }
 
-int dec_num(char *out, unsigned long long i)
+int dec_num(struct printf_format *p, char *out, unsigned long long i)
 {
 	int len = 0;
 
 	do {
 		out[len++] = (i % 10) + '0';
 	} while ((i /= 10));
+
+	while (len < p->precision)
+		out[len++] = '0';
+
 	out[len] = '\0';
 	strrev(out);
 
 	return len;
 }
 
-int hex_num(char *out, unsigned long long i, struct printf_format *p, int sp)
+int hex_num(struct printf_format *p, char *out, unsigned long long i, int sp)
 {
 	static const char *hex_char = "ABCDEF";
 	int len, written, c;
@@ -175,6 +185,10 @@ int hex_num(char *out, unsigned long long i, struct printf_format *p, int sp)
 			out[len++] = c;
 		}
 	} while ((i /= 16));
+
+	while (len < p->precision)
+		out[len++] = '0';
+
 	out[len] = '\0';
 	written += len;
 	strrev(out);
