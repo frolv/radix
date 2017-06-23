@@ -92,6 +92,12 @@ int get_format(const char *format, struct printf_format *p)
 	case 'u':
 		p->type = FORMAT_UINT;
 		break;
+	case 'p':
+		p->precision = __WORDSIZE / sizeof (void *);
+		p->flags |= FLAGS_SPECIAL;
+		p->type = FORMAT_UINT;
+		p->base = 16;
+		break;
 	case 'x':
 		p->flags |= FLAGS_LOWER;
 		/* fall through */
