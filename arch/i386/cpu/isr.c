@@ -71,17 +71,6 @@ static void (*exception_handlers[NUM_EXCEPTIONS])(struct regs *, int);
 /* hardware interrupt handler functions */
 static void (*irq_handlers[NUM_ISR_VECTORS])(struct regs *);
 
-static void debug_pf(struct regs *r, int errno)
-{
-	unsigned long addr;
-
-	asm volatile("movl %%cr2, %0" : "=r"(addr));
-	panic("page fault at address 0x%08lX\n", addr);
-
-	(void)r;
-	(void)errno;
-}
-
 void load_interrupt_routines(void)
 {
 	size_t i;
@@ -94,8 +83,6 @@ void load_interrupt_routines(void)
 		/* APIC is available; use it. */
 		apic_init();
 	}
-
-	install_exception_handler(0x0E, debug_pf);
 }
 
 /* install_exception_handler: set a function to handle exception `intno` */
