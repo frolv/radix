@@ -33,6 +33,8 @@ static struct buddy zone_reg;
 /* The rest of memory. */
 static struct buddy zone_usr;
 
+#define __PA_UNMAPPABLE (1 << 31)
+
 /* total amount of usable memory in the system */
 static uint64_t memsize = 0;
 static uint64_t memused = 0;
@@ -127,12 +129,18 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 	if (ord > PA_MAX_ORDER)
 		return ERR_PTR(EINVAL);
 
-	if (flags & __PA_ZONE_DMA)
+	if (flags & __PA_ZONE_DMA) {
 		zone = &zone_dma;
-	else if (flags & __PA_ZONE_USR)
+		flags |= __PA_UNMAPPABLE;
+	} else if (flags & __PA_ZONE_USR) {
 		zone = &zone_usr;
-	else
+		flags |= __PA_UNMAPPABLE;
+	} else {
 		zone = &zone_reg;
+	}
+
+	if ((flags & __PA_UNMAPPABLE) && !(flags & __PA_NO_MAP))
+		return ERR_PTR(EINVAL);
 
 	/* TODO: if zone is full, allocate from another */
 	if (zone->alloc_pages == zone->total_pages)
@@ -202,7 +210,6 @@ static struct page *__alloc_pages(struct buddy *zone,
 	memused += pow2(ord) * PAGE_SIZE;
 
 	if (!(flags & __PA_NO_MAP) && !(p->status & PM_PAGE_MAPPED)) {
-		/* TODO: fix this check to properly detect kernel/user pages */
 		if (zone == &zone_reg) {
 			virt = phys_to_virt(page_to_phys(p));
 			prot = flags & __PA_READONLY ? PROT_READ : PROT_WRITE;
