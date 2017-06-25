@@ -19,6 +19,8 @@
 #include <radix/bits.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
+#include <radix/vmm.h>
+
 #include <rlibc/string.h>
 
 #include "buddy.h"
@@ -190,7 +192,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 {
 	struct page *p;
 	addr_t virt;
-	int prot;
+	int npages, prot;
 
 	if (unlikely(ord > zone->max_ord))
 		return ERR_PTR(ENOMEM);
@@ -206,22 +208,23 @@ static struct page *__alloc_pages(struct buddy *zone,
 		while (!zone->len[zone->max_ord])
 			zone->max_ord--;
 	}
-	zone->alloc_pages += pow2(ord);
-	memused += pow2(ord) * PAGE_SIZE;
+
+	npages = pow2(ord);
+	zone->alloc_pages += npages;
+	memused += npages * PAGE_SIZE;
 
 	if (!(flags & __PA_NO_MAP) && !(p->status & PM_PAGE_MAPPED)) {
-		if (zone == &zone_reg) {
+		if (zone == &zone_reg)
 			virt = phys_to_virt(page_to_phys(p));
-			prot = flags & __PA_READONLY ? PROT_READ : PROT_WRITE;
-			map_pages_kernel(virt, page_to_phys(p), prot,
-			                 PAGE_CP_DEFAULT, pow2(ord));
-		} else {
-			/* TODO: find free virtual address range, map pages */
-			virt = 0;
-		}
+		else
+			virt = (addr_t)vmalloc(npages * PAGE_SIZE);
+
+		prot = flags & __PA_READONLY ? PROT_READ : PROT_WRITE;
+		map_pages_kernel(virt, page_to_phys(p), prot,
+		                 PAGE_CP_DEFAULT, npages);
 
 		if (flags & __PA_ZERO)
-			memset((void *)virt, 0, pow2(ord) * PAGE_SIZE);
+			memset((void *)virt, 0, npages * PAGE_SIZE);
 
 		p->mem = (void *)virt;
 		p->status |= PM_PAGE_MAPPED;
