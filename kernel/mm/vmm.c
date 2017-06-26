@@ -458,6 +458,64 @@ struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
 		return __vmm_alloc_size(vmm, size, flags);
 }
 
+static void __vmm_free_pages(struct vmm_space *vmm, struct vmm_block *block)
+{
+	struct page *p;
+
+	if (!block->mapped)
+		return;
+
+	while (!list_empty(&block->mapped->list)) {
+		p = list_first_entry(&block->mapped->list, struct page, list);
+		vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(p));
+		list_del(&p->list);
+		free_pages(p);
+	}
+	vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(block->mapped));
+	free_pages(block->mapped);
+	block->mapped = NULL;
+}
+
+static void __vmm_free_kernel_pages(struct vmm_block *block)
+{
+	struct page *p;
+
+	if (!block->mapped)
+		return;
+
+	while (!list_empty(&block->mapped->list)) {
+		p = list_first_entry(&block->mapped->list, struct page, list);
+		list_del(&p->list);
+		free_pages(p);
+	}
+	free_pages(block->mapped);
+	block->mapped = NULL;
+}
+
+/* vmm_free: free the vmm_area `area` */
+void vmm_free(struct vmm_space *vmm, struct vmm_area *area)
+{
+	struct vmm_block *block;
+	struct vmm_structures *s;
+
+	block = (struct vmm_block *)area;
+	if (!(block->flags & VMM_ALLOCATED))
+		return;
+
+	if (vmm) {
+		s = &vmm->structures;
+		__vmm_free_pages(vmm, block);
+	} else {
+		s = &vmm_kernel;
+		__vmm_free_kernel_pages(block);
+	}
+
+	rb_delete(&s->addr_tree, &block->addr_node);
+	list_del(&block->area.list);
+	block->flags &= ~VMM_ALLOCATED;
+	vmm_tree_insert(s, block);
+}
+
 void *vmalloc(size_t size)
 {
 	struct vmm_area *area;

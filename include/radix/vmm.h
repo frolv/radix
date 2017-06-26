@@ -52,6 +52,7 @@ void vmm_init(void);
 
 struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
                                 unsigned long flags);
+void vmm_free(struct vmm_space *vmm, struct vmm_area *area);
 
 void *vmalloc(size_t size);
 
