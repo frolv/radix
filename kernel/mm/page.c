@@ -163,16 +163,25 @@ void free_pages(struct page *p)
 	if (PM_PAGE_BLOCK_ORDER(p) == PM_PAGE_ORDER_INNER)
 		return;
 
-	if (page_to_phys(p) < MIB(16))
-		zone = &zone_dma;
-	else
-		zone = (p->status & PM_PAGE_ZONE_USR) ? &zone_usr : &zone_reg;
 
 	p->slab_cache = (void *)PAGE_UNINIT_MAGIC;
 	p->slab_desc = (void *)PAGE_UNINIT_MAGIC;
 	p->status &= ~PM_PAGE_ALLOCATED;
-
 	ord = PM_PAGE_BLOCK_ORDER(p);
+
+	if (page_to_phys(p) < MIB(16)) {
+		zone = &zone_dma;
+	} else if (p->status & PM_PAGE_ZONE_USR) {
+		zone = &zone_usr;
+	} else {
+		zone = &zone_reg;
+		if (p->status & PM_PAGE_MAPPED) {
+			unmap_pages((addr_t)p->mem, ord);
+			p->mem = (void *)PAGE_UNINIT_MAGIC;
+			p->status &= ~PM_PAGE_MAPPED;
+		}
+	}
+
 	zone->alloc_pages -= pow2(ord);
 	memused -= pow2(ord) * PAGE_SIZE;
 
