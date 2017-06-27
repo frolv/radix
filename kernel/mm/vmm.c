@@ -527,6 +527,15 @@ void *vmalloc(size_t size)
 	return (void *)area->base;
 }
 
+void vfree(void *ptr)
+{
+	struct vmm_block *block;
+
+	block = vmm_find_addr(&vmm_kernel, (addr_t)ptr);
+	if (block)
+		vmm_free(&block->area);
+}
+
 /*
  * vmm_get_allocated_area:
  * Check if `addr` is allocated in address space `vmm`,
