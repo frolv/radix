@@ -116,6 +116,7 @@ static __always_inline addr_t __arch_pa(addr_t v)
 #define __arch_map_pages        i386_map_pages
 #define __arch_unmap_page       i386_unmap_page
 #define __arch_unmap_page_clean i386_unmap_page_clean
+#define __arch_unmap_pages      i386_unmap_pages
 #define __arch_set_cache_policy i386_set_cache_policy
 
 #define __arch_tlb_flush_all            i386_tlb_flush_all

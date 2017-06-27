@@ -31,7 +31,6 @@
 #define KERNEL_SIZE             0x00400000
 #define RESERVED_VIRT_BASE      __ARCH_RESERVED_VIRT_BASE
 #define RESERVED_SIZE           (PGDIR_BASE - RESERVED_VIRT_BASE)
-#define ACPI_TABLES_VIRT_BASE   __ARCH_ACPI_VIRT_BASE
 #define MEM_LIMIT               __ARCH_MEM_LIMIT
 
 /*
@@ -144,6 +143,7 @@ enum cache_policy {
 
 #define unmap_page(virt)                __arch_unmap_page(virt)
 #define unmap_page_clean(virt)          __arch_unmap_page_clean(virt)
+#define unmap_pages(virt)               __arch_unmap_pages(virt)
 
 #define set_cache_policy(virt, type)    __arch_set_cache_policy(virt, type)
 

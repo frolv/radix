@@ -262,6 +262,59 @@ static int __unmap(addr_t virt, int freetable)
 }
 
 /*
+ * i386_unmap_pages:
+ * Unmap `n` pages, starting from address `virt`.
+ */
+int i386_unmap_pages(addr_t virt, size_t n)
+{
+	size_t pdi, initial_pti, curr_pti;
+	pte_t *pgtbl;
+	addr_t phys;
+
+	if (!ALIGNED(virt, PAGE_SIZE))
+		return EINVAL;
+
+	pdi = PGDIR_INDEX(virt);
+	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+		return EINVAL;
+
+	initial_pti = PGTBL_INDEX(virt);
+	pgtbl = get_page_table(pdi);
+
+	/* check if any previous pages in the current table are mapped */
+	for (curr_pti = 0; curr_pti < initial_pti; ++curr_pti) {
+		if (PTE(pgtbl[curr_pti]) & PAGE_PRESENT)
+			break;
+	}
+	if (curr_pti == initial_pti)
+		initial_pti = 0;
+	else
+		curr_pti = initial_pti;
+
+	while (n) {
+		pgtbl[curr_pti] = make_pte(0);
+		tlb_flush_page_lazy(virt);
+
+		--n;
+		virt += PAGE_SIZE;
+		if (++curr_pti == PTRS_PER_PGTBL) {
+			if (initial_pti == 0) {
+				/* all pages in the table are unmapped */
+				phys = PDE(pgdir[pdi]) & PAGE_MASK;
+				free_pages(phys_to_page(phys));
+				pgdir[pdi] = make_pde(0);
+				tlb_flush_page_lazy((addr_t)pgtbl);
+			}
+			if (++pdi == PTRS_PER_PGDIR)
+				break;
+			curr_pti = initial_pti = 0;
+		}
+	}
+
+	return 0;
+}
+
+/*
  * i386_set_cache_policy:
  * Set the CPU caching policy for a single virtual page.
  */
