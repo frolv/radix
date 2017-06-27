@@ -493,7 +493,7 @@ static void __vmm_free_kernel_pages(struct vmm_block *block)
 }
 
 /* vmm_free: free the vmm_area `area` */
-void vmm_free(struct vmm_space *vmm, struct vmm_area *area)
+void vmm_free(struct vmm_area *area)
 {
 	struct vmm_block *block;
 	struct vmm_structures *s;
@@ -502,9 +502,9 @@ void vmm_free(struct vmm_space *vmm, struct vmm_area *area)
 	if (!(block->flags & VMM_ALLOCATED))
 		return;
 
-	if (vmm) {
-		s = &vmm->structures;
-		__vmm_free_pages(vmm, block);
+	if (block->vmm) {
+		s = &block->vmm->structures;
+		__vmm_free_pages(block->vmm, block);
 	} else {
 		s = &vmm_kernel;
 		__vmm_free_kernel_pages(block);
