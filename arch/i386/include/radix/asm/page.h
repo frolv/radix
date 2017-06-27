@@ -89,6 +89,7 @@ int i386_map_pages(addr_t virt, addr_t phys, int prot,
                    int cp, int user, size_t n);
 int i386_unmap_page(addr_t virt);
 int i386_unmap_page_clean(addr_t virt);
+int i386_unmap_pages(addr_t virt, size_t n);
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy);
 
 void i386_tlb_flush_all(int sync);
