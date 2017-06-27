@@ -252,7 +252,7 @@ static struct vmm_block *vmm_find_addr(struct vmm_structures *s, addr_t addr)
 
 		if (addr < block->area.base)
 			curr = curr->left;
-		else if (addr > block->area.base + block->area.size)
+		else if (addr >= block->area.base + block->area.size)
 			curr = curr->right;
 		else
 			return block;
