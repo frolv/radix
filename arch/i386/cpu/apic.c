@@ -24,6 +24,7 @@
 #include <radix/error.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
+#include <radix/vmm.h>
 
 #include "apic.h"
 
@@ -33,7 +34,10 @@
 
 static struct acpi_madt *madt;
 
-static addr_t lapic_base; /* Local APIC base address */
+/* Local APIC base addresses */
+static addr_t lapic_phys_base;
+static addr_t lapic_virt_base;
+
 static int cpus_available;
 
 /* Mapping between source and global IRQ */
@@ -45,10 +49,6 @@ struct irq_map {
 };
 static struct irq_map bus_irqs[16];
 
-/*
- * Make sure to change __ARCH_IOAPIC_VIRT_BASE in
- * arch/i386/include/radix/mm_types.h if this is changed.
- */
 #define MAX_IOAPICS 16
 
 struct ioapic {
@@ -115,12 +115,12 @@ static void apic_enable(addr_t base)
 
 static uint32_t apic_reg_read(uint16_t reg)
 {
-	return *(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg);
+	return *(uint32_t *)(lapic_virt_base + reg);
 }
 
 static void apic_reg_write(uint16_t reg, uint32_t value)
 {
-	*(uint32_t *)(__ARCH_APIC_VIRT_PAGE + reg) = value;
+	*(uint32_t *)(lapic_virt_base + reg) = value;
 }
 
 /*
@@ -152,9 +152,10 @@ uint32_t i386_processor_id(void)
  */
 void apic_init(void)
 {
-	map_page_kernel(__ARCH_APIC_VIRT_PAGE, lapic_base,
+	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
+	map_page_kernel(lapic_virt_base, lapic_phys_base,
 	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
-	apic_enable(lapic_base);
+	apic_enable(lapic_phys_base);
 
 	/* Enable APIC and set spurious interrupt vector */
 	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
@@ -174,7 +175,7 @@ static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
 	if (ioapics_available == MAX_IOAPICS)
 		return;
 
-	base = __ARCH_IOAPIC_VIRT_BASE + ioapics_available * PAGE_SIZE;
+	base = (addr_t)vmalloc(PAGE_SIZE);
 	map_page_kernel(base, s->address, PROT_WRITE, PAGE_CP_UNCACHEABLE);
 
 	ioapic = &ioapic_list[ioapics_available++];
@@ -224,7 +225,7 @@ int apic_parse_madt(void)
 	if (!madt)
 		return 1;
 
-	lapic_base = madt->address;
+	lapic_phys_base = madt->address;
 
 	p = (unsigned char *)(madt + 1);
 	end = (unsigned char *)madt + madt->header.length;

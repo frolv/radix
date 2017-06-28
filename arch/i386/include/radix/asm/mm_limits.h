@@ -23,14 +23,6 @@
 #error <radix/asm/mm_limits.h> cannot be included directly
 #endif
 
-/* Pages containing ACPI tables are mapped starting at this virtual address. */
-#define __ARCH_ACPI_VIRT_BASE     0xFFBF0000UL
-
-/* 16 reserved pages for up to 16 I/O APICs */
-#define __ARCH_IOAPIC_VIRT_BASE   0xFFBE0000UL
-/* Local APIC register page */
-#define __ARCH_APIC_VIRT_PAGE     0xFFBDF000UL
-
 /* Kernel available virtual address range */
 #define __ARCH_KERNEL_VIRT_BASE   0xC0000000UL
 #define __ARCH_RESERVED_VIRT_BASE 0xD0000000UL
