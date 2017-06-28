@@ -387,7 +387,7 @@ static void vmm_alloc_block_pages(struct vmm_block *block)
 
 		map_pages_kernel(base, page_to_phys(p), PROT_WRITE,
 		                 PAGE_CP_DEFAULT, pow2(ord));
-		p->mem = (void *)base;
+		mark_page_mapped(p, base);
 		__vmm_add_area_pages(block, p);
 
 		pages -= pow2(ord);

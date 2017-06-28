@@ -74,6 +74,7 @@ void buddy_init(struct multiboot_info *mbt);
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);
+void mark_page_mapped(struct page *p, addr_t virt);
 
 static __always_inline struct page *alloc_page(unsigned int flags)
 {

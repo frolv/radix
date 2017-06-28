@@ -72,7 +72,7 @@ static void do_kernel_pf(addr_t fault_addr, int error)
 	}
 
 	map_page_kernel(page, page_to_phys(p), PROT_WRITE, PAGE_CP_DEFAULT);
-	p->mem = (void *)page;
+	mark_page_mapped(p, page);
 	vmm_add_area_pages(area, p);
 }
 
