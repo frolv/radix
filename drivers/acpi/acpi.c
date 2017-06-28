@@ -23,6 +23,7 @@
 #include <radix/bootmsg.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
+#include <radix/vmm.h>
 
 #include <rlibc/string.h>
 
@@ -45,6 +46,9 @@ struct xsdt {
 	struct acpi_sdt_header head;
 	uint64_t sdt_addr[];
 };
+
+/* Address at which ACPI page mappings begin. */
+static addr_t acpi_virt_base;
 
 static void *sdt_base = NULL;
 static size_t sdt_len = 0;
@@ -69,7 +73,11 @@ void acpi_init(void)
 
 	if (!rsdp) {
 		BOOT_FAIL_MSG("Could not locate ACPI RSDT\n");
-	} else if (rsdp->revision == 2) {
+		return;
+	}
+
+	acpi_virt_base = (addr_t)vmalloc(8 * PAGE_SIZE);
+	if (rsdp->revision == 2) {
 		rsdp_2 = (struct acpi_rsdp_2 *)rsdp;
 		xsdt_setup((addr_t)rsdp_2->xsdt_addr);
 	} else {
@@ -124,7 +132,7 @@ static void convert_rsdt_addrs(void)
 		addr = ((uint32_t *)sdt_base)[i];
 		phys_page = addr & PAGE_MASK;
 		addr &= PAGE_SIZE - 1;
-		addr += ACPI_TABLES_VIRT_BASE + curr_page * PAGE_SIZE;
+		addr += acpi_virt_base + curr_page * PAGE_SIZE;
 		((uint32_t *)sdt_base)[i] = addr;
 
 		if (!addr_mapped(addr)) {
@@ -135,7 +143,8 @@ static void convert_rsdt_addrs(void)
 
 		h = (struct acpi_sdt_header *)addr;
 		if (addr + h->length > ALIGN(addr, PAGE_SIZE)) {
-			map_page_kernel(ALIGN(addr, PAGE_SIZE), phys_page + PAGE_SIZE,
+			map_page_kernel(ALIGN(addr, PAGE_SIZE),
+			                phys_page + PAGE_SIZE,
 			                PROT_WRITE, PAGE_CP_DEFAULT);
 			++curr_page;
 		}
@@ -157,7 +166,7 @@ static void convert_xsdt_addrs(void)
 		addr = ((uint64_t *)sdt_base)[i];
 		phys_page = addr & PAGE_MASK;
 		addr &= PAGE_SIZE - 1;
-		addr += ACPI_TABLES_VIRT_BASE + curr_page * PAGE_SIZE;
+		addr += acpi_virt_base + curr_page * PAGE_SIZE;
 		((uint64_t *)sdt_base)[i] = addr;
 
 		if (!addr_mapped(addr)) {
@@ -193,11 +202,11 @@ static void rsdt_setup(addr_t rsdt_addr)
 
 	unmap = 0;
 	rsdt = (struct rsdt *)((rsdt_addr & (PAGE_SIZE - 1))
-	                       + ACPI_TABLES_VIRT_BASE);
+	                       + acpi_virt_base);
 
 	if (!addr_mapped((addr_t)rsdt)) {
 		sdt_page = rsdt_addr & PAGE_MASK;
-		map_page_kernel(ACPI_TABLES_VIRT_BASE, sdt_page,
+		map_page_kernel(acpi_virt_base, sdt_page,
 		                PROT_WRITE, PAGE_CP_DEFAULT);
 		unmap = 1;
 	}
@@ -207,12 +216,12 @@ static void rsdt_setup(addr_t rsdt_addr)
 	if ((checksum & 0xFF) != 0) {
 		BOOT_FAIL_MSG("Invalid ACPI RSDT checksum\n");
 		if (unmap)
-			unmap_page_clean(ACPI_TABLES_VIRT_BASE);
+			unmap_page_clean(acpi_virt_base);
 		return;
 	}
 
 	sdt_base = (void *)((addr_t)rsdt->sdt_addr & (PAGE_SIZE - 1))
-		+ ACPI_TABLES_VIRT_BASE;
+		+ acpi_virt_base;
 	sdt_size = 4;
 	sdt_len = (rsdt->head.length - sizeof rsdt->head) / sdt_size;
 	convert_rsdt_addrs();
@@ -231,11 +240,11 @@ static void xsdt_setup(addr_t xsdt_addr)
 
 	unmap = 0;
 	xsdt = (struct xsdt *)((xsdt_addr & (PAGE_SIZE - 1))
-	                       + ACPI_TABLES_VIRT_BASE);
+	                       + acpi_virt_base);
 
 	if (!addr_mapped((addr_t)xsdt)) {
 		sdt_page = xsdt_addr & PAGE_MASK;
-		map_page_kernel(ACPI_TABLES_VIRT_BASE, sdt_page,
+		map_page_kernel(acpi_virt_base, sdt_page,
 		                PROT_WRITE, PAGE_CP_DEFAULT);
 		unmap = 1;
 	}
@@ -245,12 +254,12 @@ static void xsdt_setup(addr_t xsdt_addr)
 	if ((checksum & 0xFF) != 0) {
 		BOOT_FAIL_MSG("Invalid ACPI XSDT checksum\n");
 		if (unmap)
-			unmap_page_clean(ACPI_TABLES_VIRT_BASE);
+			unmap_page_clean(acpi_virt_base);
 		return;
 	}
 
 	sdt_base = (void *)((addr_t)xsdt->sdt_addr & (PAGE_SIZE - 1))
-		+ ACPI_TABLES_VIRT_BASE;
+		+ acpi_virt_base;
 	sdt_size = 8;
 	sdt_len = (xsdt->head.length - sizeof xsdt->head) / sdt_size;
 	convert_xsdt_addrs();
