@@ -173,13 +173,13 @@ void free_pages(struct page *p)
 		zone = &zone_dma;
 	} else if (p->status & PM_PAGE_ZONE_USR) {
 		zone = &zone_usr;
-	} else {
-		zone = &zone_reg;
 		if (p->status & PM_PAGE_MAPPED) {
 			unmap_pages((addr_t)p->mem, ord);
 			p->mem = (void *)PAGE_UNINIT_MAGIC;
 			p->status &= ~PM_PAGE_MAPPED;
 		}
+	} else {
+		zone = &zone_reg;
 	}
 
 	zone->alloc_pages -= pow2(ord);
