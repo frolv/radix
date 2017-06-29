@@ -48,6 +48,8 @@ struct vmm_space {
 
 void vmm_init(void);
 
+#define VMM_AREA_MIN_SIZE 64
+
 #define VMM_ALLOC_UPFRONT (1 << 0)
 
 struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,

@@ -400,6 +400,16 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	struct vmm_block *block;
 	addr_t base;
 	int err;
+	size_t align;
+
+	if (size > PAGE_SIZE / 2) {
+		size = ALIGN(size, PAGE_SIZE);
+	} else if (size > VMM_AREA_MIN_SIZE) {
+		align = pow2(log2(size));
+		size = ALIGN(size, align);
+	} else {
+		size = VMM_AREA_MIN_SIZE;
+	}
 
 	/* TODO: lock vmm_kernel_lock */
 	block = vmm_find_by_size(&vmm_kernel, size);
@@ -436,9 +446,9 @@ static struct vmm_area *__vmm_alloc_size(struct vmm_space *vmm, size_t size,
 	if (flags & VMM_ALLOC_UPFRONT)
 		return ERR_PTR(EINVAL);
 
-	(void)vmm;
-	(void)size;
+	size = ALIGN(size, PAGE_SIZE);
 
+	(void)vmm;
 	return ERR_PTR(ENOMEM);
 }
 
@@ -450,8 +460,6 @@ static struct vmm_area *__vmm_alloc_size(struct vmm_space *vmm, size_t size,
 struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
                                 unsigned long flags)
 {
-	size = ALIGN(size, PAGE_SIZE);
-
 	if (!vmm)
 		return vmm_alloc_size_kernel(size, flags);
 	else
@@ -520,7 +528,7 @@ void *vmalloc(size_t size)
 {
 	struct vmm_area *area;
 
-	area = vmm_alloc_size(NULL, size, 0);
+	area = vmm_alloc_size_kernel(size, 0);
 	if (IS_ERR(area))
 		return NULL;
 
@@ -579,7 +587,7 @@ void vmm_space_dump(struct vmm_space *vmm)
 	printf("vmm_space:\n");
 	list_for_each(l, &s->block_list) {
 		block = list_entry(l, struct vmm_block, global_list);
-		printf("%d %p-%p [%c]\n",
+		printf("%d\t%p-%p\t[%c]\n",
 		       i++, block->area.base,
 		       block->area.base + block->area.size,
 		       block->flags & VMM_ALLOCATED ? 'A' : '-');
