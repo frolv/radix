@@ -41,6 +41,7 @@
 #define __REFCOUNT_MASK         0x00007F00
 #define __OFFSET_MASK           0xFFF00000
 
+#define __ORDER_SHIFT           0
 #define __MAX_ORDER_SHIFT       4
 #define __REFCOUNT_SHIFT        8
 #define __OFFSET_SHIFT          20
@@ -51,33 +52,36 @@
  */
 #define PM_PAGE_ORDER_INNER     0xF
 #define PM_PAGE_BLOCK_ORDER(p)  (((p)->status) & __ORDER_MASK)
+
+#define __PM_GET_FIELD(p, mask, shift) ((((p)->status) & mask) >> shift)
+
 #define PM_PAGE_MAX_ORDER(p) \
-	((((p)->status) & __MAX_ORDER_MASK) >> __MAX_ORDER_SHIFT)
+	__PM_GET_FIELD(p, __MAX_ORDER_MASK, __MAX_ORDER_SHIFT)
 #define PM_PAGE_REFCOUNT(p) \
-	((((p)->status) & __REFCOUNT_MASK) >> __REFCOUNT_SHIFT)
+	__PM_GET_FIELD(p, __REFCOUNT_MASK, __REFCOUNT_SHIFT)
 #define PM_PAGE_BLOCK_OFFSET(p) \
-	((((p)->status) & __OFFSET_MASK) >> __OFFSET_SHIFT)
+	__PM_GET_FIELD(p, __OFFSET_MASK, __OFFSET_SHIFT)
+
+#define __PM_SET_FIELD(p, field, mask, shift)           \
+do {                                                    \
+	typeof(field) __pf = (field) & (mask >> shift); \
+	(p)->status &= ~(mask);                         \
+	(p)->status |= (__pf) << shift;                 \
+} while (0)
 
 #define PM_SET_BLOCK_ORDER(p, ord) \
-	(p)->status = ((((p)->status) & ~__ORDER_MASK) | (ord))
+	__PM_SET_FIELD(p, ord, __ORDER_MASK, __ORDER_SHIFT)
+#define PM_SET_MAX_ORDER(p, ord) \
+	__PM_SET_FIELD(p, ord, __MAX_ORDER_MASK, __MAX_ORDER_SHIFT)
+#define PM_SET_REFCOUNT(p, rc) \
+	__PM_SET_FIELD(p, rc, __REFCOUNT_MASK, __REFCOUNT_SHIFT)
+#define PM_SET_PAGE_OFFSET(p, off) \
+	__PM_SET_FIELD(p, off, __OFFSET_MASK, __OFFSET_SHIFT)
 
-#define PM_SET_MAX_ORDER(p, ord)                        \
-do {                                                    \
-	(p)->status &= ~__MAX_ORDER_MASK;               \
-	(p)->status |= (ord) << __MAX_ORDER_SHIFT;      \
-} while (0)
-
-#define PM_SET_REFCOUNT(p, rc)                          \
-do {                                                    \
-	(p)->status &= ~__REFCOUNT_MASK;                \
-	(p)->status |= (rc) << __REFCOUNT_SHIFT;        \
-} while (0)
-
-#define PM_SET_PAGE_OFFSET(p, off)                      \
-do {                                                    \
-	(p)->status &= ~__OFFSET_MASK;                  \
-	(p)->status |= (off) << __OFFSET_SHIFT;         \
-} while (0)
+#define PM_REFCOUNT_INC(p) \
+	PM_SET_REFCOUNT(p, PM_PAGE_REFCOUNT(p) + 1)
+#define PM_REFCOUNT_DEC(p) \
+	PM_SET_REFCOUNT(p, PM_PAGE_REFCOUNT(p) - 1)
 
 #define PAGE_UNINIT_MAGIC       0xDEADFEED
 
