@@ -412,13 +412,48 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 	return ret;
 }
 
+/*
+ * __vmm_small_set_mapped:
+ * Find all vmm_blocks that share a page with `block`
+ * and mark them as being mapped.
+ */
+static __always_inline void __vmm_small_set_mapped(struct vmm_block *block)
+{
+	struct vmm_block *b;
+	addr_t page;
+	unsigned int refcount, n;
+
+	page = block->area.base & PAGE_MASK;
+	refcount = PM_PAGE_REFCOUNT(block->mapped);
+	n = 0;
+
+	list_for_each_entry_r(b, &block->global_list, global_list) {
+		if ((b->area.base & PAGE_MASK) != page)
+			break;
+		b->mapped = block->mapped;
+		++n;
+	}
+
+	list_for_each_entry(b, &block->global_list, global_list) {
+		if ((b->area.base & PAGE_MASK) != page)
+			break;
+		b->mapped = block->mapped;
+		++n;
+	}
+
+	PM_SET_REFCOUNT(block->mapped, refcount + n);
+}
+
 static __always_inline void __vmm_add_area_pages(struct vmm_block *block,
                                                  struct page *p)
 {
-	if (!block->mapped)
+	if (!block->mapped) {
 		block->mapped = p;
-	else
+		if (block->area.size < PAGE_SIZE)
+			__vmm_small_set_mapped(block);
+	} else {
 		list_ins(&block->mapped->list, &p->list);
+	}
 }
 
 /*
@@ -646,15 +681,13 @@ void vmm_space_dump(struct vmm_space *vmm)
 {
 	struct vmm_structures *s;
 	struct vmm_block *block;
-	struct list *l;
 	int i;
 
 	s = vmm ? &vmm->structures : &vmm_kernel;
 	i = 0;
 
 	printf("vmm_space:\n");
-	list_for_each(l, &s->block_list) {
-		block = list_entry(l, struct vmm_block, global_list);
+	list_for_each_entry(block, &s->block_list, global_list) {
 		printf("%d\t%p-%p\t[%c]\n",
 		       i++, block->area.base,
 		       block->area.base + block->area.size,
@@ -678,7 +711,6 @@ static void vmm_page_dump(struct page *p)
 void vmm_block_dump(struct vmm_block *block)
 {
 	struct page *p;
-	struct list *l;
 
 	printf("vmm_block:\n%p-%p [%u KiB]\n",
 	       block->area.base,
@@ -689,6 +721,6 @@ void vmm_block_dump(struct vmm_block *block)
 		return;
 
 	vmm_page_dump(p);
-	list_for_each(l, &p->list)
-		vmm_page_dump(list_entry(l, struct page, list));
+	list_for_each_entry(p, &p->list, list)
+		vmm_page_dump(p);
 }
