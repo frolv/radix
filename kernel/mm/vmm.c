@@ -358,8 +358,6 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
                                          addr_t base, size_t size)
 {
 	struct vmm_block *new, *ret;
-	unsigned int refcount;
-	addr_t page = base & PAGE_MASK;
 
 	/*
 	 * Blocks with size < PAGE_SIZE are not allowed to cross page
@@ -367,7 +365,7 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 	 * `block` is shrunk to end at the start of `base`s page, and a
 	 * new block is created to span [page, base).
 	 */
-	if ((block->area.base & PAGE_MASK) != page) {
+	if (block->area.size >= PAGE_SIZE) {
 		new = alloc_cache(vmm_block_cache);
 		ret = alloc_cache(vmm_block_cache);
 
@@ -380,7 +378,7 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 		vmm_size_tree_delete(&vmm_kernel.size_tree, block);
 		vmm_size_tree_insert(&vmm_kernel.size_tree, block);
 
-		new->area.base = page;
+		new->area.base = base & PAGE_MASK;
 		new->area.size = PAGE_SIZE - size;
 		new->vmm = NULL;
 		list_add(&block->global_list, &new->global_list);
@@ -390,12 +388,6 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 		ret->area.size = size;
 		ret->vmm = NULL;
 		list_add(&new->global_list, &ret->global_list);
-
-		if (block->mapped) {
-			ret->mapped = new->mapped = block->mapped;
-			refcount = PM_PAGE_REFCOUNT(block->mapped);
-			PM_SET_REFCOUNT(block->mapped, refcount + 2);
-		}
 	} else {
 		ret = alloc_cache(vmm_block_cache);
 		if (IS_ERR(ret))
@@ -410,6 +402,7 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 		ret->vmm = NULL;
 		list_add(&block->global_list, &ret->global_list);
 
+		/* a page has already been allocated; `ret` will share it */
 		if (block->mapped) {
 			ret->mapped = block->mapped;
 			PM_REFCOUNT_INC(block->mapped);
