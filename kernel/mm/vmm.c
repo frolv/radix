@@ -431,14 +431,16 @@ static __always_inline void __vmm_small_set_mapped(struct vmm_block *block)
 		if ((b->area.base & PAGE_MASK) != page)
 			break;
 		b->mapped = block->mapped;
-		++n;
+		if (b->flags & VMM_ALLOCATED)
+			++n;
 	}
 
 	list_for_each_entry(b, &block->global_list, global_list) {
 		if ((b->area.base & PAGE_MASK) != page)
 			break;
 		b->mapped = block->mapped;
-		++n;
+		if (b->flags & VMM_ALLOCATED)
+			++n;
 	}
 
 	PM_SET_REFCOUNT(block->mapped, refcount + n);
@@ -603,6 +605,32 @@ static void __vmm_free_kernel_pages(struct vmm_block *block)
 	block->mapped = NULL;
 }
 
+static void __vmm_free_small_page(struct vmm_block *block)
+{
+	struct vmm_block *b;
+
+	if (!block->mapped)
+		return;
+
+	PM_REFCOUNT_DEC(block->mapped);
+	if (!PM_PAGE_REFCOUNT(block->mapped)) {
+		list_for_each_entry_r(b, &block->global_list, global_list) {
+			if (b->mapped != block->mapped)
+				break;
+			b->mapped = NULL;
+		}
+
+		list_for_each_entry(b, &block->global_list, global_list) {
+			if (b->mapped != block->mapped)
+				break;
+			b->mapped = NULL;
+		}
+
+		free_pages(block->mapped);
+		block->mapped = NULL;
+	}
+}
+
 /* vmm_free: free the vmm_area `area` */
 void vmm_free(struct vmm_area *area)
 {
@@ -618,7 +646,10 @@ void vmm_free(struct vmm_area *area)
 		__vmm_free_pages(block->vmm, block);
 	} else {
 		s = &vmm_kernel;
-		__vmm_free_kernel_pages(block);
+		if (block->area.size < PAGE_SIZE)
+			__vmm_free_small_page(block);
+		else
+			__vmm_free_kernel_pages(block);
 	}
 
 	rb_delete(&s->addr_tree, &block->addr_node);
