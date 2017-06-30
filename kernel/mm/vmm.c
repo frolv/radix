@@ -349,6 +349,64 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 	return block;
 }
 
+/*
+ * vmm_split_small:
+ * Split a vmm_block into multiple blocks, one of which
+ * starts at `base` and has size `size` < PAGE_SIZE.
+ */
+static struct vmm_block *vmm_split_small(struct vmm_block *block,
+                                         addr_t base, size_t size)
+{
+	struct vmm_block *new, *ret;
+	addr_t page = base & PAGE_MASK;
+
+	/*
+	 * Blocks with size < PAGE_SIZE are not allowed to cross page
+	 * boundaries. If `block` and `base` are on different pages,
+	 * `block` is shrunk to end at the start of `base`s page, and a
+	 * new block is created to span [page, base).
+	 */
+	if ((block->area.base & PAGE_MASK) != page) {
+		new = alloc_cache(vmm_block_cache);
+		ret = alloc_cache(vmm_block_cache);
+
+		if (IS_ERR(new))
+			return new;
+		if (IS_ERR(ret))
+			return ret;
+
+		block->area.size -= PAGE_SIZE;
+		vmm_size_tree_delete(&vmm_kernel.size_tree, block);
+		vmm_size_tree_insert(&vmm_kernel.size_tree, block);
+
+		new->area.base = page;
+		new->area.size = PAGE_SIZE - size;
+		new->vmm = NULL;
+		list_add(&block->global_list, &new->global_list);
+		vmm_tree_insert(&vmm_kernel, new);
+
+		ret->area.base = base;
+		ret->area.size = size;
+		ret->vmm = NULL;
+		list_add(&new->global_list, &ret->global_list);
+	} else {
+		ret = alloc_cache(vmm_block_cache);
+		if (IS_ERR(ret))
+			return ret;
+
+		block->area.size -= size;
+		vmm_size_tree_delete(&vmm_kernel.size_tree, block);
+		vmm_size_tree_insert(&vmm_kernel.size_tree, block);
+
+		ret->area.base = base;
+		ret->area.size = size;
+		ret->vmm = NULL;
+		list_add(&block->global_list, &ret->global_list);
+	}
+
+	return ret;
+}
+
 static __always_inline void __vmm_add_area_pages(struct vmm_block *block,
                                                  struct page *p)
 {
@@ -419,7 +477,12 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	}
 
 	base = block->area.base + block->area.size - size;
-	block = vmm_split(block, NULL, base, size);
+
+	if (size < PAGE_SIZE)
+		block = vmm_split_small(block, base, size);
+	else
+		block = vmm_split(block, NULL, base, size);
+
 	if (IS_ERR(block)) {
 		err = ERR_VAL(block);
 		goto out_err;
