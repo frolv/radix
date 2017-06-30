@@ -83,20 +83,39 @@ static __always_inline int list_empty(struct list *head)
 #define list_first_entry(head, type, member) \
 	list_entry((head)->next, type, member)
 
+#define list_last_entry(head, type, member) \
+	list_entry((head)->prev, type, member)
+
+#define list_next_entry(pos, member) \
+	list_entry((&(pos)->member)->next, typeof(*pos), member)
+
+#define list_prev_entry(pos, member) \
+	list_entry((&(pos)->member)->prev, typeof(*pos), member)
+
 #define list_for_each(pos, head) \
 	for ((pos) = (head)->next; (pos) != (head); (pos) = (pos)->next)
 
 #define list_for_each_r(pos, head) \
 	for ((pos) = (head)->prev; (pos) != (head); (pos) = (pos)->prev)
 
-#define list_for_each_safe(pos, n, head)                        \
-	for ((pos) = (head)->next, (n) = (pos)->next;           \
-	     (pos) != (head);                                   \
+#define list_for_each_safe(pos, n, head)                                \
+	for ((pos) = (head)->next, (n) = (pos)->next;                   \
+	     (pos) != (head);                                           \
 	     (pos) = (n), (n) = (pos)->next)
 
-#define list_for_each_safe_r(pos, n, head)                      \
-	for ((pos) = (head)->prev, (n) = (pos)->prev;           \
-	     (pos) != (head);                                   \
+#define list_for_each_safe_r(pos, n, head)                              \
+	for ((pos) = (head)->prev, (n) = (pos)->prev;                   \
+	     (pos) != (head);                                           \
 	     (pos) = (n), (n) = (pos)->prev)
+
+#define list_for_each_entry(pos, head, member)                          \
+	for ((pos) = list_first_entry(head, typeof(*pos), member);      \
+	     &(pos)->member != (head);                                  \
+	     (pos) = list_next_entry(pos, member))
+
+#define list_for_each_entry_r(pos, head, member)                        \
+	for ((pos) = list_last_entry(head, typeof(*pos), member);       \
+	     &(pos)->member != (head);                                  \
+	     (pos) = list_prev_entry(pos, member))
 
 #endif /* RADIX_LIST_H */
