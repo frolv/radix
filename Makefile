@@ -87,13 +87,11 @@ config:
 	@echo "Using configuration file $(CONF)"
 
 .PHONY: iconfig
-iconfig: $(RCONFIG)
+iconfig: rconfig
 	@echo ""
 
 .PHONY: rconfig
-rconfig: $(RCONFIG)
-
-$(RCONFIG):
+rconfig:
 	@cd util/rconfig && make
 
 $(KERNEL_NAME): $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
