@@ -22,16 +22,12 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#define PROGRAM_NAME "rconfig"
+
 const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
 
 #define NUM_SRC_DIRS   (sizeof src_dirs / sizeof (src_dirs[0]))
 #define ARCH_DIR_INDEX (NUM_SRC_DIRS - 1)
-
-static struct option long_opts[] = {
-	{ "arch", required_argument, NULL, 'a' },
-	{ 0, 0, 0, 0 }
-};
-
 #define ARCHDIR_BUFSIZE 32
 
 static int verify_src_dirs(const char *prog)
@@ -66,18 +62,49 @@ static int verify_src_dirs(const char *prog)
 	return 0;
 }
 
+void usage(FILE *f, const char *prog)
+{
+	fprintf(f, "usage: %s --arch=ARCH [-d|-l] [FILE]...\n", prog);
+	fprintf(f, "Configure a radix kernel\n");
+	fprintf(f, "\n");
+	fprintf(f, "If FILE is provided, only process given rconfig files.\n");
+	fprintf(f, "Otherwise, recursively process every rconfig file in\n");
+	fprintf(f, "the radix kernel tree.\n");
+	fprintf(f, "\n");
+	fprintf(f, "    -a, --arch=ARCH\n");
+	fprintf(f, "        use ARCH as target architecture\n");
+	fprintf(f, "    -d, --default\n");
+	fprintf(f, "        use default values from rconfig files\n");
+	fprintf(f, "    -h, --help\n");
+	fprintf(f, "        print this help text and exit\n");
+	fprintf(f, "    -l, --lint\n");
+	fprintf(f, "        verify rconfig file syntax and structure\n");
+}
+
+static struct option long_opts[] = {
+	{ "arch",       required_argument, NULL, 'a' },
+	{ "default",    no_argument,       NULL, 'd' },
+	{ "help",       no_argument,       NULL, 'h' },
+	{ "lint",       no_argument,       NULL, 'l' },
+	{ 0, 0, 0, 0 }
+};
+
 int main(int argc, char **argv)
 {
 	char arch_dir[ARCHDIR_BUFSIZE];
 	int c, err;
 
-	while ((c = getopt_long(argc, argv, "a:", long_opts, NULL)) != EOF) {
+	while ((c = getopt_long(argc, argv, "a:dhl", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'a':
 			snprintf(arch_dir, ARCHDIR_BUFSIZE, "arch/%s", optarg);
 			src_dirs[ARCH_DIR_INDEX] = arch_dir;
 			break;
+		case 'h':
+			usage(stdout, PROGRAM_NAME);
+			return 0;
 		default:
+			usage(stderr, argv[0]);
 			return 1;
 		}
 	}
