@@ -9,7 +9,7 @@ CFLAGS := -O2 -Wall -Wextra -c
 LDFLAGS := -lfl
 
 HEADERS := rconfig.h
-OBJ := rconfig.o scanner.o parser.o
+OBJ := rconfig.o scanner.o parser.o structures.o
 
 SCAN_SRC := scanner.c
 SCAN_H := scanner.h

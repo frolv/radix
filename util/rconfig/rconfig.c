@@ -35,11 +35,10 @@ static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
 #define ARCH_DIR_INDEX (NUM_SRC_DIRS - 1)
 #define ARCHDIR_BUFSIZE 32
 
-const char *curr_file;
-
 static void rconfig_parse_file(const char *path, int def, int lint)
 {
 	yyscan_t rconfig_scanner;
+	struct rconfig_file config;
 	FILE *f;
 
 	f = fopen(path, "r");
@@ -47,12 +46,19 @@ static void rconfig_parse_file(const char *path, int def, int lint)
 		perror(path);
 		return;
 	}
-	curr_file = path;
+
+	config.name = NULL;
+	config.path = path;
+	config.alloc_size = 0;
+	config.num_sections = 0;
+	config.sections = NULL;
 
 	yylex_init(&rconfig_scanner);
 	yyset_in(f, rconfig_scanner);
-	yyparse(rconfig_scanner);
+	yyparse(rconfig_scanner, &config);
 	yylex_destroy(rconfig_scanner);
+
+	free_rconfig(&config);
 
 	fclose(f);
 }

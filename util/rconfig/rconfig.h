@@ -19,16 +19,23 @@
 #ifndef RCONFIG_H
 #define RCONFIG_H
 
+#include <stddef.h>
+
 #define PROGRAM_NAME "rconfig"
 
 struct rconfig_file {
-	const char *name;
-	struct rconfig_section *sections;
+	char                    *name;
+	const char              *path;
+	size_t                  alloc_size;
+	size_t                  num_sections;
+	struct rconfig_section  *sections;
 };
 
 struct rconfig_section {
-	const char *name;
-	struct rconfig_setting *settings;
+	char                    *name;
+	size_t                  alloc_size;
+	size_t                  num_settings;
+	struct rconfig_setting  *settings;
 };
 
 enum rconfig_setting_type {
@@ -61,6 +68,7 @@ struct rconfig_setting {
 	} data;
 };
 
-extern const char *curr_file;
+void prepare_sections(struct rconfig_file *config);
+void free_rconfig(struct rconfig_file *config);
 
 #endif /* RCONFIG_H */

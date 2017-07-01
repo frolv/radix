@@ -23,9 +23,10 @@
 #include "rconfig.h"
 #include "scanner.h"
 
-void yyerror(yyscan_t scanner, const char *err)
+void yyerror(yyscan_t scanner, struct rconfig_file *config, const char *err)
 {
-	fprintf(stderr, "%s:%d: %s\n", curr_file, yyget_lineno(scanner), err);
+	fprintf(stderr, "%s:%d: %s\n", config->path,
+	        yyget_lineno(scanner), err);
 }
 %}
 
@@ -34,12 +35,17 @@ void yyerror(yyscan_t scanner, const char *err)
 #define YY_TYPEDEF_YY_SCANNER_T
 typedef void *yyscan_t;
 #endif
+
+struct rconfig_file;
 }
 
 %define api.value.type {int}
 %define api.pure full
+%define parse.error verbose
+
 %lex-param   {yyscan_t scanner}
 %parse-param {yyscan_t scanner}
+%parse-param {struct rconfig_file *rconfig_file}
 
 %token TOKEN_CONFIGFILE TOKEN_SECTION TOKEN_CONFIG
 %token TOKEN_TYPE TOKEN_DESC TOKEN_DEFAULT TOKEN_RANGE TOKEN_OPTION
@@ -54,11 +60,14 @@ typedef void *yyscan_t;
 
 rconfig_file
 	: configfile_header
-	| configfile_header configfile_sections
+	| configfile_header { prepare_sections(rconfig_file); }
+	  configfile_sections
 	;
 
 configfile_header
-	: TOKEN_CONFIGFILE TOKEN_ID
+	: TOKEN_CONFIGFILE TOKEN_ID {
+		rconfig_file->name = strdup(yyget_text(scanner));
+	}
 	;
 
 configfile_sections
