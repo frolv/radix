@@ -494,6 +494,10 @@ static void vmm_alloc_block_pages(struct vmm_block *block)
 	}
 }
 
+/*
+ * vmm_alloc_size_kernel:
+ * Allocate a vmm_block of size `size` from the kernel address space.
+ */
 static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 {
 	struct vmm_block *block;
