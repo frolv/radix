@@ -631,6 +631,20 @@ static void __vmm_free_small_page(struct vmm_block *block)
 	}
 }
 
+/* __vmm_free_kernel: free `block` in kernel address space */
+static void __vmm_free_kernel(struct vmm_block *block)
+{
+	if (block->area.size < PAGE_SIZE)
+		__vmm_free_small_page(block);
+	else
+		__vmm_free_kernel_pages(block);
+
+	rb_delete(&vmm_kernel.addr_tree, &block->addr_node);
+	list_del(&block->area.list);
+	block->flags &= ~VMM_ALLOCATED;
+	vmm_tree_insert(&vmm_kernel, block);
+}
+
 /* vmm_free: free the vmm_area `area` */
 void vmm_free(struct vmm_area *area)
 {
@@ -641,21 +655,17 @@ void vmm_free(struct vmm_area *area)
 	if (!(block->flags & VMM_ALLOCATED))
 		return;
 
-	if (block->vmm) {
-		s = &block->vmm->structures;
-		__vmm_free_pages(block->vmm, block);
+	if (!block->vmm) {
+		__vmm_free_kernel(block);
 	} else {
-		s = &vmm_kernel;
-		if (block->area.size < PAGE_SIZE)
-			__vmm_free_small_page(block);
-		else
-			__vmm_free_kernel_pages(block);
-	}
+		__vmm_free_pages(block->vmm, block);
 
-	rb_delete(&s->addr_tree, &block->addr_node);
-	list_del(&block->area.list);
-	block->flags &= ~VMM_ALLOCATED;
-	vmm_tree_insert(s, block);
+		s = &block->vmm->structures;
+		rb_delete(&s->addr_tree, &block->addr_node);
+		list_del(&block->area.list);
+		block->flags &= ~VMM_ALLOCATED;
+		vmm_tree_insert(s, block);
+	}
 }
 
 void *vmalloc(size_t size)
@@ -675,7 +685,7 @@ void vfree(void *ptr)
 
 	block = vmm_find_addr(&vmm_kernel, (addr_t)ptr);
 	if (block)
-		vmm_free(&block->area);
+		__vmm_free_kernel(block);
 }
 
 /*
