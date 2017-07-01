@@ -64,6 +64,9 @@ struct vmm_block {
 
 #define VMM_ALLOCATED (1 << 0)
 
+#define vmm_block_alloc()       alloc_cache(vmm_block_cache)
+#define vmm_block_free(block)   free_cache(vmm_block_cache, block)
+
 static struct slab_cache *vmm_block_cache;
 static struct slab_cache *vmm_space_cache;
 
@@ -272,7 +275,7 @@ void vmm_init(void)
 	                               SLAB_MIN_ALIGN, SLAB_PANIC,
 	                               vmm_space_init, vmm_space_init);
 
-	first = alloc_cache(vmm_block_cache);
+	first = vmm_block_alloc();
 	if (IS_ERR(first))
 		panic("failed to allocate intial vmm_block: %s\n",
 		      strerror(ERR_VAL(first)));
@@ -308,7 +311,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
 	/* create a new block [block->area.base, base) */
 	if (new_size) {
-		new = alloc_cache(vmm_block_cache);
+		new = vmm_block_alloc();
 		if (IS_ERR(new))
 			return new;
 
@@ -331,7 +334,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
 	/* create a new block [block->area.base + block->area.size, end) */
 	if (new_size) {
-		new = alloc_cache(vmm_block_cache);
+		new = vmm_block_alloc();
 		if (IS_ERR(new)) {
 			block->area.size += new_size;
 			vmm_tree_insert(s, block);
@@ -365,8 +368,8 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 	 * new block is created to span [page, base).
 	 */
 	if (block->area.size >= PAGE_SIZE) {
-		new = alloc_cache(vmm_block_cache);
-		ret = alloc_cache(vmm_block_cache);
+		new = vmm_block_alloc();
+		ret = vmm_block_alloc();
 
 		if (IS_ERR(new))
 			return new;
@@ -388,7 +391,7 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 		ret->vmm = NULL;
 		list_add(&new->global_list, &ret->global_list);
 	} else {
-		ret = alloc_cache(vmm_block_cache);
+		ret = vmm_block_alloc();
 		if (IS_ERR(ret))
 			return ret;
 
@@ -409,6 +412,118 @@ static struct vmm_block *vmm_split_small(struct vmm_block *block,
 	}
 
 	return ret;
+}
+
+/*
+ * vmm_try_coalesce:
+ * Attempt to merge `block` with its unallocated neighbours
+ * to form a larger vmm_block, and return the new block.
+ */
+static struct vmm_block *vmm_try_coalesce(struct vmm_block *block)
+{
+	struct vmm_block *neighbour;
+	struct vmm_structures *s;
+	addr_t new_base;
+	size_t new_size;
+
+	s = block->vmm ? &block->vmm->structures : &vmm_kernel;
+
+	rb_delete(&s->addr_tree, &block->addr_node);
+	list_del(&block->area.list);
+	block->flags &= ~VMM_ALLOCATED;
+
+	new_base = block->area.base;
+	new_size = block->area.size;
+
+	/* merge with lower address blocks */
+	while (block->global_list.prev != &s->block_list) {
+		neighbour = list_prev_entry(block, global_list);
+		if (neighbour->flags & VMM_ALLOCATED ||
+		    neighbour->area.size < PAGE_SIZE)
+			break;
+
+		new_base = neighbour->area.base;
+		new_size += neighbour->area.size;
+
+		list_del(&neighbour->global_list);
+		vmm_tree_delete(s, neighbour);
+		vmm_block_free(neighbour);
+	}
+
+	/* merge with higher address blocks */
+	while (block->global_list.next != &s->block_list) {
+		neighbour = list_next_entry(block, global_list);
+		if (neighbour->flags & VMM_ALLOCATED ||
+		    neighbour->area.size < PAGE_SIZE)
+			break;
+
+		new_size += neighbour->area.size;
+
+		list_del(&neighbour->global_list);
+		vmm_tree_delete(s, neighbour);
+		vmm_block_free(neighbour);
+	}
+
+	block->area.base = new_base;
+	block->area.size = new_size;
+	vmm_tree_insert(s, block);
+
+	return block;
+}
+
+/*
+ * vmm_try_coalesce_small:
+ * Attempt to merge small vmm_block `block` with adjacent unallocated
+ * vmm_blocks which share the same virtual page.
+ */
+static struct vmm_block *vmm_try_coalesce_small(struct vmm_block *block)
+{
+	struct vmm_block *neighbour;
+	addr_t new_base, page;
+	size_t new_size;
+
+	rb_delete(&vmm_kernel.addr_tree, &block->addr_node);
+	list_del(&block->area.list);
+	block->flags &= ~VMM_ALLOCATED;
+
+	new_base = block->area.base;
+	new_size = block->area.size;
+	page = block->area.base & PAGE_SIZE;
+
+	/* merge with lower address blocks on the same page */
+	while (block->global_list.prev != &vmm_kernel.block_list) {
+		neighbour = list_prev_entry(block, global_list);
+		if (neighbour->flags & VMM_ALLOCATED ||
+		    (neighbour->area.base & PAGE_SIZE) != page)
+			break;
+
+		new_base = neighbour->area.base;
+		new_size += neighbour->area.size;
+
+		list_del(&neighbour->global_list);
+		vmm_tree_delete(&vmm_kernel, neighbour);
+		vmm_block_free(neighbour);
+	}
+
+	/* merge with higher address blocks on the same page */
+	while (block->global_list.next != &vmm_kernel.block_list) {
+		neighbour = list_next_entry(block, global_list);
+		if (neighbour->flags & VMM_ALLOCATED ||
+		    (neighbour->area.base & PAGE_SIZE) != page)
+			break;
+
+		new_size += neighbour->area.size;
+
+		list_del(&neighbour->global_list);
+		vmm_tree_delete(&vmm_kernel, neighbour);
+		vmm_block_free(neighbour);
+	}
+
+	block->area.base = new_base;
+	block->area.size = new_size;
+	vmm_tree_insert(&vmm_kernel, block);
+
+	return block;
 }
 
 /*
@@ -643,22 +758,19 @@ static void __vmm_free_small_page(struct vmm_block *block)
 /* __vmm_free_kernel: free `block` in kernel address space */
 static void __vmm_free_kernel(struct vmm_block *block)
 {
-	if (block->area.size < PAGE_SIZE)
+	if (block->area.size < PAGE_SIZE) {
 		__vmm_free_small_page(block);
-	else
+		vmm_try_coalesce_small(block);
+	} else {
 		__vmm_free_kernel_pages(block);
-
-	rb_delete(&vmm_kernel.addr_tree, &block->addr_node);
-	list_del(&block->area.list);
-	block->flags &= ~VMM_ALLOCATED;
-	vmm_tree_insert(&vmm_kernel, block);
+		vmm_try_coalesce(block);
+	}
 }
 
 /* vmm_free: free the vmm_area `area` */
 void vmm_free(struct vmm_area *area)
 {
 	struct vmm_block *block;
-	struct vmm_structures *s;
 
 	block = (struct vmm_block *)area;
 	if (!(block->flags & VMM_ALLOCATED))
@@ -668,12 +780,7 @@ void vmm_free(struct vmm_area *area)
 		__vmm_free_kernel(block);
 	} else {
 		__vmm_free_pages(block->vmm, block);
-
-		s = &block->vmm->structures;
-		rb_delete(&s->addr_tree, &block->addr_node);
-		list_del(&block->area.list);
-		block->flags &= ~VMM_ALLOCATED;
-		vmm_tree_insert(s, block);
+		vmm_try_coalesce(block);
 	}
 }
 
