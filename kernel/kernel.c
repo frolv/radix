@@ -39,6 +39,7 @@ int kmain(struct multiboot_info *mbt)
 
 	acpi_init();
 	irq_init();
+	percpu_area_setup();
 
 	tasking_init();
 	irq_enable();
