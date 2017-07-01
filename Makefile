@@ -5,6 +5,14 @@ DEFAULT_HOST := $(shell util/default-host)
 BUILD_HOST ?= $(DEFAULT_HOST)
 HOSTARCH := $(shell util/target-to-arch $(BUILD_HOST))
 
+define \n
+
+
+endef
+
+$(info Building $(PROJECT_NAME) for target $(BUILD_HOST)$(\n))
+$(info)
+
 AR := $(BUILD_HOST)-ar
 AS := $(BUILD_HOST)-as
 CC := $(BUILD_HOST)-gcc
@@ -29,6 +37,11 @@ ARCHDIR := arch/$(HOSTARCH)
 DRIVERDIR := drivers
 LIBDIR := lib
 INCLUDEDIRS := include $(ARCHDIR)/include
+CONFDIR := config
+
+CONFIG_FILE := $(CONFDIR)/config
+CONFIG_H := $(CONFDIR)/genconfig.h
+CONF ?= $(CONFDIR)/default.$(HOSTARCH)
 
 include $(ARCHDIR)/config.mk
 include $(LIBDIR)/config.mk
@@ -49,7 +62,33 @@ INCLUDE := $(patsubst %,-I%,$(_INCLUDE))
 
 all: kernel
 
-kernel: $(KERNEL_NAME)
+kernel: $(CONFIG_H) $(KERNEL_NAME)
+
+$(CONFIG_H): $(CONFIG_FILE)
+
+.PHONY: $(CONFIG_FILE)
+$(CONFIG_FILE):
+	@test -f $@ || ( \
+	echo >&2 "ERROR: no kernel configuration file found"; \
+	echo >&2; \
+	echo >&2 "Run"; \
+	echo >&2 "  \`make iconfig'"; \
+	echo >&2 "     for an interactive setup"; \
+	echo >&2 "  \`make config'"; \
+	echo >&2 "     to use the default configuration"; \
+	echo >&2 "  \`make config CONF=\$$CONFIGFILE'"; \
+	echo >&2 "     to use the configuration from file \$$CONFIGFILE"; \
+	echo >&2; \
+	echo >&2 "Aborting"; \
+	false)
+
+.PHONY: config
+config:
+	@echo "Using configuration file $(CONF)"
+
+.PHONY: iconfig
+iconfig:
+	@echo ""
 
 $(KERNEL_NAME): $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
