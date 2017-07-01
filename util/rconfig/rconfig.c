@@ -25,13 +25,37 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#define PROGRAM_NAME "rconfig"
+#include "parser.h"
+#include "rconfig.h"
+#include "scanner.h"
 
 static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
 
 #define NUM_SRC_DIRS   (sizeof src_dirs / sizeof (src_dirs[0]))
 #define ARCH_DIR_INDEX (NUM_SRC_DIRS - 1)
 #define ARCHDIR_BUFSIZE 32
+
+const char *curr_file;
+
+static void rconfig_parse_file(const char *path, int def, int lint)
+{
+	yyscan_t rconfig_scanner;
+	FILE *f;
+
+	f = fopen(path, "r");
+	if (!f) {
+		perror(path);
+		return;
+	}
+	curr_file = path;
+
+	yylex_init(&rconfig_scanner);
+	yyset_in(f, rconfig_scanner);
+	yyparse(rconfig_scanner);
+	yylex_destroy(rconfig_scanner);
+
+	fclose(f);
+}
 
 /*
  * rconfig_dir:
@@ -74,7 +98,7 @@ static void rconfig_dir(const char *path, int def, int lint)
 			rconfig_dir(dirpath, def, lint);
 		} else if (strcmp(dirent->d_name, "rconfig") == 0) {
 			snprintf(dirpath, PATH_MAX, "%s/rconfig", path);
-			printf("%s\n", dirpath);
+			rconfig_parse_file(dirpath, def, lint);
 		}
 	}
 
