@@ -48,5 +48,7 @@ SECTIONS {
 		__percpu_end = .;
 	} :data
 
+	. = ALIGN(4K);
+
 	__kernel_end = .;
 }
