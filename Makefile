@@ -11,7 +11,6 @@ define \n
 endef
 
 $(info Building $(PROJECT_NAME) for target $(BUILD_HOST)$(\n))
-$(info)
 
 AR := $(BUILD_HOST)-ar
 AS := $(BUILD_HOST)-as
@@ -42,6 +41,7 @@ CONFDIR := config
 CONFIG_FILE := $(CONFDIR)/config
 CONFIG_H := $(CONFDIR)/genconfig.h
 CONF ?= $(CONFDIR)/default.$(HOSTARCH)
+RCONFIG := util/rconfig/rconfig
 
 include $(ARCHDIR)/config.mk
 include $(LIBDIR)/config.mk
@@ -87,8 +87,14 @@ config:
 	@echo "Using configuration file $(CONF)"
 
 .PHONY: iconfig
-iconfig:
+iconfig: $(RCONFIG)
 	@echo ""
+
+.PHONY: rconfig
+rconfig: $(RCONFIG)
+
+$(RCONFIG):
+	@cd util/rconfig && make
 
 $(KERNEL_NAME): $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
@@ -133,7 +139,7 @@ ctags:
 clean: clean-all
 
 .PHONY: clean-all
-clean-all: clean-kernel clean-libk clean-drivers clean-iso
+clean-all: clean-kernel clean-libk clean-drivers clean-iso clean-rconfig
 
 .PHONY: clean-kernel
 clean-kernel:
@@ -151,3 +157,7 @@ clean-drivers:
 .PHONY: clean-iso
 clean-iso:
 	$(RM) -r $(ISODIR) $(ISONAME)
+
+.PHONY: clean-rconfig
+clean-rconfig:
+	@cd util/rconfig && make clean
