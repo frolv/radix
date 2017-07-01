@@ -17,6 +17,7 @@
  */
 
 #include <radix/percpu.h>
+#include <radix/smp.h>
 
 #include "gdt.h"
 
@@ -28,4 +29,18 @@ void arch_percpu_init_early(void)
 {
 	gdt_set_initial_fsbase(BOOT_PERCPU_OFFSET);
 	this_cpu_write(__this_cpu_offset, BOOT_PERCPU_OFFSET);
+}
+
+/*
+ * arch_percpu_init:
+ * Complete per-CPU initialization by setting the BSP's fsbase to
+ * its newly allocated per-CPU section offset.
+ */
+void arch_percpu_init(void)
+{
+	addr_t offset;
+
+	offset = __percpu_offset[processor_id()];
+	gdt_set_fsbase(offset);
+	this_cpu_write(__this_cpu_offset, offset);
 }

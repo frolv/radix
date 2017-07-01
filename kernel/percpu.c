@@ -17,11 +17,12 @@
  */
 
 #include <radix/bits.h>
+#include <radix/bootmsg.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/percpu.h>
-#include <radix/slab.h>
+#include <radix/vmm.h>
 
 #include <rlibc/string.h>
 
@@ -37,4 +38,56 @@ void percpu_init_early(void)
 {
 	memset(__percpu_offset, 0, sizeof __percpu_offset);
 	arch_percpu_init_early();
+}
+
+/*
+ * percpu_area_setup:
+ * Allocate memory for per-CPU areas for all CPUs and copy
+ * the contents of the per-CPU section into each.
+ */
+void percpu_area_setup(void)
+{
+	size_t percpu_size, align, i;
+	addr_t percpu_base, base_offset;
+	struct vmm_area *area;
+
+	percpu_size = percpu_end - percpu_start;
+	if (percpu_size < PAGE_SIZE / 2) {
+		align = pow2(log2(percpu_size));
+		percpu_size = ALIGN(percpu_size, align);
+	} else {
+		percpu_size = ALIGN(percpu_size, PAGE_SIZE);
+	}
+
+	area = vmm_alloc_size(NULL, percpu_size * MAX_CPUS, VMM_ALLOC_UPFRONT);
+	if (IS_ERR(area))
+		panic("failed to allocate space for per-CPU areas\n");
+
+	percpu_base = area->base;
+	base_offset = percpu_base - percpu_start;
+
+	for (i = 0; i < MAX_CPUS; ++i) {
+		__percpu_offset[i] = base_offset + i * percpu_size;
+		memcpy((void *)percpu_base, (void *)percpu_start, percpu_size);
+		percpu_base += percpu_size;
+	}
+
+	arch_percpu_init();
+
+	/*
+	 * TODO: we no longer need the original per-CPU area, so we can add
+	 * it to the page allocator. (Requires adding an additional zone_init
+	 * call in buddy_populate of page.c to handle the .percpu_data section.)
+	 */
+
+	if (percpu_size < PAGE_SIZE) {
+		BOOT_OK_MSG("percpu: allocated %uB for %d CPUs (%uB per CPU)\n",
+			    percpu_size * MAX_CPUS, MAX_CPUS, percpu_size);
+	} else {
+		BOOT_OK_MSG("percpu: allocated %u pages for %d CPUs "
+			    "(%u page%s per CPU)\n",
+			    percpu_size / PAGE_SIZE * MAX_CPUS,
+			    MAX_CPUS, percpu_size / PAGE_SIZE,
+			    percpu_size > PAGE_SIZE ? "s" : "");
+	}
 }
