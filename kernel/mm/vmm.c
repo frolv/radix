@@ -605,6 +605,11 @@ static void __vmm_free_kernel_pages(struct vmm_block *block)
 	block->mapped = NULL;
 }
 
+/*
+ * __vmm_free_small_page:
+ * Check if a physical page mapped to multiple small vmm_blocks
+ * can be freed and free it if so.
+ */
 static void __vmm_free_small_page(struct vmm_block *block)
 {
 	struct vmm_block *b;
@@ -614,6 +619,7 @@ static void __vmm_free_small_page(struct vmm_block *block)
 
 	PM_REFCOUNT_DEC(block->mapped);
 	if (!PM_PAGE_REFCOUNT(block->mapped)) {
+		/* clear `mapped` for all vmm_blocks that share the page */
 		list_for_each_entry_r(b, &block->global_list, global_list) {
 			if (b->mapped != block->mapped)
 				break;
