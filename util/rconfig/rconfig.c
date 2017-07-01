@@ -16,8 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 
 const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
@@ -38,16 +40,26 @@ static int verify_src_dirs(const char *prog)
 	size_t i;
 
 	for (i = 0; i < NUM_SRC_DIRS; ++i) {
-		if (stat(src_dirs[i], &sb) == 0)
-			continue;
+		if (stat(src_dirs[i], &sb) == 0) {
+			if (S_ISDIR(sb.st_mode))
+				continue;
+
+			fprintf(stderr, "%s: %s\n",
+				src_dirs[i],
+				strerror(ENOTDIR));
+			goto err_wrongdir;
+		}
 
 		perror(src_dirs[i]);
-		if (i == ARCH_DIR_INDEX)
+		if (i == ARCH_DIR_INDEX) {
 			fprintf(stderr, "%s: invalid or unsupported architecture\n",
 				prog);
-		else
-			fprintf(stderr, "%s: are you in the radix root directory?\n",
-				prog);
+			return 1;
+		}
+
+	err_wrongdir:
+		fprintf(stderr, "%s: are you in the radix root directory?\n",
+			prog);
 		return 1;
 	}
 
