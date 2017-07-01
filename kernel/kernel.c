@@ -23,6 +23,7 @@
 #include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/multiboot.h>
+#include <radix/percpu.h>
 #include <radix/tasking.h>
 #include <radix/vmm.h>
 
