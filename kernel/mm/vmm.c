@@ -296,14 +296,13 @@ void vmm_init(void)
  * `block` MUST be large enough to fit `base` + `size`.
  */
 static struct vmm_block *vmm_split(struct vmm_block *block,
-                                   struct vmm_space *vmm,
                                    addr_t base, size_t size)
 {
 	struct vmm_structures *s;
 	struct vmm_block *new;
 	size_t new_size, end;
 
-	s = vmm ? &vmm->structures : &vmm_kernel;
+	s = block->vmm ? &block->vmm->structures : &vmm_kernel;
 	new_size = base - block->area.base;
 	end = block->area.base + block->area.size;
 
@@ -319,7 +318,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
 		new->area.base = base;
 		new->area.size = size;
-		new->vmm = vmm;
+		new->vmm = block->vmm;
 		list_add(&block->global_list, &new->global_list);
 		block = new;
 	} else if (size != block->area.size) {
@@ -341,7 +340,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
 		new->area.base = block->area.base + block->area.size;
 		new->area.size = new_size;
-		new->vmm = vmm;
+		new->vmm = block->vmm;
 		list_add(&block->global_list, &new->global_list);
 		vmm_tree_insert(s, new);
 	}
@@ -523,7 +522,7 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	if (size < PAGE_SIZE)
 		block = vmm_split_small(block, base, size);
 	else
-		block = vmm_split(block, NULL, base, size);
+		block = vmm_split(block, base, size);
 
 	if (IS_ERR(block)) {
 		err = ERR_VAL(block);
