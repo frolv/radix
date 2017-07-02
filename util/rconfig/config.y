@@ -177,8 +177,13 @@ range_setting
 
 option_setting
 	: TOKEN_OPTION option_val TOKEN_STRING {
-		add_option(curr_config(rconfig_file), $2,
-		           strdup(yyget_text(scanner)));
+		char *desc, *s;
+
+		desc = strdup(yyget_text(scanner) + 1);
+		if ((s = strchr(desc, '"')))
+			*s = '\0';
+
+		add_option(curr_config(rconfig_file), $2, desc);
 	}
 	;
 
