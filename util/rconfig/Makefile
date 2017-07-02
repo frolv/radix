@@ -11,17 +11,17 @@ LDFLAGS := -lfl
 HEADERS := rconfig.h gen.h lint.h
 RCONFIG_OBJ := rconfig.o scanner.o parser.o structures.o gen.o
 
-CLI_OBJ := cli.o
+CLI_OBJ := cli.o interactive.o
 
 SCAN_SRC := scanner.c
 SCAN_H := scanner.h
 PARSE_SRC := parser.c
 PARSE_H := parser.h
 
-all: $(PROGRAM_NAME)
+all: librconfig $(PROGRAM_NAME)
 
 # default rconfig cli program
-$(PROGRAM_NAME): librconfig $(CLI_OBJ)
+$(PROGRAM_NAME): $(RCONFIG_OBJ) $(CLI_OBJ)
 	$(CC) $(RCONFIG_OBJ) $(CLI_OBJ) -o $@ $(LDFLAGS)
 
 librconfig: parser $(RCONFIG_OBJ)

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "interactive.h"
 #include "rconfig.h"
 
 #define ARCHDIR_BUFSIZE 32
@@ -60,6 +61,7 @@ static struct option long_opts[] = {
 int main(int argc, char **argv)
 {
 	char arch_dir[ARCHDIR_BUFSIZE];
+	char *arch;
 	config_fn callback;
 	struct stat sb;
 	int c, err;
@@ -67,14 +69,15 @@ int main(int argc, char **argv)
 	char outfile[256] = "config/config";
 
 	is_linting = exit_status = 0;
-	arch_dir[0] = '\0';
-	callback = NULL;
+	callback = config_interactive;
+	arch = NULL;
 
 	while ((c = getopt_long(argc, argv, "a:dhlo:", long_opts, NULL))
 	       != EOF) {
 		switch (c) {
 		case 'a':
-			snprintf(arch_dir, ARCHDIR_BUFSIZE, "arch/%s", optarg);
+			arch = optarg;
+			snprintf(arch_dir, ARCHDIR_BUFSIZE, "arch/%s", arch);
 			rconfig_set_archdir(arch_dir);
 			break;
 		case 'd':
@@ -95,7 +98,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!arch_dir[0]) {
+	if (!arch) {
 		fprintf(stderr, "%s: must provide target architecture\n",
 			argv[0]);
 		return 1;
@@ -114,6 +117,11 @@ int main(int argc, char **argv)
 			break;
 		}
 		return 1;
+	}
+
+	if (!is_linting && callback == config_interactive) {
+		printf(PROGRAM_NAME " " PROGRAM_VERSION " interactive mode\n");
+		printf("Configuring radix for target architecture %s\n", arch);
 	}
 
 	if (optind != argc) {
@@ -137,6 +145,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "%s: could not concatenate partial configs\n",
 		        argv[0]);
 		exit_status = 1;
+	} else if (!is_linting && callback == config_interactive) {
+		printf("\n");
+		printf("radix configuration complete\n");
+		printf("Configuration written to file %s\n", outfile);
 	}
 
 	return exit_status;
