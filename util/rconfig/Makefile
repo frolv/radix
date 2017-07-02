@@ -48,7 +48,6 @@ PARSE_H := $(LIBDIR)/parser.h
 
 all: librconfig $(PROGRAM_NAME)
 
-# default rconfig cli program
 $(PROGRAM_NAME): $(FRONTEND_OBJ) $(LIB)
 	$(CC) $^ -o $@ $(LDFLAGS)
 
@@ -72,4 +71,4 @@ $(SCAN_SRC) $(SCAN_H): $(LIBDIR)/config.l $(PARSE_H)
 .PHONY: clean
 clean:
 	$(RM) $(RCONFIG_OBJ) $(PROGRAM_NAME) $(SCAN_SRC) $(SCAN_H) \
-	$(PARSE_SRC) $(PARSE_H) $(CLI_OBJ)
+	$(PARSE_SRC) $(PARSE_H) $(FRONTEND_OBJ)
