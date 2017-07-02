@@ -50,7 +50,7 @@ options                                 { return TOKEN_OPTIONS; }
 
 true                                    { return TOKEN_TRUE; }
 false                                   { return TOKEN_FALSE; }
-{digit}*                                { return TOKEN_INTEGER; }
+-?{digit}*                              { return TOKEN_INTEGER; }
 \"{string_char}*\"                      { return TOKEN_STRING; }
 
 {id_nondigit}({id_nondigit}|{digit})*   { return TOKEN_ID; }
