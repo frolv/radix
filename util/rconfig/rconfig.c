@@ -127,6 +127,8 @@ void rconfig_recursive(config_fn callback)
 {
 	size_t i;
 
+	rconfig_parse_file("rconfig", callback);
+
 	for (i = 0; i < NUM_SRC_DIRS; ++i)
 		rconfig_dir(src_dirs[i], callback);
 }
@@ -210,14 +212,27 @@ int rconfig_verify_src_dirs(const char **errdir)
 	struct stat sb;
 	size_t i;
 
+	if (stat("rconfig", &sb) != 0) {
+		*errdir = "rconfig";
+		return errno;
+	} else if (S_ISDIR(sb.st_mode)) {
+		*errdir = "rconfig";
+		return EISDIR;
+	} else if (access("rconfig", R_OK) != 0) {
+		*errdir = "rconfig";
+		return EACCES;
+	}
+
 	for (i = 0; i < NUM_SRC_DIRS; ++i) {
 		*errdir = src_dirs[i];
 
 		if (stat(src_dirs[i], &sb) == 0) {
-			if (S_ISDIR(sb.st_mode))
+			if (!S_ISDIR(sb.st_mode))
+				return ENOTDIR;
+			else if (access(src_dirs[i], R_OK) != 0)
+				return EACCES;
+			else
 				continue;
-
-			return ENOTDIR;
 		}
 		if (i == ARCH_DIR_INDEX)
 			return EINVAL;

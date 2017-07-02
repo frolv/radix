@@ -5,6 +5,15 @@
 
 
 #
+# rconfig radix
+# rconfig
+#
+
+# section General
+CONFIG_DEBUG=false
+
+
+#
 # rconfig i386
 # arch/i386/rconfig
 #

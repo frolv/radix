@@ -1,0 +1,8 @@
+configfile radix
+
+section General
+
+config DEBUG
+	type bool
+	default false
+	desc "Enable debugging globally"

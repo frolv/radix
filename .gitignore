@@ -6,5 +6,6 @@ radix*.iso
 *.swp
 tags
 
-# rconfig partials
+# rconfig
 config/.rconfig.*
+config/config
