@@ -5,8 +5,7 @@ rconfig frontends                                                2 Jul 2017
 
 This document describes how to write a frontend for rconfig, radix's
 configuration system. The rconfig system itself will not be described
-in detail; see doc/rconfig/rconfig.txt for more information for more
-information on it.
+in detail; see doc/rconfig/rconfig.txt for more information on it.
 
 This document will follow a tutorial-like structure in which a very basic
 (and very stupid) rconfig frontend will be written. Proficient knowledge of
