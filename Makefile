@@ -39,9 +39,10 @@ INCLUDEDIRS := include $(ARCHDIR)/include
 CONFDIR := config
 
 CONFIG_FILE := $(CONFDIR)/config
+CONFIG_PARTIALS := $(wildcard $(CONFDIR)/.rconfig.*)
 CONFIG_H := $(CONFDIR)/genconfig.h
 CONF ?= $(CONFDIR)/default.$(HOSTARCH)
-RCONFIG := util/rconfig/rconfig
+RCONFIG ?= util/rconfig/rconfig
 
 include $(ARCHDIR)/config.mk
 include $(LIBDIR)/config.mk
@@ -68,31 +69,45 @@ $(CONFIG_H): $(CONFIG_FILE)
 
 .PHONY: $(CONFIG_FILE)
 $(CONFIG_FILE):
-	@test -f $@ || ( \
-	echo >&2 "ERROR: no kernel configuration file found"; \
-	echo >&2; \
-	echo >&2 "Run"; \
-	echo >&2 "  \`make iconfig'"; \
-	echo >&2 "     for an interactive setup"; \
-	echo >&2 "  \`make config'"; \
-	echo >&2 "     to use the default configuration"; \
-	echo >&2 "  \`make config CONF=\$$CONFIGFILE'"; \
+	@test -f $@ || (                                                  \
+	echo >&2 "ERROR: no kernel configuration file found";             \
+	echo >&2;                                                         \
+	echo >&2 "Run";                                                   \
+	echo >&2 "  \`make iconfig'";                                     \
+	echo >&2 "     for an interactive setup";                         \
+	echo >&2 "  \`make config'";                                      \
+	echo >&2 "     to use the default configuration";                 \
+	echo >&2 "  \`make config CONF=\$$CONFIGFILE'";                   \
 	echo >&2 "     to use the configuration from file \$$CONFIGFILE"; \
-	echo >&2; \
-	echo >&2 "Aborting"; \
+	echo >&2;                                                         \
+	echo >&2 "Aborting";                                              \
 	false)
 
 .PHONY: config
 config:
-	@echo "Using configuration file $(CONF)"
+	@test -f $(CONF) && (                                             \
+	echo "Using configuration file $(CONF)";                          \
+	cp $(CONF) $(CONFIG_FILE)) || (                                   \
+	echo >&2 "ERROR: $(CONF): no such file";                          \
+	echo >&2;                                                         \
+	false)
 
 .PHONY: iconfig
 iconfig: rconfig
-	@echo ""
+	@echo
+	$(RCONFIG) --arch=$(HOSTARCH)
 
 .PHONY: rconfig
 rconfig:
 	@cd util/rconfig && make
+
+.PHONY: rconfig-gen-default
+rconfig-gen-default: rconfig
+	$(RCONFIG) --arch=$(HOSTARCH) --default -o $(CONF)
+
+.PHONY: rconfig-lint
+rconfig-lint: rconfig
+	$(RCONFIG) --arch=$(HOSTARCH) --lint
 
 $(KERNEL_NAME): $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
@@ -137,7 +152,8 @@ ctags:
 clean: clean-all
 
 .PHONY: clean-all
-clean-all: clean-kernel clean-libk clean-drivers clean-iso clean-rconfig
+clean-all: clean-kernel clean-libk clean-drivers clean-iso clean-config \
+	clean-rconfig
 
 .PHONY: clean-kernel
 clean-kernel:
@@ -155,6 +171,10 @@ clean-drivers:
 .PHONY: clean-iso
 clean-iso:
 	$(RM) -r $(ISODIR) $(ISONAME)
+
+.PHONY: clean-config
+clean-config:
+	$(RM) $(CONFIG_FILE) $(CONFIG_PARTIALS)
 
 .PHONY: clean-rconfig
 clean-rconfig:
