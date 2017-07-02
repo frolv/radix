@@ -5,3 +5,6 @@ kradix
 radix*.iso
 *.swp
 tags
+
+# rconfig partials
+config/.rconfig.*

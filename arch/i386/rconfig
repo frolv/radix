@@ -1,0 +1,9 @@
+configfile i386
+
+section General
+
+config MAX_IOAPICS
+	type int
+	range 1 16
+	default 8
+	desc "Maximum number of I/O APICs to support"
