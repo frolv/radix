@@ -26,8 +26,31 @@ void prepare_sections(struct rconfig_file *config)
 	config->sections = malloc(config->alloc_size * sizeof *config->sections);
 }
 
+void add_section(struct rconfig_file *config, char *name,
+                 struct rconfig_setting **settings)
+{
+	struct rconfig_section *s;
+
+	if (config->num_sections == config->alloc_size) {
+		config->alloc_size *= 2;
+		config->sections = realloc(config->sections,
+		                           config->alloc_size
+		                           * sizeof *config->sections);
+	}
+
+	s = &config->sections[config->num_sections++];
+	s->name = name;
+	s->settings = settings;
+}
+
 void free_rconfig(struct rconfig_file *config)
 {
+	size_t i;
+
+	for (i = 0; i < config->num_sections; ++i) {
+		free(config->sections[i].name);
+	}
+
 	free(config->sections);
 	free(config->name);
 }

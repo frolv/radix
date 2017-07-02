@@ -33,9 +33,7 @@ struct rconfig_file {
 
 struct rconfig_section {
 	char                    *name;
-	size_t                  alloc_size;
-	size_t                  num_settings;
-	struct rconfig_setting  *settings;
+	struct rconfig_setting  **settings;
 };
 
 enum rconfig_setting_type {
@@ -69,6 +67,8 @@ struct rconfig_setting {
 };
 
 void prepare_sections(struct rconfig_file *config);
+void add_section(struct rconfig_file *config, char *name,
+                 struct rconfig_setting **settings);
 void free_rconfig(struct rconfig_file *config);
 
 #endif /* RCONFIG_H */

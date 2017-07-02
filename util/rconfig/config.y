@@ -39,9 +39,12 @@ typedef void *yyscan_t;
 struct rconfig_file;
 }
 
-%define api.value.type {int}
 %define api.pure full
 %define parse.error verbose
+
+%union {
+	char *string;
+}
 
 %lex-param   {yyscan_t scanner}
 %parse-param {yyscan_t scanner}
@@ -53,6 +56,8 @@ struct rconfig_file;
 %token TOKEN_TRUE TOKEN_FALSE TOKEN_INTEGER TOKEN_STRING
 %token TOKEN_ID
 %token TOKEN_TAB
+
+%type <string> section_header
 
 %start rconfig_file
 
@@ -76,11 +81,15 @@ configfile_sections
 	;
 
 configfile_section
-	: section_header config_list
+	: section_header config_list {
+		add_section(rconfig_file, $1, NULL);
+	}
 	;
 
 section_header
-	: TOKEN_SECTION TOKEN_ID
+	: TOKEN_SECTION TOKEN_ID {
+		$$ = strdup(yyget_text(scanner));
+	}
 	;
 
 config_list
