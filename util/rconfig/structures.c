@@ -198,6 +198,12 @@ int verify_config(struct rconfig_file *file, struct rconfig_config *conf)
 		status = 2;
 	}
 
+	if (!conf->desc[0]) {
+		if (is_linting)
+			error("no description provided\n");
+		status = 1;
+	}
+
 	if (is_linting && status > 0)
 		info("for config `\x1B[1;35m%s\x1B[0;37m' in file %s\n\n",
 		     conf->identifier, file->path);
