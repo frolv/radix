@@ -71,4 +71,4 @@ $(SCAN_SRC) $(SCAN_H): $(LIBDIR)/config.l $(PARSE_H)
 .PHONY: clean
 clean:
 	$(RM) $(RCONFIG_OBJ) $(PROGRAM_NAME) $(SCAN_SRC) $(SCAN_H) \
-	$(PARSE_SRC) $(PARSE_H) $(FRONTEND_OBJ)
+	$(PARSE_SRC) $(PARSE_H) $(FRONTEND_OBJ) $(LIB)

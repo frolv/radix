@@ -22,7 +22,7 @@
 #include <stddef.h>
 
 #define PROGRAM_NAME    "rconfig"
-#define PROGRAM_VERSION "0.4.0"
+#define PROGRAM_VERSION "1.0.0"
 
 #define CONFIG_DIR      "config"
 
@@ -49,11 +49,6 @@ enum rconfig_config_type {
 	RCONFIG_UNKNOWN
 };
 
-struct rconfig_config_int_lim {
-	int min;
-	int max;
-};
-
 struct rconfig_option {
 	int  val;
 	char *desc;
@@ -63,6 +58,11 @@ struct rconfig_config_options {
 	size_t                  alloc_size;
 	size_t                  num_options;
 	struct rconfig_option   *options;
+};
+
+struct rconfig_config_int_lim {
+	int min;
+	int max;
 };
 
 struct rconfig_config {
@@ -78,24 +78,6 @@ struct rconfig_config {
 	struct rconfig_section  *section;
 };
 
-void prepare_sections(struct rconfig_file *config);
-void add_section(struct rconfig_file *config, char *name);
-void add_config(struct rconfig_section *section, char *identifier);
-void add_option(struct rconfig_config *conf, int val, char *desc);
-void set_config_type(struct rconfig_config *conf, int type);
-void set_config_desc(struct rconfig_config *conf, char *desc);
-int verify_config(struct rconfig_file *file, struct rconfig_config *conf);
-
-static inline struct rconfig_config *curr_config(struct rconfig_file *file)
-{
-	struct rconfig_section *s;
-
-	s = &file->sections[file->num_sections - 1];
-	return &s->configs[s->num_configs - 1];
-}
-
-void free_rconfig(struct rconfig_file *config);
-
 
 /* callback function to get the desired value for a rconfig setting */
 typedef int (*config_fn)(struct rconfig_config *);
@@ -109,7 +91,7 @@ void rconfig_set_archdir(const char *archdir);
 int rconfig_verify_src_dirs(const char **errdir);
 void rconfig_parse_file(const char *path, config_fn callback);
 void rconfig_recursive(config_fn callback);
-int rconfig_concatenate(char *outfile);
+int rconfig_concatenate(const char *outfile);
 void rconfig_cleanup_partial(void);
 
 extern int exit_status;

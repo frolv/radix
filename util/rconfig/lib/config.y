@@ -22,6 +22,7 @@
 
 #include "parser.h"
 #include "scanner.h"
+#include "structures.h"
 
 void yyerror(yyscan_t scanner, struct rconfig_file *config, const char *err)
 {

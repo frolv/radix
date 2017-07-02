@@ -30,6 +30,7 @@
 #include "lint.h"
 #include "parser.h"
 #include "scanner.h"
+#include "structures.h"
 
 static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
 
@@ -51,11 +52,8 @@ void rconfig_parse_file(const char *path, config_fn callback)
 	FILE *f;
 
 	f = fopen(path, "r");
-	if (!f) {
-		perror(path);
-		exit_status = 1;
+	if (!f)
 		return;
-	}
 
 	config.name = NULL;
 	config.path = path;
@@ -87,6 +85,9 @@ static void rconfig_dir(const char *path, config_fn callback)
 	struct stat sb;
 	int found_dir;
 	DIR *d;
+
+	if (!callback)
+		return;
 
 	d = opendir(path);
 	if (!d)
@@ -128,6 +129,9 @@ void rconfig_recursive(config_fn callback)
 {
 	size_t i;
 
+	if (!callback)
+		return;
+
 	rconfig_parse_file("rconfig", callback);
 
 	for (i = 0; i < NUM_SRC_DIRS; ++i)
@@ -139,7 +143,7 @@ void rconfig_recursive(config_fn callback)
  * Concatenate all partial rconfig files in CONFIG_DIR into
  * a single output file.
  */
-int rconfig_concatenate(char *outfile)
+int rconfig_concatenate(const char *outfile)
 {
 	struct dirent *dirent;
 	struct stat sb;
@@ -148,6 +152,9 @@ int rconfig_concatenate(char *outfile)
 	FILE *f, *out;
 	int status;
 	DIR *d;
+
+	if (!outfile)
+		outfile = "config/config";
 
 	d = opendir(CONFIG_DIR);
 	if (!d) {
@@ -214,18 +221,22 @@ int rconfig_verify_src_dirs(const char **errdir)
 	size_t i;
 
 	if (stat("rconfig", &sb) != 0) {
-		*errdir = "rconfig";
+		if (errdir)
+			*errdir = "rconfig";
 		return errno;
 	} else if (S_ISDIR(sb.st_mode)) {
-		*errdir = "rconfig";
+		if (errdir)
+			*errdir = "rconfig";
 		return EISDIR;
 	} else if (access("rconfig", R_OK) != 0) {
-		*errdir = "rconfig";
+		if (errdir)
+			*errdir = "rconfig";
 		return EACCES;
 	}
 
 	for (i = 0; i < NUM_SRC_DIRS; ++i) {
-		*errdir = src_dirs[i];
+		if (errdir)
+			*errdir = src_dirs[i];
 
 		if (stat(src_dirs[i], &sb) == 0) {
 			if (!S_ISDIR(sb.st_mode))
@@ -241,7 +252,8 @@ int rconfig_verify_src_dirs(const char **errdir)
 		return errno;
 	}
 
-	*errdir = NULL;
+	if (errdir)
+		*errdir = NULL;
 	return 0;
 }
 
