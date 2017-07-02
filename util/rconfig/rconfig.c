@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 
 #include "gen.h"
+#include "lint.h"
 #include "parser.h"
 #include "rconfig.h"
 #include "scanner.h"
@@ -36,7 +37,10 @@ static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
 #define ARCH_DIR_INDEX (NUM_SRC_DIRS - 1)
 #define ARCHDIR_BUFSIZE 32
 
-static void rconfig_parse_file(const char *path, int def, int lint)
+int is_linting;
+int exit_status;
+
+static void rconfig_parse_file(const char *path, int def)
 {
 	yyscan_t rconfig_scanner;
 	struct rconfig_file config;
@@ -59,7 +63,7 @@ static void rconfig_parse_file(const char *path, int def, int lint)
 	yyparse(rconfig_scanner, &config);
 	yylex_destroy(rconfig_scanner);
 
-	if (!lint) {
+	if (!is_linting) {
 		if (def)
 			generate_config(&config, config_default);
 	}
@@ -73,7 +77,7 @@ static void rconfig_parse_file(const char *path, int def, int lint)
  * rconfig_dir:
  * Recursively find all rconfig files in directory `path`.
  */
-static void rconfig_dir(const char *path, int def, int lint)
+static void rconfig_dir(const char *path, int def)
 {
 	char dirpath[PATH_MAX];
 	struct dirent *dirent;
@@ -107,22 +111,22 @@ static void rconfig_dir(const char *path, int def, int lint)
 		}
 
 		if (found_dir) {
-			rconfig_dir(dirpath, def, lint);
+			rconfig_dir(dirpath, def);
 		} else if (strcmp(dirent->d_name, "rconfig") == 0) {
 			snprintf(dirpath, PATH_MAX, "%s/rconfig", path);
-			rconfig_parse_file(dirpath, def, lint);
+			rconfig_parse_file(dirpath, def);
 		}
 	}
 
 	closedir(d);
 }
 
-static void rconfig_recursive(int def, int lint)
+static void rconfig_recursive(int def)
 {
 	size_t i;
 
 	for (i = 0; i < NUM_SRC_DIRS; ++i)
-		rconfig_dir(src_dirs[i], def, lint);
+		rconfig_dir(src_dirs[i], def);
 }
 
 static int verify_src_dirs(const char *prog)
@@ -187,9 +191,9 @@ static struct option long_opts[] = {
 int main(int argc, char **argv)
 {
 	char arch_dir[ARCHDIR_BUFSIZE];
-	int c, err, def, lint;
+	int c, err, def;
 
-	def = lint = 0;
+	def = is_linting = exit_status = 0;
 	while ((c = getopt_long(argc, argv, "a:dhl", long_opts, NULL)) != EOF) {
 		switch (c) {
 		case 'a':
@@ -203,7 +207,7 @@ int main(int argc, char **argv)
 			usage(stdout, PROGRAM_NAME);
 			return 0;
 		case 'l':
-			lint = 1;
+			is_linting = 1;
 			break;
 		default:
 			usage(stderr, argv[0]);
@@ -217,7 +221,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (def && lint) {
+	if (def && is_linting) {
 		fprintf(stderr, "%s: -d and -l are mutually incompatible\n",
 			argv[0]);
 		return 1;
@@ -228,8 +232,8 @@ int main(int argc, char **argv)
 
 	if (optind != argc) {
 	} else {
-		rconfig_recursive(def, lint);
+		rconfig_recursive(def);
 	}
 
-	return 0;
+	return exit_status;
 }

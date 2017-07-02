@@ -78,6 +78,7 @@ void add_section(struct rconfig_file *config, char *name);
 void add_config(struct rconfig_section *section, char *identifier);
 void add_option(struct rconfig_config *conf, int val, char *desc);
 void set_config_type(struct rconfig_config *conf, int type);
+int verify_config(struct rconfig_file *file, struct rconfig_config *conf);
 
 static inline struct rconfig_config *curr_config(struct rconfig_file *file)
 {
@@ -88,5 +89,7 @@ static inline struct rconfig_config *curr_config(struct rconfig_file *file)
 }
 
 void free_rconfig(struct rconfig_file *config);
+
+int exit_status;
 
 #endif /* RCONFIG_H */

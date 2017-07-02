@@ -8,7 +8,7 @@ RM := rm -f
 CFLAGS := -O2 -Wall -Wextra -c
 LDFLAGS := -lfl
 
-HEADERS := rconfig.h
+HEADERS := rconfig.h gen.h lint.h
 OBJ := rconfig.o scanner.o parser.o structures.o gen.o
 
 SCAN_SRC := scanner.c

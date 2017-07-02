@@ -106,7 +106,14 @@ config
 		int section = rconfig_file->num_sections - 1;
 		add_config(&rconfig_file->sections[section], $1);
 		free($1);
-	} settings_list
+	} settings_list {
+		int err;
+		err = verify_config(rconfig_file, curr_config(rconfig_file));
+		if (exit_status == 0)
+			exit_status = err;
+		else if (exit_status == 2 && err == 1)
+			exit_status = 1;
+	}
 	;
 
 config_name

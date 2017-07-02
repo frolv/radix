@@ -16,10 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "lint.h"
 #include "rconfig.h"
 
 void prepare_sections(struct rconfig_file *config)
@@ -108,6 +110,90 @@ void set_config_type(struct rconfig_config *conf, int type)
 	default:
 		break;
 	}
+}
+
+static inline void set_default_val(struct rconfig_config *conf)
+{
+	switch (conf->type) {
+	case RCONFIG_INT:
+		conf->default_val = conf->lim.min;
+		break;
+	case RCONFIG_BOOL:
+	case RCONFIG_OPTIONS:
+		conf->default_val = 0;
+		break;
+	}
+	conf->default_set = 1;
+}
+
+/*
+ * verify_config:
+ * Check whether `conf` is properly defined and logically consistent.
+ * Return 0 if all is well, 1 if fatal error or 2 if recoverable error.
+ */
+int verify_config(struct rconfig_file *file, struct rconfig_config *conf)
+{
+	int status;
+	char *s;
+
+	status = 0;
+	for (s = conf->identifier; *s && (isupper(*s) || *s == '_'); ++s)
+		;
+	if (*s) {
+		if (is_linting)
+			error("config identifiers must be ALL_CAPS\n");
+		status = 1;
+	}
+
+	if (conf->type == RCONFIG_UNKNOWN) {
+		if (is_linting)
+			error("no type set\n");
+		return 1;
+	}
+
+	if (conf->type == RCONFIG_INT) {
+		if (conf->lim.min > conf->lim.max) {
+			if (is_linting)
+				error("range min is greater than max\n");
+			status = 1;
+		} else if (conf->default_set &&
+		           (conf->default_val < conf->lim.min ||
+		            conf->default_val > conf->lim.max)) {
+			if (is_linting)
+				error("default value is outside of range\n");
+			status = 1;
+		}
+	} else if (conf->type == RCONFIG_OPTIONS) {
+		if (!conf->opts.num_options) {
+			if (is_linting)
+				error("no options provided\n");
+			status = 1;
+		} else if (conf->default_set &&
+		           ((unsigned)conf->default_val > conf->opts.num_options
+		            || conf->default_val < 1)) {
+			if (is_linting)
+				error("invalid default option\n");
+			status = 1;
+		}
+	}
+
+	if (!conf->default_set) {
+		set_default_val(conf);
+		if (is_linting) {
+			warn("no default value set (assuming ");
+			if (conf->type == RCONFIG_BOOL)
+				fprintf(stderr, "false)\n");
+			else
+				fprintf(stderr, "%d)\n", conf->default_val);
+		}
+		status = 2;
+	}
+
+	if (is_linting && status > 0)
+		info("for config `\x1B[1;35m%s\x1B[0;37m' in file %s\n\n",
+		     conf->identifier, file->path);
+
+	return status;
 }
 
 void free_rconfig(struct rconfig_file *config)
