@@ -33,42 +33,60 @@ struct rconfig_file {
 
 struct rconfig_section {
 	char                    *name;
-	struct rconfig_setting  **settings;
+	size_t                  alloc_size;
+	size_t                  num_configs;
+	struct rconfig_config   *configs;
 };
 
-enum rconfig_setting_type {
+enum rconfig_config_type {
 	RCONFIG_BOOL,
 	RCONFIG_INT,
-	RCONFIG_OPTIONS
+	RCONFIG_OPTIONS,
+	RCONFIG_UNKNOWN
 };
 
-struct rconfig_setting_int {
+struct rconfig_config_int_lim {
 	int min;
 	int max;
 };
 
-struct rconfig_setting_options {
-	int num_options;
-	struct {
-		int val;
-		const char *desc;
-	} *options;
+struct rconfig_option {
+	int  val;
+	char *desc;
 };
 
-struct rconfig_setting {
-	char name[32];
-	char desc[64];
-	int type;
-	int default_val;
+struct rconfig_config_options {
+	size_t                  alloc_size;
+	size_t                  num_options;
+	struct rconfig_option   *options;
+};
+
+struct rconfig_config {
+	char                    identifier[32];
+	char                    desc[64];
+	int                     type;
+	int                     default_val;
+	int                     default_set;
 	union {
-		struct rconfig_setting_int data_int;
-		struct rconfig_setting_options data_options;
-	} data;
+		struct rconfig_config_int_lim lim;
+		struct rconfig_config_options opts;
+	};
 };
 
 void prepare_sections(struct rconfig_file *config);
-void add_section(struct rconfig_file *config, char *name,
-                 struct rconfig_setting **settings);
+void add_section(struct rconfig_file *config, char *name);
+void add_config(struct rconfig_section *section, char *identifier);
+void add_option(struct rconfig_config *conf, int val, char *desc);
+void set_config_type(struct rconfig_config *conf, int type);
+
+static inline struct rconfig_config *curr_config(struct rconfig_file *file)
+{
+	struct rconfig_section *s;
+
+	s = &file->sections[file->num_sections - 1];
+	return &s->configs[s->num_configs - 1];
+}
+
 void free_rconfig(struct rconfig_file *config);
 
 #endif /* RCONFIG_H */

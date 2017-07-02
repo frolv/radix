@@ -44,6 +44,7 @@ struct rconfig_file;
 
 %union {
 	char *string;
+	int value;
 }
 
 %lex-param   {yyscan_t scanner}
@@ -58,6 +59,11 @@ struct rconfig_file;
 %token TOKEN_TAB
 
 %type <string> section_header
+%type <string> config_name
+%type <value>  default_setting
+%type <value>  type
+%type <value>  bool
+%type <value>  option_val
 
 %start rconfig_file
 
@@ -81,15 +87,13 @@ configfile_sections
 	;
 
 configfile_section
-	: section_header config_list {
-		add_section(rconfig_file, $1, NULL);
-	}
+	: section_header {
+		add_section(rconfig_file, $1);
+	} config_list
 	;
 
 section_header
-	: TOKEN_SECTION TOKEN_ID {
-		$$ = strdup(yyget_text(scanner));
-	}
+	: TOKEN_SECTION TOKEN_ID { $$ = strdup(yyget_text(scanner)); }
 	;
 
 config_list
@@ -98,11 +102,15 @@ config_list
 	;
 
 config
-	: config_name settings_list
+	: config_name {
+		int section = rconfig_file->num_sections - 1;
+		add_config(&rconfig_file->sections[section], $1);
+		free($1);
+	} settings_list
 	;
 
 config_name
-	: TOKEN_CONFIG TOKEN_ID
+	: TOKEN_CONFIG TOKEN_ID { $$ = strdup(yyget_text(scanner)); }
 	;
 
 settings_list
@@ -116,42 +124,60 @@ indented_setting
 
 setting
 	: type_setting
-	| default_setting
+	| default_setting {
+		struct rconfig_config *conf = curr_config(rconfig_file);
+		conf->default_val = $1;
+		conf->default_set = 1;
+	}
 	| desc_setting
 	| range_setting
 	| option_setting
 	;
 
 type_setting
-	: TOKEN_TYPE type
+	: TOKEN_TYPE type { set_config_type(curr_config(rconfig_file), $2); }
 	;
 
 type
-	: TOKEN_BOOL
-	| TOKEN_INT
-	| TOKEN_OPTIONS
+	: TOKEN_BOOL { $$ = RCONFIG_BOOL; }
+	| TOKEN_INT { $$ = RCONFIG_INT; }
+	| TOKEN_OPTIONS { $$ = RCONFIG_OPTIONS; }
 	;
 
 default_setting
-	: TOKEN_DEFAULT bool
-	| TOKEN_DEFAULT TOKEN_INTEGER
+	: TOKEN_DEFAULT bool { $$ = $2; }
+	| TOKEN_DEFAULT TOKEN_INTEGER { $$ = atoi(yyget_text(scanner)); }
 	;
 
 bool
-	: TOKEN_TRUE
-	| TOKEN_FALSE
+	: TOKEN_TRUE { $$ = 1; }
+	| TOKEN_FALSE { $$ = 0; }
 	;
 
 desc_setting
-	: TOKEN_DESC TOKEN_STRING
+	: TOKEN_DESC TOKEN_STRING {
+		strncpy(curr_config(rconfig_file)->desc,
+		        yyget_text(scanner), 64);
+	}
 	;
 
 range_setting
-	: TOKEN_RANGE TOKEN_INTEGER TOKEN_INTEGER
+	: TOKEN_RANGE TOKEN_INTEGER {
+		curr_config(rconfig_file)->lim.min = atoi(yyget_text(scanner));
+	} TOKEN_INTEGER {
+		curr_config(rconfig_file)->lim.max = atoi(yyget_text(scanner));
+	}
 	;
 
 option_setting
-	: TOKEN_OPTION TOKEN_INTEGER TOKEN_STRING
+	: TOKEN_OPTION option_val TOKEN_STRING {
+		add_option(curr_config(rconfig_file), $2,
+		           strdup(yyget_text(scanner)));
+	}
+	;
+
+option_val
+	: TOKEN_INTEGER { $$ = atoi(yyget_text(scanner)); }
 	;
 
 %%

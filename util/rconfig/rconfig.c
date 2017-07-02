@@ -25,6 +25,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "gen.h"
 #include "parser.h"
 #include "rconfig.h"
 #include "scanner.h"
@@ -57,6 +58,11 @@ static void rconfig_parse_file(const char *path, int def, int lint)
 	yyset_in(f, rconfig_scanner);
 	yyparse(rconfig_scanner, &config);
 	yylex_destroy(rconfig_scanner);
+
+	if (!lint) {
+		if (def)
+			generate_config(&config, config_default);
+	}
 
 	free_rconfig(&config);
 
