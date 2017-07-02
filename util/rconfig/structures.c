@@ -196,15 +196,31 @@ int verify_config(struct rconfig_file *file, struct rconfig_config *conf)
 	return status;
 }
 
-void free_rconfig(struct rconfig_file *config)
+static void free_options(struct rconfig_config *conf)
 {
 	size_t i;
 
+	for (i = 0; i < conf->opts.num_options; ++i)
+		free(conf->opts.options[i].desc);
+
+	free(conf->opts.options);
+}
+
+void free_rconfig(struct rconfig_file *config)
+{
+	struct rconfig_section *s;
+	size_t i, j;
+
 	for (i = 0; i < config->num_sections; ++i) {
-		free(config->sections[i].name);
-		free(config->sections[i].configs);
+		s = &config->sections[i];
+		for (j = 0; j < s->num_configs; ++j) {
+			if (s->configs[j].type == RCONFIG_OPTIONS)
+				free_options(&s->configs[j]);
+		}
+		free(s->name);
+		free(s->configs);
 	}
 
-	free(config->sections);
 	free(config->name);
+	free(config->sections);
 }
