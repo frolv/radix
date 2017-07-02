@@ -110,6 +110,7 @@ int rconfig_verify_src_dirs(const char **errdir);
 void rconfig_parse_file(const char *path, config_fn callback);
 void rconfig_recursive(config_fn callback);
 int rconfig_concatenate(char *outfile);
+void rconfig_cleanup_partial(void);
 
 extern int exit_status;
 extern int is_linting;

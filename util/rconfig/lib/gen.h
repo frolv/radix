@@ -23,4 +23,6 @@
 
 void generate_config(struct rconfig_file *config, config_fn callback);
 
+extern char *curr_partial;
+
 #endif /* GEN_H */

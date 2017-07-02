@@ -20,6 +20,8 @@
 
 #include "gen.h"
 
+char *curr_partial;
+
 static void write_section(FILE *f, struct rconfig_section *sec, config_fn cb)
 {
 	struct rconfig_config *conf;
@@ -61,6 +63,8 @@ void generate_config(struct rconfig_file *config, config_fn callback)
 	if (!f)
 		return;
 
+	curr_partial = path;
+
 	fprintf(f, "#\n");
 	fprintf(f, "# rconfig %s\n", config->name);
 	fprintf(f, "# %s\n", config->path);
@@ -70,6 +74,7 @@ void generate_config(struct rconfig_file *config, config_fn callback)
 		write_section(f, &config->sections[i], callback);
 
 	fclose(f);
+	curr_partial = NULL;
 }
 
 /*

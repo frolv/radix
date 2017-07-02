@@ -244,3 +244,13 @@ int rconfig_verify_src_dirs(const char **errdir)
 	*errdir = NULL;
 	return 0;
 }
+
+/*
+ * rconfig_cleanup_partial:
+ * Destroy the current partial file, if one exists.
+ */
+void rconfig_cleanup_partial(void)
+{
+	if (curr_partial)
+		unlink(curr_partial);
+}

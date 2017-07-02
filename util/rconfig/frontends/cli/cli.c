@@ -18,7 +18,9 @@
  */
 
 #include <getopt.h>
+#include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -27,6 +29,15 @@
 #include "interactive.h"
 
 #define ARCHDIR_BUFSIZE 32
+
+static void sig_cleanup(int sig)
+{
+	printf("\n");
+	printf("Received SIG%s, exiting...\n", sig == SIGINT ? "INT" : "TERM");
+
+	rconfig_cleanup_partial();
+	exit(0);
+}
 
 static void usage(FILE *f, const char *prog)
 {
@@ -119,6 +130,9 @@ int main(int argc, char **argv)
 		}
 		return 1;
 	}
+
+	signal(SIGINT, sig_cleanup);
+	signal(SIGTERM, sig_cleanup);
 
 	if (!is_linting && callback == config_interactive) {
 		printf(PROGRAM_NAME " " PROGRAM_VERSION " interactive mode\n");
