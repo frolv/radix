@@ -22,8 +22,9 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <rconfig.h>
+
 #include "interactive.h"
-#include "rconfig.h"
 
 #define ARCHDIR_BUFSIZE 32
 

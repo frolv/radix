@@ -24,10 +24,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <rconfig.h>
+
 #include "gen.h"
 #include "lint.h"
 #include "parser.h"
-#include "rconfig.h"
 #include "scanner.h"
 
 static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };

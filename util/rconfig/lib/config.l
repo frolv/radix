@@ -20,8 +20,8 @@
 %option yylineno
 
 %{
+#include <rconfig.h>
 #include "parser.h"
-#include "rconfig.h"
 
 #define YY_NO_INPUT
 #define YY_NO_UNPUT

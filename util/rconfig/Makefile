@@ -1,41 +1,72 @@
-PROGRAM_NAME := rconfig
+FRONTEND ?= cli
+LIB := librconfig.a
+
+PROGRAM_NAME :=
+
+################################################################################
+# Define rconfig frontends here
+# Each frontend must specify a unique PROGRAM_NAME and a list of required
+# object files called ${FR}_OBJ, where ${FR} is the uppercase frontend name.
+################################################################################
+
+# default cli frontend
+ifeq ($(FRONTEND),cli)
+	PROGRAM_NAME := rconfig
+endif
+
+# objects files for cli frontend
+CLI_OBJ := cli.o interactive.o
+
+################################################################################
+
+FRONTEND_UPPER := $(shell echo $(FRONTEND) | tr [:lower:] [:upper:])
+FRONTEND_DIR := frontends/$(FRONTEND)
 
 CC := gcc
+AR := ar
 LEX := flex
 YACC := bison
 RM := rm -f
 
-CFLAGS := -O2 -Wall -Wextra -c
+LIBDIR := lib
+INCLUDEDIR := include
+
+CFLAGS := -O2 -Wall -Wextra -c -I$(INCLUDEDIR)
 LDFLAGS := -lfl
+ARFLAGS := rcs
 
-HEADERS := rconfig.h gen.h lint.h
-RCONFIG_OBJ := rconfig.o scanner.o parser.o structures.o gen.o
+HEADERS := include/rconfig.h lib/gen.h lib/lint.h
+_RCONFIG_OBJ := rconfig.o scanner.o parser.o structures.o gen.o
+RCONFIG_OBJ := $(patsubst %,$(LIBDIR)/%,$(_RCONFIG_OBJ))
 
-CLI_OBJ := cli.o interactive.o
+$(eval FRONTEND_OBJ := $(patsubst %,$(FRONTEND_DIR)/%,$($(FRONTEND_UPPER)_OBJ)))
 
-SCAN_SRC := scanner.c
-SCAN_H := scanner.h
-PARSE_SRC := parser.c
-PARSE_H := parser.h
+SCAN_SRC := $(LIBDIR)/scanner.c
+SCAN_H := $(LIBDIR)/scanner.h
+PARSE_SRC := $(LIBDIR)/parser.c
+PARSE_H := $(LIBDIR)/parser.h
 
 all: librconfig $(PROGRAM_NAME)
 
 # default rconfig cli program
-$(PROGRAM_NAME): $(RCONFIG_OBJ) $(CLI_OBJ)
-	$(CC) $(RCONFIG_OBJ) $(CLI_OBJ) -o $@ $(LDFLAGS)
+$(PROGRAM_NAME): $(FRONTEND_OBJ) $(LIB)
+	$(CC) $^ -o $@ $(LDFLAGS)
 
-librconfig: parser $(RCONFIG_OBJ)
+librconfig: $(LIB)
 
-%.o: %.c $(HEADERS)
+$(LIB): parser $(RCONFIG_OBJ)
+	$(AR) $(ARFLAGS) -o $@ $(RCONFIG_OBJ)
+
+$(libdir)/%.o: $(libdir)/%.c $(HEADERS)
 	$(CC) $< -o $@ $(CFLAGS)
 
 .PHONY: parser
 parser: $(PARSE_SRC) $(PARSE_H) $(SCAN_SRC)
 
-$(PARSE_SRC) $(PARSE_H): config.y
+$(PARSE_SRC) $(PARSE_H): $(LIBDIR)/config.y
 	$(YACC) --defines=$(PARSE_H) -o $(PARSE_SRC) $<
 
-$(SCAN_SRC) $(SCAN_H): config.l $(PARSE_H)
+$(SCAN_SRC) $(SCAN_H): $(LIBDIR)/config.l $(PARSE_H)
 	$(LEX) --header-file=$(SCAN_H) -o $(SCAN_SRC) $<
 
 .PHONY: clean

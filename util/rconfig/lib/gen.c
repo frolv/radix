@@ -19,7 +19,6 @@
 #include <stdio.h>
 
 #include "gen.h"
-#include "rconfig.h"
 
 static void write_section(FILE *f, struct rconfig_section *sec, config_fn cb)
 {

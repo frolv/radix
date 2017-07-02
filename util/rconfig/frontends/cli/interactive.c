@@ -20,8 +20,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <rconfig.h>
+
 #include "interactive.h"
-#include "rconfig.h"
 
 static int interactive_bool(struct rconfig_config *conf)
 {

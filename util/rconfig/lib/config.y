@@ -18,9 +18,9 @@
 
 %{
 #include <stdio.h>
+#include <rconfig.h>
 
 #include "parser.h"
-#include "rconfig.h"
 #include "scanner.h"
 
 void yyerror(yyscan_t scanner, struct rconfig_file *config, const char *err)

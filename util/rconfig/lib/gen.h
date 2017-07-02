@@ -19,7 +19,7 @@
 #ifndef GEN_H
 #define GEN_H
 
-#include "rconfig.h"
+#include <rconfig.h>
 
 void generate_config(struct rconfig_file *config, config_fn callback);
 

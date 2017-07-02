@@ -21,8 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <rconfig.h>
+
 #include "lint.h"
-#include "rconfig.h"
 
 void prepare_sections(struct rconfig_file *config)
 {
