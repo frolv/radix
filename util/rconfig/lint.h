@@ -21,8 +21,6 @@
 
 #include <stdio.h>
 
-extern int is_linting;
-
 #define error(msg, ...) \
 	fprintf(stderr, "\x1B[1;31merror: \x1B[0;37m" msg, ##__VA_ARGS__)
 

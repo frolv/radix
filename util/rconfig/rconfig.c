@@ -17,8 +17,6 @@
  */
 
 #include <dirent.h>
-#include <errno.h>
-#include <getopt.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,12 +34,16 @@ static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
 
 #define NUM_SRC_DIRS   (sizeof src_dirs / sizeof (src_dirs[0]))
 #define ARCH_DIR_INDEX (NUM_SRC_DIRS - 1)
-#define ARCHDIR_BUFSIZE 32
 
 int is_linting;
 int exit_status;
 
-static void rconfig_parse_file(const char *path, int def)
+void rconfig_set_archdir(const char *archdir)
+{
+	src_dirs[ARCH_DIR_INDEX] = archdir;
+}
+
+void rconfig_parse_file(const char *path, config_fn callback)
 {
 	yyscan_t rconfig_scanner;
 	struct rconfig_file config;
@@ -65,10 +67,8 @@ static void rconfig_parse_file(const char *path, int def)
 	yyparse(rconfig_scanner, &config);
 	yylex_destroy(rconfig_scanner);
 
-	if (!is_linting) {
-		if (def)
-			generate_config(&config, config_default);
-	}
+	if (!is_linting)
+		generate_config(&config, callback);
 
 	free_rconfig(&config);
 
@@ -79,7 +79,7 @@ static void rconfig_parse_file(const char *path, int def)
  * rconfig_dir:
  * Recursively find all rconfig files in directory `path`.
  */
-static void rconfig_dir(const char *path, int def)
+static void rconfig_dir(const char *path, config_fn callback)
 {
 	char dirpath[PATH_MAX];
 	struct dirent *dirent;
@@ -113,22 +113,22 @@ static void rconfig_dir(const char *path, int def)
 		}
 
 		if (found_dir) {
-			rconfig_dir(dirpath, def);
+			rconfig_dir(dirpath, callback);
 		} else if (strcmp(dirent->d_name, "rconfig") == 0) {
 			snprintf(dirpath, PATH_MAX, "%s/rconfig", path);
-			rconfig_parse_file(dirpath, def);
+			rconfig_parse_file(dirpath, callback);
 		}
 	}
 
 	closedir(d);
 }
 
-static void rconfig_recursive(int def)
+void rconfig_recursive(config_fn callback)
 {
 	size_t i;
 
 	for (i = 0; i < NUM_SRC_DIRS; ++i)
-		rconfig_dir(src_dirs[i], def);
+		rconfig_dir(src_dirs[i], callback);
 }
 
 /*
@@ -136,7 +136,7 @@ static void rconfig_recursive(int def)
  * Concatenate all partial rconfig files in CONFIG_DIR into
  * a single output file.
  */
-static int rconfig_concatenate(char *outfile)
+int rconfig_concatenate(char *outfile)
 {
 	struct dirent *dirent;
 	struct stat sb;
@@ -199,139 +199,32 @@ static int rconfig_concatenate(char *outfile)
 	return status;
 }
 
-static int verify_src_dirs(const char *prog)
+/*
+ * rconfig_verify_src_dirs:
+ * Ensure that all source directories exist and are valid.
+ * Returns 0 if successful, or an errno constant indicating the error that
+ * occurred otherwise. The faulting directory is stored in `errdir`.
+ */ 
+int rconfig_verify_src_dirs(const char **errdir)
 {
 	struct stat sb;
 	size_t i;
 
 	for (i = 0; i < NUM_SRC_DIRS; ++i) {
+		*errdir = src_dirs[i];
+
 		if (stat(src_dirs[i], &sb) == 0) {
 			if (S_ISDIR(sb.st_mode))
 				continue;
 
-			fprintf(stderr, "%s: %s\n",
-				src_dirs[i],
-				strerror(ENOTDIR));
-			goto err_wrongdir;
+			return ENOTDIR;
 		}
+		if (i == ARCH_DIR_INDEX)
+			return EINVAL;
 
-		perror(src_dirs[i]);
-		if (i == ARCH_DIR_INDEX) {
-			fprintf(stderr, "%s: invalid or unsupported architecture\n",
-				prog);
-			return 1;
-		}
-
-	err_wrongdir:
-		fprintf(stderr, "%s: are you in the radix root directory?\n",
-			prog);
-		return 1;
+		return errno;
 	}
 
+	*errdir = NULL;
 	return 0;
-}
-
-static void usage(FILE *f, const char *prog)
-{
-	fprintf(f, "usage: %s --arch=ARCH [-d|-l] [-o OUTFILE] [FILE]...\n",
-	        prog);
-	fprintf(f, "Configure a radix kernel\n");
-	fprintf(f, "\n");
-	fprintf(f, "If FILE is provided, only process given rconfig files.\n");
-	fprintf(f, "Otherwise, recursively process every rconfig file in\n");
-	fprintf(f, "the radix kernel tree.\n");
-	fprintf(f, "\n");
-	fprintf(f, "    -a, --arch=ARCH\n");
-	fprintf(f, "        use ARCH as target architecture\n");
-	fprintf(f, "    -d, --default\n");
-	fprintf(f, "        use default values from rconfig files\n");
-	fprintf(f, "    -h, --help\n");
-	fprintf(f, "        print this help text and exit\n");
-	fprintf(f, "    -l, --lint\n");
-	fprintf(f, "        verify rconfig file syntax and structure\n");
-	fprintf(f, "    -o, --output=OUTFILE\n");
-	fprintf(f, "        write output to OUTFILE\n");
-}
-
-static struct option long_opts[] = {
-	{ "arch",       required_argument, NULL, 'a' },
-	{ "default",    no_argument,       NULL, 'd' },
-	{ "help",       no_argument,       NULL, 'h' },
-	{ "lint",       no_argument,       NULL, 'l' },
-	{ "output",     required_argument, NULL, 'o' },
-	{ 0, 0, 0, 0 }
-};
-
-int main(int argc, char **argv)
-{
-	char arch_dir[ARCHDIR_BUFSIZE];
-	int c, err, def;
-	struct stat sb;
-	char outfile[256] = "config/config";
-
-	def = is_linting = exit_status = 0;
-	while ((c = getopt_long(argc, argv, "a:dhlo:", long_opts, NULL))
-	       != EOF) {
-		switch (c) {
-		case 'a':
-			snprintf(arch_dir, ARCHDIR_BUFSIZE, "arch/%s", optarg);
-			src_dirs[ARCH_DIR_INDEX] = arch_dir;
-			break;
-		case 'd':
-			def = 1;
-			break;
-		case 'h':
-			usage(stdout, PROGRAM_NAME);
-			return 0;
-		case 'l':
-			is_linting = 1;
-			break;
-		case 'o':
-			snprintf(outfile, 256, optarg);
-			break;
-		default:
-			usage(stderr, argv[0]);
-			return 1;
-		}
-	}
-
-	if (!src_dirs[ARCH_DIR_INDEX]) {
-		fprintf(stderr, "%s: must provide target architecture\n",
-			argv[0]);
-		return 1;
-	}
-
-	if (def && is_linting) {
-		fprintf(stderr, "%s: -d and -l are mutually incompatible\n",
-			argv[0]);
-		return 1;
-	}
-
-	if ((err = verify_src_dirs(argv[0])) != 0)
-		return 1;
-
-	if (optind != argc) {
-		for (; optind < argc; ++optind) {
-			if (stat(argv[optind], &sb) != 0) {
-				perror(argv[optind]);
-				exit_status = 1;
-			} else if (!S_ISREG(sb.st_mode)) {
-				fprintf(stderr, "%s: not a regular file\n",
-				        argv[optind]);
-				exit_status = 1;
-			} else {
-				rconfig_parse_file(argv[optind], def);
-			}
-		}
-	} else {
-		rconfig_recursive(def);
-	}
-
-	if ((err = rconfig_concatenate(outfile)) != 0) {
-		fprintf(stderr, "%s: could not concatenate partial configs\n",
-		        argv[0]);
-		exit_status = 1;
-	}
-
-	return exit_status;
 }

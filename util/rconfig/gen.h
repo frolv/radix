@@ -19,13 +19,8 @@
 #ifndef GEN_H
 #define GEN_H
 
-struct rconfig_file;
-struct rconfig_config;
+#include "rconfig.h"
 
-typedef int (*setting_fn)(struct rconfig_config *);
-
-void generate_config(struct rconfig_file *config, setting_fn fn);
-
-int config_default(struct rconfig_config *config);
+void generate_config(struct rconfig_file *config, config_fn callback);
 
 #endif /* GEN_H */

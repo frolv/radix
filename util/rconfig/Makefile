@@ -9,17 +9,22 @@ CFLAGS := -O2 -Wall -Wextra -c
 LDFLAGS := -lfl
 
 HEADERS := rconfig.h gen.h lint.h
-OBJ := rconfig.o scanner.o parser.o structures.o gen.o
+RCONFIG_OBJ := rconfig.o scanner.o parser.o structures.o gen.o
+
+CLI_OBJ := cli.o
 
 SCAN_SRC := scanner.c
 SCAN_H := scanner.h
 PARSE_SRC := parser.c
 PARSE_H := parser.h
 
-all: parser $(PROGRAM_NAME)
+all: $(PROGRAM_NAME)
 
-$(PROGRAM_NAME): $(OBJ)
-	$(CC) $(OBJ) -o $@ $(LDFLAGS)
+# default rconfig cli program
+$(PROGRAM_NAME): librconfig $(CLI_OBJ)
+	$(CC) $(RCONFIG_OBJ) $(CLI_OBJ) -o $@ $(LDFLAGS)
+
+librconfig: parser $(RCONFIG_OBJ)
 
 %.o: %.c $(HEADERS)
 	$(CC) $< -o $@ $(CFLAGS)
@@ -35,5 +40,5 @@ $(SCAN_SRC) $(SCAN_H): config.l $(PARSE_H)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJ) $(PROGRAM_NAME) $(SCAN_SRC) $(SCAN_H) \
-		$(PARSE_SRC) $(PARSE_H)
+	$(RM) $(RCONFIG_OBJ) $(PROGRAM_NAME) $(SCAN_SRC) $(SCAN_H) \
+	$(PARSE_SRC) $(PARSE_H) $(CLI_OBJ)

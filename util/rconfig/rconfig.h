@@ -93,6 +93,22 @@ static inline struct rconfig_config *curr_config(struct rconfig_file *file)
 
 void free_rconfig(struct rconfig_file *config);
 
-int exit_status;
+
+/* callback function to get the desired value for a rconfig setting */
+typedef int (*config_fn)(struct rconfig_config *);
+
+/* callback which uses setting's default value */
+int config_default(struct rconfig_config *config);
+
+#include <errno.h>
+
+void rconfig_set_archdir(const char *archdir);
+int rconfig_verify_src_dirs(const char **errdir);
+void rconfig_parse_file(const char *path, config_fn callback);
+void rconfig_recursive(config_fn callback);
+int rconfig_concatenate(char *outfile);
+
+extern int exit_status;
+extern int is_linting;
 
 #endif /* RCONFIG_H */

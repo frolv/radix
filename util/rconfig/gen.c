@@ -21,7 +21,7 @@
 #include "gen.h"
 #include "rconfig.h"
 
-static void write_section(FILE *f, struct rconfig_section *sec, setting_fn fn)
+static void write_section(FILE *f, struct rconfig_section *sec, config_fn cb)
 {
 	struct rconfig_config *conf;
 	size_t i;
@@ -31,7 +31,7 @@ static void write_section(FILE *f, struct rconfig_section *sec, setting_fn fn)
 
 	for (i = 0; i < sec->num_configs; ++i) {
 		conf = &sec->configs[i];
-		val = fn(conf);
+		val = cb(conf);
 
 		fprintf(f, "CONFIG_%s=", conf->identifier);
 		if (conf->type == RCONFIG_BOOL)
@@ -43,7 +43,15 @@ static void write_section(FILE *f, struct rconfig_section *sec, setting_fn fn)
 	}
 }
 
-void generate_config(struct rconfig_file *config, setting_fn fn)
+/*
+ * generate_config:
+ * Generate a partial config file from the given rconfig_file structure.
+ * The output is written to config/.rconfig.${config->name}.
+ *
+ * `callback` is a function that gets called on each rconfig_config struct
+ * in the file to get the desired value for that setting.
+ */
+void generate_config(struct rconfig_file *config, config_fn callback)
 {
 	FILE *f;
 	size_t i;
@@ -60,11 +68,15 @@ void generate_config(struct rconfig_file *config, setting_fn fn)
 	fprintf(f, "#\n");
 
 	for (i = 0; i < config->num_sections; ++i)
-		write_section(f, &config->sections[i], fn);
+		write_section(f, &config->sections[i], callback);
 
 	fclose(f);
 }
 
+/*
+ * config_default:
+ * generate_config callback which uses the default config value.
+ */
 int config_default(struct rconfig_config *config)
 {
 	return config->default_val;
