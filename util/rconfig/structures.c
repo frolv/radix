@@ -112,6 +112,15 @@ void set_config_type(struct rconfig_config *conf, int type)
 	}
 }
 
+void set_config_desc(struct rconfig_config *conf, char *desc)
+{
+	char *s;
+
+	strncpy(conf->desc, desc + 1, 64);
+	if ((s = strchr(conf->desc, '"')))
+		*s = '\0';
+}
+
 static inline void set_default_val(struct rconfig_config *conf)
 {
 	switch (conf->type) {

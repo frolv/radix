@@ -163,8 +163,7 @@ bool
 
 desc_setting
 	: TOKEN_DESC TOKEN_STRING {
-		strncpy(curr_config(rconfig_file)->desc,
-		        yyget_text(scanner), 64);
+		set_config_desc(curr_config(rconfig_file), yyget_text(scanner));
 	}
 	;
 
