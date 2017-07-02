@@ -21,7 +21,10 @@
 
 #include <stddef.h>
 
-#define PROGRAM_NAME "rconfig"
+#define PROGRAM_NAME    "rconfig"
+#define PROGRAM_VERSION "0.3.0"
+
+#define CONFIG_DIR      "config"
 
 struct rconfig_file {
 	char                    *name;

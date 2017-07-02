@@ -21,7 +21,7 @@
 #include "gen.h"
 #include "rconfig.h"
 
-static void read_section(FILE *f, struct rconfig_section *sec, setting_fn fn)
+static void write_section(FILE *f, struct rconfig_section *sec, setting_fn fn)
 {
 	struct rconfig_config *conf;
 	size_t i;
@@ -49,7 +49,7 @@ void generate_config(struct rconfig_file *config, setting_fn fn)
 	size_t i;
 	char path[256];
 
-	snprintf(path, 256, "config/.rconfig.%s", config->name);
+	snprintf(path, 256, CONFIG_DIR "/.rconfig.%s", config->name);
 	f = fopen(path, "w");
 	if (!f)
 		return;
@@ -60,7 +60,7 @@ void generate_config(struct rconfig_file *config, setting_fn fn)
 	fprintf(f, "#\n");
 
 	for (i = 0; i < config->num_sections; ++i)
-		read_section(f, &config->sections[i], fn);
+		write_section(f, &config->sections[i], fn);
 
 	fclose(f);
 }
