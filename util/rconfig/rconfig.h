@@ -39,6 +39,7 @@ struct rconfig_section {
 	size_t                  alloc_size;
 	size_t                  num_configs;
 	struct rconfig_config   *configs;
+	struct rconfig_file     *file;
 };
 
 enum rconfig_config_type {
@@ -74,6 +75,7 @@ struct rconfig_config {
 		struct rconfig_config_int_lim lim;
 		struct rconfig_config_options opts;
 	};
+	struct rconfig_section  *section;
 };
 
 void prepare_sections(struct rconfig_file *config);

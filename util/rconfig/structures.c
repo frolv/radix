@@ -51,6 +51,7 @@ void add_section(struct rconfig_file *config, char *name)
 	s->alloc_size = 8;
 	s->num_configs = 0;
 	s->configs = malloc(s->alloc_size * sizeof *s->configs);
+	s->file = config;
 }
 
 /*
@@ -75,6 +76,7 @@ void add_config(struct rconfig_section *section, char *identifier)
 	conf->type = RCONFIG_UNKNOWN;
 	conf->default_val = 0;
 	conf->default_set = 0;
+	conf->section = section;
 }
 
 void add_option(struct rconfig_config *conf, int val, char *desc)
@@ -204,9 +206,13 @@ int verify_config(struct rconfig_file *file, struct rconfig_config *conf)
 		status = 1;
 	}
 
-	if (is_linting && status > 0)
-		info("for config `\x1B[1;35m%s\x1B[0;37m' in file %s\n\n",
-		     conf->identifier, file->path);
+	if (is_linting && status > 0) {
+		info("for config `\x1B[1;35m%s\x1B[0;37m' "
+		     "in section `%s' of file %s\n\n",
+		     conf->identifier,
+		     conf->section->name,
+		     file->path);
+	}
 
 	return status;
 }
