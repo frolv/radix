@@ -9,3 +9,4 @@ tags
 # rconfig
 config/.rconfig.*
 config/config
+config/genconfig.h

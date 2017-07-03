@@ -10,7 +10,7 @@ define \n
 
 endef
 
-$(info Building $(PROJECT_NAME) for target $(BUILD_HOST)$(\n))
+$(info Building $(PROJECT_NAME) for target $(HOSTARCH)$(\n))
 
 AR := $(BUILD_HOST)-ar
 AS := $(BUILD_HOST)-as
@@ -43,12 +43,13 @@ CONFIG_PARTIALS := $(wildcard $(CONFDIR)/.rconfig.*)
 CONFIG_H := $(CONFDIR)/genconfig.h
 CONF ?= $(CONFDIR)/default.$(HOSTARCH)
 RCONFIG ?= util/rconfig/rconfig
+CONFGEN := util/confgen
 
 include $(ARCHDIR)/config.mk
 include $(LIBDIR)/config.mk
 include $(DRIVERDIR)/config.mk
 
-CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS)
+CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS) -include $(CONFIG_H)
 LDFLAGS := $(LDFLAGS) $(KERNEL_ARCH_LDFLAGS)
 LIBS := $(LIBS) $(KERNEL_ARCH_LIBS)
 
@@ -63,11 +64,10 @@ INCLUDE := $(patsubst %,-I%,$(_INCLUDE))
 
 all: kernel
 
-kernel: $(CONFIG_H) $(KERNEL_NAME)
+kernel: $(KERNEL_NAME)
 
 $(CONFIG_H): $(CONFIG_FILE)
 
-.PHONY: $(CONFIG_FILE)
 $(CONFIG_FILE):
 	@test -f $@ || (                                                  \
 	echo >&2 "ERROR: no kernel configuration file found";             \
@@ -87,7 +87,8 @@ $(CONFIG_FILE):
 config:
 	@test -f $(CONF) && (                                             \
 	echo "Using configuration file $(CONF)";                          \
-	cp $(CONF) $(CONFIG_FILE)) || (                                   \
+	cp $(CONF) $(CONFIG_FILE);                                        \
+	$(CONFGEN) <$(CONFIG_FILE) >$(CONFIG_H)) || (                     \
 	echo >&2 "ERROR: $(CONF): no such file";                          \
 	echo >&2;                                                         \
 	false)
@@ -95,7 +96,8 @@ config:
 .PHONY: iconfig
 iconfig: rconfig
 	@echo
-	$(RCONFIG) --arch=$(HOSTARCH)
+	$(RCONFIG) --arch=$(HOSTARCH) -o $(CONFIG_FILE)
+	$(CONFGEN) <$(CONFIG_FILE) >$(CONFIG_H)
 
 .PHONY: rconfig
 rconfig:
@@ -109,7 +111,8 @@ rconfig-gen-default: rconfig
 rconfig-lint: rconfig
 	$(RCONFIG) --arch=$(HOSTARCH) --lint
 
-$(KERNEL_NAME): $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
+$(KERNEL_NAME): $(CONFIG_H) $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) \
+	$(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
 		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
 
@@ -149,11 +152,19 @@ ctags:
 		$(INCLUDEDIRS)
 
 .PHONY: clean
-clean: clean-all
+clean: clean-all-kernel
 
 .PHONY: clean-all
-clean-all: clean-kernel clean-libk clean-drivers clean-iso clean-config \
-	clean-rconfig
+clean-all: clean-all-kernel clean-all-config
+
+.PHONY: clean-all-kernel
+clean-all-kernel: clean-kernel clean-libk clean-drivers clean-iso
+
+.PHONY: clean-config
+clean-config: clean-all-config
+
+.PHONY: clean-all-config
+clean-all-config: clean-configfiles clean-rconfig
 
 .PHONY: clean-kernel
 clean-kernel:
@@ -172,9 +183,9 @@ clean-drivers:
 clean-iso:
 	$(RM) -r $(ISODIR) $(ISONAME)
 
-.PHONY: clean-config
-clean-config:
-	$(RM) $(CONFIG_FILE) $(CONFIG_PARTIALS)
+.PHONY: clean-configfiles
+clean-configfiles:
+	$(RM) $(CONFIG_FILE) $(CONFIG_PARTIALS) $(CONFIG_H)
 
 .PHONY: clean-rconfig
 clean-rconfig:
