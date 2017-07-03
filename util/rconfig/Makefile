@@ -54,7 +54,7 @@ $(PROGRAM_NAME): $(FRONTEND_OBJ) $(LIB)
 librconfig: $(LIB)
 
 $(LIB): parser $(RCONFIG_OBJ)
-	$(AR) $(ARFLAGS) -o $@ $(RCONFIG_OBJ)
+	$(AR) $(ARFLAGS) $@ $(RCONFIG_OBJ)
 
 $(libdir)/%.o: $(libdir)/%.c $(HEADERS)
 	$(CC) $< -o $@ $(CFLAGS)

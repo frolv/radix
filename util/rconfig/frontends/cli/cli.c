@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 			is_linting = 1;
 			break;
 		case 'o':
-			snprintf(outfile, sizeof outfile, optarg);
+			strncpy(outfile, optarg, sizeof outfile);
 			break;
 		default:
 			usage(stderr, argv[0]);
