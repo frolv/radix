@@ -23,6 +23,10 @@
 
 DECLARE_PER_CPU(int, processor_id);
 
+#ifdef CONFIG_SMP
 #define processor_id() (this_cpu_read(processor_id))
+#else
+#define processor_id() 0
+#endif
 
 #endif /* RADIX_SMP_H */

@@ -49,7 +49,11 @@ struct irq_map {
 };
 static struct irq_map bus_irqs[16];
 
-#define MAX_IOAPICS 16
+#ifdef CONFIG_MAX_IOAPICS
+#define MAX_IOAPICS CONFIG_MAX_IOAPICS
+#else
+#define MAX_IOAPICS 8
+#endif
 
 struct ioapic {
 	uint32_t id;
