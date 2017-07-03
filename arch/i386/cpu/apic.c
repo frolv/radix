@@ -67,6 +67,8 @@ static unsigned int ioapics_available;
 #define IOAPIC_REG_VER  1
 #define IOAPIC_REG_ARB  2
 
+DEFINE_PER_CPU(int, apic_id);
+
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
 {
 	ioapic->base[IOAPIC_IOREGSEL] = reg;
@@ -124,26 +126,32 @@ static void apic_reg_write(uint16_t reg, uint32_t value)
 }
 
 /*
- * i386_processor_id:
- * Return the local APIC ID of the executing processor.
+ * read_apic_id:
+ * Read the local APIC ID of the executing processor
+ * and save it in the `apic_id` per-CPU variable.
  */
-uint32_t i386_processor_id(void)
+void read_apic_id(void)
 {
 	uint32_t eax, edx;
+	int id;
 
-	if (!cpu_supports(CPUID_APIC))
-		return 0;
+	if (!cpu_supports(CPUID_APIC)) {
+		this_cpu_write(apic_id, -1);
+		return;
+	}
 
 	if (cpu_supports(CPUID_X2APIC)) {
 		/* check if operating in X2APIC mode */
 		rdmsr(IA32_APIC_BASE, &eax, &edx);
 		if (eax & IA32_APIC_BASE_EXTD) {
 			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
-			return eax;
+			this_cpu_write(apic_id, eax);
+			return;
 		}
 	}
 
-	return apic_reg_read(0x20) >> 24;
+	id = apic_reg_read(0x20) >> 24;
+	this_cpu_write(apic_id, id);
 }
 
 /*
