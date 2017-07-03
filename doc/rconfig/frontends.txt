@@ -307,7 +307,7 @@ int blarb_callback(struct rconfig_config *conf)
                  * being correct. (Not that there is a correct choice here.)
                  *
                  * IMPORTANT: the return value for an RCONFIG_OPTIONS setting is
-                 *            ** 1-BASED **
+                 *            ** 1-INDEXED **
                  * The selected option will be
                  * `conf->opts.options[callback(conf) - 1]`.
                  */
