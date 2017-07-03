@@ -110,6 +110,8 @@ config
 	} settings_list {
 		int err;
 		err = verify_config(rconfig_file, curr_config(rconfig_file));
+		if (err && !is_linting)
+			exit(1);
 		if (exit_status == 0)
 			exit_status = err;
 		else if (exit_status == 2 && err == 1)

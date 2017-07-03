@@ -22,7 +22,7 @@
 #include <stddef.h>
 
 #define PROGRAM_NAME    "rconfig"
-#define PROGRAM_VERSION "1.0.0"
+#define PROGRAM_VERSION "1.0.1"
 
 #define CONFIG_DIR      "config"
 
