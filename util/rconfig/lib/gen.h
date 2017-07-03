@@ -21,7 +21,9 @@
 
 #include <rconfig.h>
 
-void generate_config(struct rconfig_file *config, config_fn callback);
+void generate_config(struct rconfig_file *file,
+                     config_fn callback,
+                     unsigned int flags);
 
 extern char *curr_partial;
 

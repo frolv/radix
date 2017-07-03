@@ -22,18 +22,26 @@
 
 char *curr_partial;
 
-static void write_section(FILE *f, struct rconfig_section *sec, config_fn cb)
+#define CB_TYPE(flags) (flags & 0x3)
+
+static void write_section(FILE *f, struct rconfig_section *sec,
+                          config_fn cb, unsigned int flags)
 {
 	struct rconfig_config *conf;
 	size_t i;
 	int val;
 
+	if (CB_TYPE(flags) == RCONFIG_CB_SECTION)
+		cb(sec);
+
 	fprintf(f, "\n# section %s\n", sec->name);
 
 	for (i = 0; i < sec->num_configs; ++i) {
 		conf = &sec->configs[i];
-		val = cb(conf);
+		if (CB_TYPE(flags) == RCONFIG_CB_CONFIG)
+			cb(conf);
 
+		val = conf->selection;
 		fprintf(f, "CONFIG_%s=", conf->identifier);
 		if (conf->type == RCONFIG_BOOL)
 			fprintf(f, "%s\n", val ? "true" : "false");
@@ -52,26 +60,31 @@ static void write_section(FILE *f, struct rconfig_section *sec, config_fn cb)
  * `callback` is a function that gets called on each rconfig_config struct
  * in the file to get the desired value for that setting.
  */
-void generate_config(struct rconfig_file *config, config_fn callback)
+void generate_config(struct rconfig_file *file,
+                     config_fn callback,
+                     unsigned int flags)
 {
 	FILE *f;
 	size_t i;
 	char path[256];
 
-	snprintf(path, 256, CONFIG_DIR "/.rconfig.%s", config->name);
+	snprintf(path, 256, CONFIG_DIR "/.rconfig.%s", file->name);
 	f = fopen(path, "w");
 	if (!f)
 		return;
 
 	curr_partial = path;
 
+	if (CB_TYPE(flags) == RCONFIG_CB_FILE)
+		callback(file);
+
 	fprintf(f, "#\n");
-	fprintf(f, "# rconfig %s\n", config->name);
-	fprintf(f, "# %s\n", config->path);
+	fprintf(f, "# rconfig %s\n", file->name);
+	fprintf(f, "# %s\n", file->path);
 	fprintf(f, "#\n");
 
-	for (i = 0; i < config->num_sections; ++i)
-		write_section(f, &config->sections[i], callback);
+	for (i = 0; i < file->num_sections; ++i)
+		write_section(f, &file->sections[i], callback, flags);
 
 	fclose(f);
 	curr_partial = NULL;
@@ -81,7 +94,8 @@ void generate_config(struct rconfig_file *config, config_fn callback)
  * config_default:
  * generate_config callback which uses the default config value.
  */
-int config_default(struct rconfig_config *config)
+void config_default(void *config)
 {
-	return config->default_val;
+	struct rconfig_config *conf = config;
+	conf->selection = conf->default_val;
 }

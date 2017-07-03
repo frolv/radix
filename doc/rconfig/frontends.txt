@@ -1,4 +1,4 @@
-rconfig frontends                                                2 Jul 2017
+rconfig frontends                                                3 Jul 2017
 
 
                          I. Introduction
@@ -71,20 +71,22 @@ the provided architecture is not supported.
 The name of the faulting directory/file is stored in the `errdir` argument.
 
 
-void rconfig_parse_file(const char *path, config_fn callback);
+void rconfig_parse_file(const char *path,
+                        config_fn callback,
+                        unsigned int flags);
 
 Parse the rconfig file located at `path` and call the given callback
-function for each config setting (see section V, "Callback functions").
+function as specified by `flags` (see section V, "Callback functions").
 If `path` is not a valid rconfig file, behaviour is undefined.
 
 This function does report any errors; if it fails, it will fail silently.
 Ensure that `path` points a valid, readable file before calling it.
 
 
-void rconfig_recursive(config_fn callback);
+void rconfig_recursive(config_fn callback, unsigned int flags);
 
 Recursively search radix source directories for rconfig files, parse them,
-and call the given callback function on each rconfig setting.
+and call the given callback function as specified by `flags`.
 See section V, "Callback functions", for more information.
 
 
@@ -119,7 +121,7 @@ A sample main implementation for blarb is as follows:
 #include <rconfig.h>
 
 /* see section V */
-int blarb_callback(struct rconfig_config *conf);
+void blarb_callback(void *config);
 
 void signal_cleanup(int sig)
 {
@@ -161,7 +163,7 @@ int main(int argc, char **argv)
          * Read all rconfig files in radix source tree
          * and write output to config/config.
          */
-        rconfig_recursive(blarb_callback);
+        rconfig_recursive(blarb_callback, RCONFIG_CB_CONFIG);
         return rconfig_concatenate(NULL);
 }
 
@@ -172,14 +174,43 @@ The rconfig_parse_file and rconfig_recursive functions take a callback function
 as an argument. This callback function is of type `config_fn`, which is defined
 in rconfig.h:
 
-typedef int (*config_fn)(struct rconfig_config *);
+typedef void (*config_fn)(void *);
 
-The callback function gets called on every rconfig setting in the rconfig files
-parsed by rconfig_parse_file and rconfig_recursive. Its purpose is to get the
-desired value for the configuration setting. The function is passed a struct
-representing the setting and should return the selected value for that setting.
+The type of the argument to this function, and when it is called, is determined
+by the `flags` argument of the functions `rconfig_parse_file` and
+`rconfig_recursive`.
 
-The struct rconfig_config is defined as follows:
+There are three possible `flags` values:
+
+* RCONFIG_CB_CONFIG
+  Call the callback function for each config setting found within the rconfig
+  files, passing that setting's struct rconfig_rconfig as the argument.
+
+* RCONFIG_CB_SECTION
+  Call the callback function for each section within the rconfig files,
+  passing the sections's struct rconfig_section as the argument.
+
+* RCONFIG_CB_FILE
+  Call the callback function for each complete rconfig file, passing an
+  rconfig_file struct as the argument.
+
+The aforementioned structures are defined as follows:
+
+struct rconfig_file {
+        char                    *name;
+        const char              *path;
+        size_t                  alloc_size;
+        size_t                  num_sections;
+        struct rconfig_section  *sections;
+};
+
+struct rconfig_section {
+        char                    *name;
+        size_t                  alloc_size;
+        size_t                  num_configs;
+        struct rconfig_config   *configs;
+        struct rconfig_file     *file;
+};
 
 struct rconfig_option {
         int  val;
@@ -203,6 +234,7 @@ struct rconfig_config {
         int                     type;
         int                     default_val;
         int                     default_set;
+        int                     selection;
         union {
                 struct rconfig_config_int_lim lim;
                 struct rconfig_config_options opts;
@@ -210,71 +242,113 @@ struct rconfig_config {
         struct rconfig_section  *section;
 };
 
-Let's go through the fields.
+Let's go through their fields.
 
-* identifier
-  The name of the config setting. This is the value that follows the
-  `config` keyword in rconfig files.
-  e.g. if the file contains
+1. rconfig_file
 
-  config MAX_CPUS
+  * name
+    The configfile name of the rconfig file.
 
-  `identifier` will be "MAX_CPUS".
+  * path
+    The filesystem path to the file, from the current directory.
 
-* desc
-  The description of the setting, as given by the `desc` keyword in
-  rconfig files.
+  * alloc_size
+    For internal use, should be ignored.
 
-* type
-  The type of the setting. One of RCONFIG_BOOL, RCONFIG_INT or RCONFIG_OPTIONS.
+  * num_sections
+    The number of sections in the rconfig file.
 
-* default_val
-  The default value for the setting.
-  For RCONFIG_BOOL, 1 is true and 0 is false.
-  For RCONFIG_INT, this is simply a number.
-  For RCONFIG_OPTIONS, this number is the 1-based index of the default choice
-  in the opts.options array (i.e. default_val == 2 means default is options[1]).
+  * sections
+    Array of sections in the file.
 
-* default_set
-  Whether a default value has been set (always 1).
+2. rconfig_section
 
-* lim
-  If `type == RCONFIG_INT`, lim is a struct containing the minimum and maximum
-  values for the setting.
+  * name
+    The name of the section.
 
-* opts
-  If `type == RCONFIG_OPTIONS`, opts stores information about each option.
+  * alloc_size
+    For internal use, should be ignored.
 
-  - opts.alloc_size
-    Can be ignored.
+  * num_configs
+    The number of config settings in this section.
 
-  - opts.num_options
-    The number of options for this setting.
+  * configs
+    Array of config settings in this section.
 
-  - opts.options
-    The array of options for this setting.
-    Each option is a struct rconfig_option with two fields:
-      i. val
-         The value of the option. Can be ignored.
-      ii. desc
-         The description of the option.
+  * file
+    Pointer to the file in which this section occurs.
 
-* section
-  A pointer to the struct rconfig_section representing the section in which
-  this setting is found.
+3. rconfig_config
 
-All struct rconfig_configs passed to a callback function are guaranteed to be
-well-formed and logically consistent.
+  * identifier
+    The name of the config setting. This is the value that follows the
+    `config` keyword in rconfig files.
+    e.g. if the file contains
 
-The callback function will process the struct, output any required information
-to the user, and return a response.
+    config MAX_CPUS
+
+    `identifier` will be "MAX_CPUS".
+
+  * desc
+    The description of the setting, as given by the `desc` keyword in
+    rconfig files.
+
+  * type
+    The type of the setting. One of RCONFIG_BOOL, RCONFIG_INT or RCONFIG_OPTIONS.
+
+  * default_val
+    The default value for the setting.
+    For RCONFIG_BOOL, 1 is true and 0 is false.
+    For RCONFIG_INT, this is simply a number.
+    For RCONFIG_OPTIONS, this number is the 1-based index of the default choice
+    in the opts.options array (i.e. default_val == 2 => default is options[1]).
+
+  * default_set
+    Whether a default value has been set (always 1).
+
+  * selection
+    The selected value for the setting. Your callback function must set this.
+
+  * lim
+    If `type == RCONFIG_INT`, lim is a struct containing the minimum and maximum
+    values for the setting.
+
+  * opts
+    If `type == RCONFIG_OPTIONS`, opts stores information about each option.
+
+    - opts.alloc_size
+      For internal use, should be ignored.
+
+    - opts.num_options
+      The number of options for this setting.
+
+    - opts.options
+      The array of options for this setting.
+      Each option is a struct rconfig_option with two fields:
+        i. val
+           The value of the option. Can be ignored.
+        ii. desc
+           The description of the option.
+
+  * section
+    A pointer to the struct rconfig_section representing the section in which
+    this setting is found.
+
+All structures passed to a callback function are guaranteed to be well-formed
+and logically consistent.
+
+The purpose of the callback function is to process the structures, output any
+required information to the user, and return the desired setting through the
+`selection` member of each rconfig_config struct.
 
 For blarb, our callback function will be very simple and not interact with
 the user.
 
-int blarb_callback(struct rconfig_config *conf)
+void blarb_callback(void *config)
 {
         int magic;
+        /* we passed RCONFIG_CB_CONFIG to rconfig_recursive */
+        struct rconfig_config *conf = config;
 
         switch (conf->type) {
         case RCONFIG_BOOL:
@@ -282,7 +356,8 @@ int blarb_callback(struct rconfig_config *conf)
                  * We will return true for every bool because
                  * more features is better, right?
                  */
-                return 1;
+                conf->selection = 1;
+                break;
         case RCONFIG_INT:
                 /*
                  * We're going to return a random value in the setting's range.
@@ -291,7 +366,8 @@ int blarb_callback(struct rconfig_config *conf)
                  */
                 srand(time(NULL));
                 magic = rand() % (conf->lim.max - conf->lim.min);
-                return conf->lim.min + magic;
+                conf->selection = conf->lim.min + magic;
+                break;
         case RCONFIG_OPTIONS:
                 /*
                  * Let's select the last option, since it has a higher chance of
@@ -302,7 +378,8 @@ int blarb_callback(struct rconfig_config *conf)
                  * The selected option will be
                  * `conf->opts.options[callback(conf) - 1]`.
                  */
-                 return conf->opts.num_options;
+                 conf->selection = conf->opts.num_options;
+                 break;
         default:
                 /* will never happen */
                 exit(1);
@@ -310,17 +387,6 @@ int blarb_callback(struct rconfig_config *conf)
 }
 
 And there we have it. Our callback function.
-
-If you need to access the name of the section in which a setting
-resides in your callback, you can use:
-
-conf->setting->name
-
-The name of the rconfig file (configfile name, not filesystem filename),
-and the path to the file, can be obtained through:
-
-conf->setting->file->name
-conf->setting->file->path
 
 
                        VI. Compiling a frontend

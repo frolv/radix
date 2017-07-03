@@ -136,6 +136,7 @@ static inline void set_default_val(struct rconfig_config *conf)
 		break;
 	}
 	conf->default_set = 1;
+	conf->selection = conf->default_val;
 }
 
 /*

@@ -22,7 +22,7 @@
 #include <stddef.h>
 
 #define PROGRAM_NAME    "rconfig"
-#define PROGRAM_VERSION "1.0.1"
+#define PROGRAM_VERSION "1.1.0"
 
 #define CONFIG_DIR      "config"
 
@@ -71,6 +71,7 @@ struct rconfig_config {
 	int                     type;
 	int                     default_val;
 	int                     default_set;
+	int                     selection;
 	union {
 		struct rconfig_config_int_lim lim;
 		struct rconfig_config_options opts;
@@ -79,18 +80,24 @@ struct rconfig_config {
 };
 
 
-/* callback function to get the desired value for a rconfig setting */
-typedef int (*config_fn)(struct rconfig_config *);
+/* callback function to process an rconfig structure */
+typedef void (*config_fn)(void *);
 
 /* callback which uses setting's default value */
-int config_default(struct rconfig_config *config);
+void config_default(void *config);
 
 #include <errno.h>
 
+#define RCONFIG_CB_CONFIG       0
+#define RCONFIG_CB_SECTION      1
+#define RCONFIG_CB_FILE         2
+
 void rconfig_set_archdir(const char *archdir);
 int rconfig_verify_src_dirs(const char **errdir);
-void rconfig_parse_file(const char *path, config_fn callback);
-void rconfig_recursive(config_fn callback);
+void rconfig_parse_file(const char *path,
+                        config_fn callback,
+                        unsigned int flags);
+void rconfig_recursive(config_fn callback, unsigned int flags);
 int rconfig_concatenate(const char *outfile);
 void rconfig_cleanup_partial(void);
 

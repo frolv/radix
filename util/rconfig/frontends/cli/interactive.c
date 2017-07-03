@@ -24,7 +24,7 @@
 
 #include "interactive.h"
 
-static int interactive_bool(struct rconfig_config *conf)
+static void interactive_bool(struct rconfig_config *conf)
 {
 	char buf[256];
 
@@ -32,9 +32,11 @@ static int interactive_bool(struct rconfig_config *conf)
 
 	if (!fgets(buf, sizeof buf, stdin)) {
 		putchar('\n');
-		return conf->default_val;
+		conf->selection = conf->default_val;
+		return;
 	} else if (buf[0] == '\n') {
-		return conf->default_val;
+		conf->selection = conf->default_val;
+		return;
 	}
 
 	while (strcmp(buf, "y\n") != 0 && strcmp(buf, "n\n") != 0) {
@@ -43,7 +45,7 @@ static int interactive_bool(struct rconfig_config *conf)
 			putchar('\n');
 	}
 
-	return buf[0] == 'y';
+	conf->selection = (buf[0] == 'y');
 }
 
 static int valid_number(const char *buf, int *num, int min, int max)
@@ -80,7 +82,7 @@ static int valid_number(const char *buf, int *num, int min, int max)
 	return 1;
 }
 
-static int interactive_int(struct rconfig_config *conf)
+static void interactive_int(struct rconfig_config *conf)
 {
 	char buf[256];
 	int num;
@@ -90,9 +92,11 @@ static int interactive_int(struct rconfig_config *conf)
 
 	if (!fgets(buf, sizeof buf, stdin)) {
 		putchar('\n');
-		return conf->default_val;
+		conf->selection = conf->default_val;
+		return;
 	} else if (buf[0] == '\n') {
-		return conf->default_val;
+		conf->selection = conf->default_val;
+		return;
 	}
 
 	while (!valid_number(buf, &num, conf->lim.min, conf->lim.max)) {
@@ -100,10 +104,10 @@ static int interactive_int(struct rconfig_config *conf)
 			putchar('\n');
 	}
 
-	return num;
+	conf->selection = num;
 }
 
-static int interactive_options(struct rconfig_config *conf)
+static void interactive_options(struct rconfig_config *conf)
 {
 	char buf[256];
 	int choice;
@@ -115,9 +119,11 @@ static int interactive_options(struct rconfig_config *conf)
 
 	if (!fgets(buf, sizeof buf, stdin)) {
 		putchar('\n');
-		return conf->default_val;
+		conf->selection = conf->default_val;
+		return;
 	} else if (buf[0] == '\n') {
-		return conf->default_val;
+		conf->selection = conf->default_val;
+		return;
 	}
 
 	while (!valid_number(buf, &choice, 1, conf->opts.num_options)) {
@@ -125,7 +131,7 @@ static int interactive_options(struct rconfig_config *conf)
 			putchar('\n');
 	}
 
-	return choice;
+	conf->selection = choice;
 }
 
 #define CURR_BUFSIZE 256
@@ -137,9 +143,10 @@ static char current_section[CURR_BUFSIZE];
  * config_interactive:
  * Interactive rconfig callback function which prompts the user for input.
  */
-int config_interactive(struct rconfig_config *conf)
+void config_interactive(void *config)
 {
-	int ret, n;
+	int n;
+	struct rconfig_config *conf = config;
 
 	if (strcmp(conf->section->name, current_section) != 0) {
 		if (strcmp(conf->section->file->name, current_file) != 0) {
@@ -161,17 +168,15 @@ int config_interactive(struct rconfig_config *conf)
 
 	switch (conf->type) {
 	case RCONFIG_BOOL:
-		ret = interactive_bool(conf);
+		interactive_bool(conf);
 		break;
 	case RCONFIG_INT:
-		ret = interactive_int(conf);
+		interactive_int(conf);
 		break;
 	case RCONFIG_OPTIONS:
-		ret = interactive_options(conf);
+		interactive_options(conf);
 		break;
 	default:
 		exit(1);
 	}
-
-	return ret;
 }

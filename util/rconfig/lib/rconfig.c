@@ -45,7 +45,9 @@ void rconfig_set_archdir(const char *archdir)
 	src_dirs[ARCH_DIR_INDEX] = archdir;
 }
 
-void rconfig_parse_file(const char *path, config_fn callback)
+void rconfig_parse_file(const char *path,
+                        config_fn callback,
+                        unsigned int flags)
 {
 	yyscan_t rconfig_scanner;
 	struct rconfig_file config;
@@ -67,7 +69,7 @@ void rconfig_parse_file(const char *path, config_fn callback)
 	yylex_destroy(rconfig_scanner);
 
 	if (!is_linting)
-		generate_config(&config, callback);
+		generate_config(&config, callback, flags);
 
 	free_rconfig(&config);
 
@@ -78,7 +80,7 @@ void rconfig_parse_file(const char *path, config_fn callback)
  * rconfig_dir:
  * Recursively find all rconfig files in directory `path`.
  */
-static void rconfig_dir(const char *path, config_fn callback)
+static void rconfig_dir(const char *path, config_fn callback, unsigned int flags)
 {
 	char dirpath[PATH_MAX];
 	struct dirent *dirent;
@@ -115,27 +117,27 @@ static void rconfig_dir(const char *path, config_fn callback)
 		}
 
 		if (found_dir) {
-			rconfig_dir(dirpath, callback);
+			rconfig_dir(dirpath, callback, flags);
 		} else if (strcmp(dirent->d_name, "rconfig") == 0) {
 			snprintf(dirpath, PATH_MAX, "%s/rconfig", path);
-			rconfig_parse_file(dirpath, callback);
+			rconfig_parse_file(dirpath, callback, flags);
 		}
 	}
 
 	closedir(d);
 }
 
-void rconfig_recursive(config_fn callback)
+void rconfig_recursive(config_fn callback, unsigned int flags)
 {
 	size_t i;
 
 	if (!callback)
 		return;
 
-	rconfig_parse_file("rconfig", callback);
+	rconfig_parse_file("rconfig", callback, flags);
 
 	for (i = 0; i < NUM_SRC_DIRS; ++i)
-		rconfig_dir(src_dirs[i], callback);
+		rconfig_dir(src_dirs[i], callback, flags);
 }
 
 /*

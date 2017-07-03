@@ -138,6 +138,7 @@ setting
 		struct rconfig_config *conf = curr_config(rconfig_file);
 		conf->default_val = $1;
 		conf->default_set = 1;
+		conf->selection = $1;
 	}
 	| desc_setting
 	| range_setting

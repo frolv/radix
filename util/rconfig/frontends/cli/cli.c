@@ -28,8 +28,6 @@
 
 #include "interactive.h"
 
-#define ARCHDIR_BUFSIZE 32
-
 static void sig_cleanup(int sig)
 {
 	printf("\n");
@@ -72,7 +70,7 @@ static struct option long_opts[] = {
 
 int main(int argc, char **argv)
 {
-	char arch_dir[ARCHDIR_BUFSIZE];
+	char arch_dir[32];
 	char *arch;
 	config_fn callback;
 	struct stat sb;
@@ -88,7 +86,7 @@ int main(int argc, char **argv)
 		switch (c) {
 		case 'a':
 			arch = optarg;
-			snprintf(arch_dir, ARCHDIR_BUFSIZE, "arch/%s", arch);
+			snprintf(arch_dir, sizeof arch_dir, "arch/%s", arch);
 			rconfig_set_archdir(arch_dir);
 			break;
 		case 'd':
@@ -101,7 +99,7 @@ int main(int argc, char **argv)
 			is_linting = 1;
 			break;
 		case 'o':
-			snprintf(outfile, 256, optarg);
+			snprintf(outfile, sizeof outfile, optarg);
 			break;
 		default:
 			usage(stderr, argv[0]);
@@ -148,11 +146,12 @@ int main(int argc, char **argv)
 				        argv[optind]);
 				exit_status = 1;
 			} else {
-				rconfig_parse_file(argv[optind], callback);
+				rconfig_parse_file(argv[optind], callback,
+				                   RCONFIG_CB_CONFIG);
 			}
 		}
 	} else {
-		rconfig_recursive(callback);
+		rconfig_recursive(callback, RCONFIG_CB_CONFIG);
 	}
 
 	if ((err = rconfig_concatenate(outfile)) != 0) {

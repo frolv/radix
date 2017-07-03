@@ -19,8 +19,6 @@
 #ifndef INTERACTIVE_H
 #define INTERACTIVE_H
 
-struct rconfig_config;
-
-int config_interactive(struct rconfig_config *conf);
+void config_interactive(void *config);
 
 #endif /* INTERACTIVE_H */
