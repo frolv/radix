@@ -144,6 +144,9 @@ int main(int argc, char **argv)
         if (argc == 1)
                 return 1;
 
+        /* must set these both to 0 */
+        exit_status = is_linting = 0;
+
         snprintf(arch_dir, 256, "arch/%s", argv[1]);
         rconfig_set_archdir(arch_dir);
 
