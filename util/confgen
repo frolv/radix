@@ -1,0 +1,22 @@
+#!/bin/sh
+
+printf "/* genconfig.h for radix kernel; automatically generated */\n"
+echo
+
+printf "#ifndef RADIX_GENCONFIG_H\n"
+printf "#define RADIX_GENCONFIG_H\n"
+echo
+
+sed -e '/^#.*/d' -e '/^$/d' |
+while read line; do
+	config=`echo $line | cut -d= -f1 -`
+	value=`echo $line | cut -d= -f2 -`
+	if [ $value = "true" ]; then
+		printf "#define %s\n" $config
+	elif [ $value != "false" ]; then
+		printf "#define %s %s\n" $config $value
+	fi
+done
+
+echo
+printf "#endif /* RADIX_GENCONFIG_H */\n"

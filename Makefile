@@ -5,6 +5,13 @@ DEFAULT_HOST := $(shell util/default-host)
 BUILD_HOST ?= $(DEFAULT_HOST)
 HOSTARCH := $(shell util/target-to-arch $(BUILD_HOST))
 
+define \n
+
+
+endef
+
+$(info Building $(PROJECT_NAME) for target $(HOSTARCH)$(\n))
+
 AR := $(BUILD_HOST)-ar
 AS := $(BUILD_HOST)-as
 CC := $(BUILD_HOST)-gcc
@@ -29,12 +36,20 @@ ARCHDIR := arch/$(HOSTARCH)
 DRIVERDIR := drivers
 LIBDIR := lib
 INCLUDEDIRS := include $(ARCHDIR)/include
+CONFDIR := config
+
+CONFIG_FILE := $(CONFDIR)/config
+CONFIG_PARTIALS := $(wildcard $(CONFDIR)/.rconfig.*)
+CONFIG_H := $(CONFDIR)/genconfig.h
+CONF ?= $(CONFDIR)/default.$(HOSTARCH)
+RCONFIG ?= util/rconfig/rconfig
+CONFGEN := util/confgen
 
 include $(ARCHDIR)/config.mk
 include $(LIBDIR)/config.mk
 include $(DRIVERDIR)/config.mk
 
-CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS)
+CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS) -include $(CONFIG_H)
 LDFLAGS := $(LDFLAGS) $(KERNEL_ARCH_LDFLAGS)
 LIBS := $(LIBS) $(KERNEL_ARCH_LIBS)
 
@@ -51,7 +66,53 @@ all: kernel
 
 kernel: $(KERNEL_NAME)
 
-$(KERNEL_NAME): $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) $(ARCHDIR)/linker.ld
+$(CONFIG_H): $(CONFIG_FILE)
+
+$(CONFIG_FILE):
+	@test -f $@ || (                                                  \
+	echo >&2 "ERROR: no kernel configuration file found";             \
+	echo >&2;                                                         \
+	echo >&2 "Run";                                                   \
+	echo >&2 "  \`make iconfig'";                                     \
+	echo >&2 "     for an interactive setup";                         \
+	echo >&2 "  \`make config'";                                      \
+	echo >&2 "     to use the default configuration";                 \
+	echo >&2 "  \`make config CONF=\$$CONFIGFILE'";                   \
+	echo >&2 "     to use the configuration from file \$$CONFIGFILE"; \
+	echo >&2;                                                         \
+	echo >&2 "Aborting";                                              \
+	false)
+
+.PHONY: config
+config:
+	@test -f $(CONF) && (                                             \
+	echo "Using configuration file $(CONF)";                          \
+	cp $(CONF) $(CONFIG_FILE);                                        \
+	$(CONFGEN) <$(CONFIG_FILE) >$(CONFIG_H)) || (                     \
+	echo >&2 "ERROR: $(CONF): no such file";                          \
+	echo >&2;                                                         \
+	false)
+
+.PHONY: iconfig
+iconfig: rconfig
+	@echo
+	$(RCONFIG) --arch=$(HOSTARCH) -o $(CONFIG_FILE)
+	$(CONFGEN) <$(CONFIG_FILE) >$(CONFIG_H)
+
+.PHONY: rconfig
+rconfig:
+	@cd util/rconfig && make
+
+.PHONY: rconfig-gen-default
+rconfig-gen-default: rconfig
+	$(RCONFIG) --arch=$(HOSTARCH) --default -o $(CONF)
+
+.PHONY: rconfig-lint
+rconfig-lint: rconfig
+	$(RCONFIG) --arch=$(HOSTARCH) --lint
+
+$(KERNEL_NAME): $(CONFIG_H) $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) \
+	$(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
 		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
 
@@ -91,10 +152,19 @@ ctags:
 		$(INCLUDEDIRS)
 
 .PHONY: clean
-clean: clean-all
+clean: clean-all-kernel
 
 .PHONY: clean-all
-clean-all: clean-kernel clean-libk clean-drivers clean-iso
+clean-all: clean-all-kernel clean-all-config
+
+.PHONY: clean-all-kernel
+clean-all-kernel: clean-kernel clean-libk clean-drivers clean-iso
+
+.PHONY: clean-config
+clean-config: clean-all-config
+
+.PHONY: clean-all-config
+clean-all-config: clean-configfiles clean-rconfig
 
 .PHONY: clean-kernel
 clean-kernel:
@@ -112,3 +182,11 @@ clean-drivers:
 .PHONY: clean-iso
 clean-iso:
 	$(RM) -r $(ISODIR) $(ISONAME)
+
+.PHONY: clean-configfiles
+clean-configfiles:
+	$(RM) $(CONFIG_FILE) $(CONFIG_PARTIALS) $(CONFIG_H)
+
+.PHONY: clean-rconfig
+clean-rconfig:
+	@cd util/rconfig && make clean

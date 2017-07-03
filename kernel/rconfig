@@ -1,0 +1,14 @@
+configfile Kernel
+
+section Multiprocessing
+
+config SMP
+	type bool
+	default true
+	desc "Enable symmetric multiprocessing (SMP)"
+
+config MAX_CPUS
+	type int
+	range 1 256
+	default 64
+	desc "Maximum number of CPUs to support"

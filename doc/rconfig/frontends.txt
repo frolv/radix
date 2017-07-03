@@ -1,0 +1,373 @@
+rconfig frontends                                                2 Jul 2017
+
+
+                         I. Introduction
+
+This document describes how to write a frontend for rconfig, radix's
+configuration system. The rconfig system itself will not be described
+in detail; see doc/rconfig/rconfig.txt for more information on it.
+
+This document will follow a tutorial-like structure in which a very basic
+(and very stupid) rconfig frontend will be written. Proficient knowledge of
+the C programming language is assumed, as well as familiarity with a Unix
+shell. (As if anyone reading documentation for an OS project lacks those.)
+
+
+                        II. Getting started
+
+The rconfig root is in util/rconfig. This directory contains three
+subdirectories:
+
+frontends/      source code for each frontend
+include/        location of rconfig.h
+lib/            librconfig source code
+
+To write an rconfig frontend, we will need to create a subdirectory within
+frontends/ to store our frontend source files. The name of this directory is
+important: it will be the name of our frontend. For this tutorial, we will
+name our frontend blarb:
+
+$ mkdir frontends/blarb
+
+Let's create our (only) source file:
+
+$ touch frontends/blarb/blarb.c
+
+...and we're ready to go.
+
+
+                      III. The librconfig API
+
+librconfig exposes six functions for you to use in your frontend.
+
+
+void rconfig_set_archdir(const char *archdir);
+
+This function sets the radix architecture-specific directory to use for the
+configuration. Calling it is mandatory; if it is not called, the behaviour of
+all other librconfig calls is undefined.
+For example, if you want to configure radix for i386, you would call
+
+rconfig_set_archdir("arch/i386");
+
+Typically, your frontend will have the user pass the desired architecture as
+an argument to the program.
+
+
+int rconfig_verify_src_dirs(const char **errdir);
+
+Verify that all radix source directories, and the root rconfig file, are
+present and readable. This function should be called after setting the
+architecture directory and before any actual config processing is done.
+
+The function returns 0 on success, or an errno.h constant indicating the
+error otherwise (e.g. ENOENT, EACCES, etc.). Typically, an error indicates
+that the program is not being run from the radix root directory.
+This function has one special return value: if an error occurred on the
+provided architecture-specific directory, rconfig_verify_src_dirs will
+return EINVAL. Your frontend should interpret this as an indication that
+the provided architecture is not supported.
+
+The name of the faulting directory/file is stored in the `errdir` argument.
+
+
+void rconfig_parse_file(const char *path, config_fn callback);
+
+Parse the rconfig file located at `path` and call the given callback
+function for each config setting (see section V, "Callback functions").
+If `path` is not a valid rconfig file, behaviour is undefined.
+
+This function does report any errors; if it fails, it will fail silently.
+Ensure that `path` points a valid, readable file before calling it.
+
+
+void rconfig_recursive(config_fn callback);
+
+Recursively search radix source directories for rconfig files, parse them,
+and call the given callback function on each rconfig setting.
+See section V, "Callback functions", for more information.
+
+
+int rconfig_concatenate(const char *outfile);
+
+Concatenate all generated partial rconfig outputs into a complete rconfig
+file `outfile`. If `outfile` is NULL, use the default output file
+"config/config".
+
+Returns 0 on success or 1 on failure. If unsuccessful, `outfile` is deleted.
+
+
+void rconfig_cleanup_partial(void);
+
+Destroy the current partial file, if one exists. This function should be
+called whenever your program exits prematurely, e.g. if a signal is
+received. If it is not called, a partial file may be left in an
+inconsistent state.
+
+
+                      IV. Writing a frontend
+
+Each rconfig frontend needs to provide two things: a main function to
+run the program and a callback function which selects a config setting.
+
+The main function is relatively straightforward: it will perform the
+required initialization for your frontend and use the librconfig API to
+process rconfig files.
+
+There is only one catch to look out for in your main function. rconfig.h
+defines two global variables, `is_linting` and `exit_status`, which are
+used by the linter in the rconfig CLI implementation. You will need to set
+both these variables to 0 before parsing any rconfig files. After that, you
+can ignore them.
+
+A sample main implementation for blarb is as follows:
+
+#include <rconfig.h>
+
+/* see section V */
+int blarb_callback(struct rconfig_config *conf);
+
+void signal_cleanup(int sig)
+{
+        rconfig_cleanup_partial();
+        exit(0);
+
+        (void)sig;
+}
+
+int main(int argc, char **argv)
+{
+        char arch_dir[256];
+        const char *errdir;
+        int err;
+
+        if (argc == 1)
+                return 1;
+
+        snprintf(arch_dir, 256, "arch/%s", argv[1]);
+        rconfig_set_archdir(arch_dir);
+
+        err = rconfig_verify_src_dirs(&errdir);
+        switch (err) {
+        case 0:
+                break;
+        case EINVAL:
+                fprintf(stderr, "invalid architecture: %s\n", argv[1]);
+                return 1;
+        default:
+                fprintf(stderr, "%s: %s\n", errdir, strerror(err));
+                return 1;
+        }
+
+        /* cleanup if we exit prematurely */
+        signal(SIGINT, signal_cleanup);
+        signal(SIGTERM, signal_cleanup);
+
+        /*
+         * Read all rconfig files in radix source tree
+         * and write output to config/config.
+         */
+        rconfig_recursive(blarb_callback);
+        return rconfig_concatenate(NULL);
+}
+
+
+                       V. Callback functions
+
+The rconfig_parse_file and rconfig_recursive functions take a callback function
+as an argument. This callback function is of type `config_fn`, which is defined
+in rconfig.h:
+
+typedef int (*config_fn)(struct rconfig_config *);
+
+The callback function gets called on every rconfig setting in the rconfig files
+parsed by rconfig_parse_file and rconfig_recursive. Its purpose is to get the
+desired value for the configuration setting. The function is passed a struct
+representing the setting and should return the selected value for that setting.
+
+The struct rconfig_config is defined as follows:
+
+struct rconfig_option {
+        int  val;
+        char *desc;
+};
+
+struct rconfig_config_options {
+        size_t                  alloc_size;
+        size_t                  num_options;
+        struct rconfig_option   *options;
+};
+
+struct rconfig_config_int_lim {
+        int min;
+        int max;
+};
+
+struct rconfig_config {
+        char                    identifier[32];
+        char                    desc[64];
+        int                     type;
+        int                     default_val;
+        int                     default_set;
+        union {
+                struct rconfig_config_int_lim lim;
+                struct rconfig_config_options opts;
+        };
+        struct rconfig_section  *section;
+};
+
+Let's go through the fields.
+
+* identifier
+  The name of the config setting. This is the value that follows the
+  `config` keyword in rconfig files.
+  e.g. if the file contains
+
+  config MAX_CPUS
+
+  `identifier` will be "MAX_CPUS".
+
+* desc
+  The description of the setting, as given by the `desc` keyword in
+  rconfig files.
+
+* type
+  The type of the setting. One of RCONFIG_BOOL, RCONFIG_INT or RCONFIG_OPTIONS.
+
+* default_val
+  The default value for the setting.
+  For RCONFIG_BOOL, 1 is true and 0 is false.
+  For RCONFIG_INT, this is simply a number.
+  For RCONFIG_OPTIONS, this number is the 1-based index of the default choice
+  in the opts.options array (i.e. default_val == 2 means default is options[1]).
+
+* default_set
+  Whether a default value has been set (always 1).
+
+* lim
+  If `type == RCONFIG_INT`, lim is a struct containing the minimum and maximum
+  values for the setting.
+
+* opts
+  If `type == RCONFIG_OPTIONS`, opts stores information about each option.
+
+  - opts.alloc_size
+    Can be ignored.
+
+  - opts.num_options
+    The number of options for this setting.
+
+  - opts.options
+    The array of options for this setting.
+    Each option is a struct rconfig_option with two fields:
+      i. val
+         The value of the option. Can be ignored.
+      ii. desc
+         The description of the option.
+
+* section
+  A pointer to the struct rconfig_section representing the section in which
+  this setting is found.
+
+All struct rconfig_configs passed to a callback function are guaranteed to be
+well-formed and logically consistent.
+
+The callback function will process the struct, output any required information
+to the user, and return a response.
+
+For blarb, our callback function will be very simple and not interact with
+the user.
+
+int blarb_callback(struct rconfig_config *conf)
+{
+        int magic;
+
+        switch (conf->type) {
+        case RCONFIG_BOOL:
+                /*
+                 * We will return true for every bool because
+                 * more features is better, right?
+                 */
+                return 1;
+        case RCONFIG_INT:
+                /*
+                 * We're going to return a random value in the setting's range.
+                 * Yes, this is a terrible way to select a random value due to
+                 * modulo bias. No, I don't care. This function is silly anyway.
+                 */
+                srand(time(NULL));
+                magic = rand() % (conf->lim.max - conf->lim.min);
+                return conf->lim.min + magic;
+        case RCONFIG_OPTIONS:
+                /*
+                 * Let's select the last option, since it has a higher chance of
+                 * being correct. (Not that there is a correct choice here.)
+                 *
+                 * IMPORTANT: the return value for an RCONFIG_OPTIONS setting is
+                 *            ** 1-BASED **
+                 * The selected option will be
+                 * `conf->opts.options[callback(conf) - 1]`.
+                 */
+                 return conf->opts.num_options;
+        default:
+                /* will never happen */
+                exit(1);
+        }
+}
+
+And there we have it. Our callback function.
+
+If you need to access the name of the section in which a setting
+resides in your callback, you can use:
+
+conf->setting->name
+
+The name of the rconfig file (configfile name, not filesystem filename),
+and the path to the file, can be obtained through:
+
+conf->setting->file->name
+conf->setting->file->path
+
+
+                       VI. Compiling a frontend
+
+Now that we have a complete frontend, we need to add it to the rconfig Makefile.
+At the top of the Makefile, you will see a section marked by the following
+comment:
+
+# Define rconfig frontends here
+
+Within this section, we're going to add our blarb frontend.
+First, we need to set a program name. This should be unique among existing
+program names.
+
+ifeq ($(FRONTEND),blarb)
+        PROGRAM_NAME := blarconfig
+endif
+
+Next, we'll add our object files, of which there is only one.
+
+BLARB_OBJ := blarb.o
+
+NOTE: The names of the frontend and object variables in the Makefile must match
+      the directory in which your frontend is stored.
+
+That's all there is to the Makefile.
+
+We can now compile our frontend by running
+
+$ FRONTEND=blarb make
+
+And run it from the radix source directory:
+
+$ util/config/blarconfig i386
+
+
+                           VII. Conclusion
+
+This document described the process of building a new frontend for rconfig.
+While blarb is not exactly useful, the information written here can be used
+to create a valuable rconfig frontend, such as a graphical one, to make the
+kernel configuration process simpler for users.
+
+Please do not submit pull requests adding the blarb frontend to the kernel.
