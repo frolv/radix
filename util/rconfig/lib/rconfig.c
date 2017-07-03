@@ -37,8 +37,8 @@ static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
 #define NUM_SRC_DIRS   (sizeof src_dirs / sizeof (src_dirs[0]))
 #define ARCH_DIR_INDEX (NUM_SRC_DIRS - 1)
 
-int is_linting;
-int exit_status;
+int is_linting = 0;
+int exit_status = 0;
 
 void rconfig_set_archdir(const char *archdir)
 {

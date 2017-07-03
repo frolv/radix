@@ -80,7 +80,6 @@ int main(int argc, char **argv)
 	const char *errdir;
 	char outfile[256] = "config/config";
 
-	is_linting = exit_status = 0;
 	callback = config_interactive;
 	arch = NULL;
 
