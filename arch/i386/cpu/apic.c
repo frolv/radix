@@ -19,6 +19,7 @@
 #include <acpi/acpi.h>
 #include <acpi/tables/madt.h>
 
+#include <radix/asm/mps.h>
 #include <radix/asm/msr.h>
 #include <radix/cpu.h>
 #include <radix/error.h>
@@ -164,12 +165,7 @@ void read_apic_id(void)
  */
 void apic_init(void)
 {
-	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
-	map_page_kernel(lapic_virt_base, lapic_phys_base,
-	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
 	apic_enable(lapic_phys_base);
-
-	/* Enable APIC and set spurious interrupt vector */
 	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
 }
 
@@ -223,15 +219,6 @@ int apic_parse_madt(void)
 {
 	struct acpi_subtable_header *header;
 	unsigned char *p, *end;
-	size_t i;
-
-	for (i = 0; i < 16; ++i) {
-		bus_irqs[i].bus = 0xFFFF;
-		bus_irqs[i].source_irq = i;
-		bus_irqs[i].global_irq = i;
-		bus_irqs[i].flags = ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH |
-			ACPI_MADT_INTI_TRIGGER_MODE_EDGE;
-	}
 
 	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
 	if (!madt)
@@ -259,6 +246,34 @@ int apic_parse_madt(void)
 		}
 		p += header->length;
 	}
+
+	return 0;
+}
+
+int apic_parse_mp(void)
+{
+	return 0;
+}
+
+int bsp_apic_init(void)
+{
+	size_t i;
+
+	for (i = 0; i < 16; ++i) {
+		bus_irqs[i].bus = 0xFFFF;
+		bus_irqs[i].source_irq = i;
+		bus_irqs[i].global_irq = i;
+		bus_irqs[i].flags = ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH |
+			ACPI_MADT_INTI_TRIGGER_MODE_EDGE;
+	}
+
+	if (apic_parse_madt() != 0 && !apic_parse_mp() != 0)
+		return 1;
+
+	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
+	map_page_kernel(lapic_virt_base, lapic_phys_base,
+	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
+	apic_init();
 
 	return 0;
 }

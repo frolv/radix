@@ -78,11 +78,6 @@ void load_interrupt_routines(void)
 	/* add exception routines */
 	for (i = 0; i < NUM_ISR_VECTORS; ++i)
 		idt_set(i, (uintptr_t)isr_vectors[i], 0x08, 0x8E);
-
-	if (cpu_supports(CPUID_APIC | CPUID_MSR) && apic_parse_madt() == 0) {
-		/* APIC is available; use it. */
-		apic_init();
-	}
 }
 
 /* install_exception_handler: set a function to handle exception `intno` */

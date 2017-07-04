@@ -21,7 +21,6 @@
 
 #define SPURIOUS_INTERRUPT 0xFF
 
-int apic_parse_madt(void);
-void apic_init(void);
+int bsp_apic_init(void);
 
 #endif /* ARCH_I386_APIC_H */

@@ -23,6 +23,7 @@
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
+#include "apic.h"
 #include "gdt.h"
 #include "idt.h"
 
@@ -999,7 +1000,7 @@ char *i386_cache_str(void)
 
 DEFINE_PER_CPU(int, processor_id);
 
-void bsp_init(void)
+void bsp_init_early(void)
 {
 	gdt_init_early();
 	idt_init_early();
@@ -1009,4 +1010,12 @@ void bsp_init(void)
 	this_cpu_write(processor_id, 0);
 	if (cpu_supports(CPUID_PGE))
 		cpu_modify_cr4(0, CR4_PGE);
+}
+
+void i386_bsp_init(void)
+{
+	if (!cpu_supports(CPUID_APIC | CPUID_MSR) || bsp_apic_init() != 0) {
+		/* fallback to 8259 PIC */
+		return;
+	}
 }
