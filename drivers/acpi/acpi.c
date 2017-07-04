@@ -20,6 +20,7 @@
 #include <acpi/rsdp.h>
 #include <acpi/tables/sdt.h>
 
+#include <radix/asm/bios.h>
 #include <radix/bootmsg.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
@@ -28,14 +29,6 @@
 #include <rlibc/string.h>
 
 #define RSDP_SIG "RSD PTR "
-
-#define EBDA_BASE_LOCATION_PHYS 0x0000040E
-#define BIOS_REGION_PHYS_START  0x000E0000
-#define BIOS_REGION_PHYS_END    0x00100000
-
-#define EBDA_BASE_LOCATION      phys_to_virt(EBDA_BASE_LOCATION_PHYS)
-#define BIOS_REGION_START       phys_to_virt(BIOS_REGION_PHYS_START)
-#define BIOS_REGION_END         phys_to_virt(BIOS_REGION_PHYS_END)
 
 struct rsdt {
 	struct acpi_sdt_header head;
@@ -54,7 +47,6 @@ static void *sdt_base = NULL;
 static size_t sdt_len = 0;
 static size_t sdt_size = 0;
 
-static struct acpi_rsdp *acpi_find_rsdp(addr_t start, addr_t end);
 static void rsdt_setup(addr_t rsdt_addr);
 static void xsdt_setup(addr_t xsdt_addr);
 static int byte_sum(void *start, void *end);
@@ -63,58 +55,41 @@ void acpi_init(void)
 {
 	struct acpi_rsdp *rsdp;
 	struct acpi_rsdp_2 *rsdp_2;
-	addr_t ebda_base;
-
-	ebda_base = phys_to_virt((*(uint16_t *)EBDA_BASE_LOCATION) << 4);
-
-	rsdp = acpi_find_rsdp(ebda_base, ebda_base + KIB(1));
-	if (!rsdp)
-		rsdp = acpi_find_rsdp(BIOS_REGION_START, BIOS_REGION_END);
-
-	if (!rsdp) {
-		BOOT_FAIL_MSG("Could not locate ACPI RSDT\n");
-		return;
-	}
-
-	acpi_virt_base = (addr_t)vmalloc(8 * PAGE_SIZE);
-	if (rsdp->revision == 2) {
-		rsdp_2 = (struct acpi_rsdp_2 *)rsdp;
-		xsdt_setup((addr_t)rsdp_2->xsdt_addr);
-	} else {
-		rsdt_setup(rsdp->rsdt_addr);
-	}
-}
-
-/* acpi_find_rsdp: search memory region between `start` and `end` for RDSP */
-static struct acpi_rsdp *acpi_find_rsdp(addr_t start, addr_t end)
-{
-	struct acpi_rsdp *rsdp;
-	struct acpi_rsdp_2 *rsdp_2;
-	uint64_t *s;
 	int checksum;
 
 	/*
 	 * The RSDP is identified by the signature "RSD PTR "
 	 * aligned on a 16-byte boundary.
 	 */
-	s = (void *)start;
-	for (; s < (uint64_t *)end; s += 2) {
-		if (memcmp(s, RSDP_SIG, sizeof *s) != 0)
-			continue;
-
-		rsdp = (struct acpi_rsdp *)s;
-		if (rsdp->revision == 2) {
-			rsdp_2 = (struct acpi_rsdp_2 *)s;
-			checksum = byte_sum(rsdp_2,
-					    (char *)rsdp_2 + rsdp_2->length);
-		} else {
-			checksum = byte_sum(rsdp, (char *)rsdp + sizeof *rsdp);
-		}
-		if ((checksum & 0xFF) == 0)
-			return rsdp;
+	rsdp = bios_find_signature(RSDP_SIG, 8, 16);
+	if (!rsdp) {
+		BOOT_FAIL_MSG("Could not locate ACPI RSDT\n");
+		return;
 	}
 
-	return NULL;
+	acpi_virt_base = (addr_t)vmalloc(8 * PAGE_SIZE);
+
+	if (rsdp->revision == 2) {
+		rsdp_2 = (struct acpi_rsdp_2 *)rsdp;
+
+		checksum = byte_sum(rsdp_2, (char *)rsdp_2 + rsdp_2->length);
+		if ((checksum & 0xFF) != 0)
+			goto err_checksum;
+
+		xsdt_setup((addr_t)rsdp_2->xsdt_addr);
+		return;
+	} else {
+		checksum = byte_sum(rsdp, (char *)rsdp + sizeof *rsdp);
+		if ((checksum & 0xFF) != 0)
+			goto err_checksum;
+
+		rsdt_setup(rsdp->rsdt_addr);
+		return;
+	}
+
+err_checksum:
+	BOOT_FAIL_MSG("invalid ACPI RSDP checksum\n");
+	vfree((void *)acpi_virt_base);
 }
 
 /*
