@@ -16,8 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <acpi/acpi.h>
-
+#include <radix/boot.h>
 #include <radix/bootmsg.h>
 #include <radix/cpu.h>
 #include <radix/irq.h>
@@ -39,7 +38,7 @@ int kmain(struct multiboot_info *mbt)
 	slab_init();
 	vmm_init();
 
-	acpi_init();
+	arch_main_setup();
 	bsp_init();
 	irq_init();
 	percpu_area_setup();
