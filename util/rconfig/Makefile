@@ -31,8 +31,8 @@ RM := rm -f
 LIBDIR := lib
 INCLUDEDIR := include
 
-CFLAGS := -O2 -Wall -Wextra -c -I$(INCLUDEDIR)
-LDFLAGS := -lfl
+CFLAGS := $(CFLAGS) -O2 -Wall -Wextra -c -I$(INCLUDEDIR)
+LDFLAGS := $(LDFLAGS) -lfl
 ARFLAGS := rcs
 
 HEADERS := include/rconfig.h lib/gen.h lib/lint.h
