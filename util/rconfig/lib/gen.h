@@ -1,5 +1,5 @@
 /*
- * util/rconfig/gen.h
+ * util/rconfig/lib/gen.h
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

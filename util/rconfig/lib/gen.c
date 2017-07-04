@@ -1,5 +1,5 @@
 /*
- * util/rconfig/gen.c
+ * util/rconfig/lib/gen.c
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

@@ -1,5 +1,5 @@
 /*
- * util/rconfig/cli.c
+ * util/rconfig/frontends/cli/cli.c
  * rconfig cli frontend
  * Copyright (C) 2017 Alexei Frolov
  *

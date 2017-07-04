@@ -1,5 +1,5 @@
 /*
- * util/rconfig/interactive.h
+ * util/rconfig/frontends/cli/interactive.h
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

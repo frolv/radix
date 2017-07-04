@@ -1,5 +1,5 @@
 /*
- * util/rconfig/rconfig.y
+ * util/rconfig/lib/rconfig.y
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

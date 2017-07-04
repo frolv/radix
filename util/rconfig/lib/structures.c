@@ -1,5 +1,5 @@
 /*
- * util/rconfig/structures.c
+ * util/rconfig/lib/structures.c
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
