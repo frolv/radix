@@ -135,7 +135,7 @@ static void apic_reg_write(uint16_t reg, uint32_t value)
  * Read the local APIC ID of the executing processor
  * and save it in the `apic_id` per-CPU variable.
  */
-void read_apic_id(void)
+static void read_apic_id(void)
 {
 	uint32_t eax, edx;
 	int id;
@@ -165,6 +165,7 @@ void read_apic_id(void)
  */
 void apic_init(void)
 {
+	read_apic_id();
 	apic_enable(lapic_phys_base);
 	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
 }
