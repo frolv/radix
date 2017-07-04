@@ -19,6 +19,7 @@
 #include <acpi/acpi.h>
 
 #include <radix/bootmsg.h>
+#include <radix/cpu.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
@@ -39,6 +40,7 @@ int kmain(struct multiboot_info *mbt)
 	vmm_init();
 
 	acpi_init();
+	bsp_init();
 	irq_init();
 	percpu_area_setup();
 
@@ -48,6 +50,9 @@ int kmain(struct multiboot_info *mbt)
 	extern void kbd_install(void);
 	kbd_install();
 	printf("\nWelcome to radix\n");
+
+	while (1)
+		;
 
 	return 0;
 }
