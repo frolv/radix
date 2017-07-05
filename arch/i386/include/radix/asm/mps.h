@@ -75,7 +75,7 @@ struct mp_table_processor {
 
 struct mp_table_bus {
 	uint8_t         type;
-	uint8_t         bud_id;
+	uint8_t         bus_id;
 	char            bus_type[6];
 };
 
@@ -118,5 +118,24 @@ struct mp_table_local_interrupt {
 #define MP_INTERRUPT_TRIGGER_MODE_EDGE          (1 << 2)
 #define MP_INTERRUPT_TRIGGER_MODE_RESERVED      (2 << 2)
 #define MP_INTERRUPT_TRIGGER_MODE_LEVEL         (3 << 2)
+
+#define MP_BUS_SIGNATURE_CBUS                   "CBUS  "
+#define MP_BUS_SIGNATURE_CBUS_II                "CBUSII"
+#define MP_BUS_SIGNATURE_EISA                   "EISA  "
+#define MP_BUS_SIGNATURE_FUTURE                 "FUTURE"
+#define MP_BUS_SIGNATURE_INTERNAL               "INTERN"
+#define MP_BUS_SIGNATURE_ISA                    "ISA   "
+#define MP_BUS_SIGNATURE_MULTIBUS               "MBI   "
+#define MP_BUS_SIGNATURE_MULTIBUS_II            "MBII  "
+#define MP_BUS_SIGNATURE_MCA                    "MCA   "
+#define MP_BUS_SIGNATURE_MPI                    "MPI   "
+#define MP_BUS_SIGNATURE_MPSA                   "MPSA  "
+#define MP_BUS_SIGNATURE_NUBUS                  "NUBUS "
+#define MP_BUS_SIGNATURE_PCI                    "PCI   "
+#define MP_BUS_SIGNATURE_PCMCIA                 "PCMCIA"
+#define MP_BUS_SIGNATURE_TC                     "TC    "
+#define MP_BUS_SIGNATURE_VL                     "VL    "
+#define MP_BUS_SIGNATURE_VME                    "VME   "
+#define MP_BUS_SIGNATURE_XPRESS                 "XPRESS"
 
 #endif /* ARCH_I386_RADIX_MPS_H */
