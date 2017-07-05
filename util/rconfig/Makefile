@@ -68,7 +68,16 @@ $(PARSE_SRC) $(PARSE_H): $(LIBDIR)/config.y
 $(SCAN_SRC) $(SCAN_H): $(LIBDIR)/config.l $(PARSE_H)
 	$(LEX) --header-file=$(SCAN_H) -o $(SCAN_SRC) $<
 
+.PHONY: clean-all
+clean-all: clean-frontend clean-librconfig
+
 .PHONY: clean
-clean:
-	$(RM) $(RCONFIG_OBJ) $(PROGRAM_NAME) $(SCAN_SRC) $(SCAN_H) \
-	$(PARSE_SRC) $(PARSE_H) $(FRONTEND_OBJ) $(LIB)
+clean: clean-frontend
+
+.PHONY: clean-frontend
+clean-frontend:
+	$(RM) $(PROGRAM_NAME) $(FRONTEND_OBJ)
+
+.PHONY: clean-librconfig
+clean-librconfig:
+	$(RM) $(RCONFIG_OBJ) $(SCAN_SRC) $(SCAN_H) $(PARSE_SRC) $(PARSE_H) $(LIB)

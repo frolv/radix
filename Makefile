@@ -189,4 +189,4 @@ clean-configfiles:
 
 .PHONY: clean-rconfig
 clean-rconfig:
-	@cd util/rconfig && make clean
+	@cd util/rconfig && make clean-all
