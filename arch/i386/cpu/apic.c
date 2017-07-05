@@ -21,11 +21,15 @@
 
 #include <radix/asm/mps.h>
 #include <radix/asm/msr.h>
+#include <radix/asm/bios.h>
+
 #include <radix/cpu.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
 #include <radix/vmm.h>
+
+#include <rlibc/string.h>
 
 #include "apic.h"
 
@@ -170,12 +174,15 @@ void apic_init(void)
 	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
 }
 
-static void apic_parse_lapic(struct acpi_madt_local_apic *s)
+static void apic_add_lapic(int valid_cpu)
 {
-	cpus_available += s->flags & 1;
+	cpus_available += valid_cpu;
 }
 
-static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
+/* mp table i/o apic entries don't store irq base, so we need to keep track */
+static int curr_ioapic_irq_base = 0;
+
+static void apic_add_ioapic(int id, addr_t phys_addr, int irq_base)
 {
 	struct ioapic *ioapic;
 	uint32_t irq_count;
@@ -185,36 +192,54 @@ static void apic_parse_ioapic(struct acpi_madt_io_apic *s)
 		return;
 
 	base = (addr_t)vmalloc(PAGE_SIZE);
-	map_page_kernel(base, s->address, PROT_WRITE, PAGE_CP_UNCACHEABLE);
+	map_page_kernel(base, phys_addr, PROT_WRITE, PAGE_CP_UNCACHEABLE);
 
 	ioapic = &ioapic_list[ioapics_available++];
-	ioapic->id = s->id;
-	ioapic->irq_base = s->global_irq_base;
+	ioapic->id = id;
+	ioapic->irq_base = irq_base;
 	ioapic->base = (uint32_t *)base;
 
 	irq_count = ioapic_reg_read(ioapic, IOAPIC_REG_VER);
 	irq_count = ((irq_count >> 16) & 0xFF) + 1;
 	ioapic->irq_count = irq_count;
+
+	curr_ioapic_irq_base += irq_count;
 }
 
-static void apic_parse_override(struct acpi_madt_interrupt_override *s)
+static void apic_add_override(int bus, int src, int irq, unsigned int flags)
 {
 	size_t i;
 
-	/* Set bus for all ISA IRQs */
+	/* set bus for all ISA IRQs when first called */
 	if (bus_irqs[0].bus == 0xFFFF) {
 		for (i = 0; i < 16; ++i)
-			bus_irqs[i].bus = s->bus_source;
+			bus_irqs[i].bus = bus;
 	}
 
-	bus_irqs[s->irq_source].bus = s->bus_source;
-	bus_irqs[s->irq_source].global_irq = s->global_irq;
-	bus_irqs[s->irq_source].flags = s->flags;
+	bus_irqs[src].bus = bus;
+	bus_irqs[src].global_irq = irq;
+	bus_irqs[src].flags = flags;
+}
+
+static void __madt_lapic(struct acpi_madt_local_apic *s)
+{
+	apic_add_lapic(!!(s->flags & 1));
+}
+
+static void __madt_ioapic(struct acpi_madt_io_apic *s)
+{
+	apic_add_ioapic(s->id, s->address, s->global_irq_base);
+}
+
+static void __madt_override(struct acpi_madt_interrupt_override *s)
+{
+	apic_add_override(s->bus_source, s->irq_source,
+                          s->global_irq, s->flags);
 }
 
 /*
  * apic_parse_madt:
- * Check that the MADT ACPI table exists and is valid, and store pointer to it.
+ * Parse the ACPI MADT table and extract APIC information.
  */
 int apic_parse_madt(void)
 {
@@ -232,15 +257,17 @@ int apic_parse_madt(void)
 
 	while (p < end) {
 		header = (struct acpi_subtable_header *)p;
+		/* TODO: add other MADT entries */
 		switch (header->type) {
 		case ACPI_MADT_LOCAL_APIC:
-			apic_parse_lapic((struct acpi_madt_local_apic *)header);
+			__madt_lapic((struct acpi_madt_local_apic *)header);
 			break;
 		case ACPI_MADT_IO_APIC:
-			apic_parse_ioapic((struct acpi_madt_io_apic *)header);
+			__madt_ioapic((struct acpi_madt_io_apic *)header);
 			break;
 		case ACPI_MADT_INTERRUPT_OVERRIDE:
-			apic_parse_override((struct acpi_madt_interrupt_override *)header);
+			__madt_override((struct acpi_madt_interrupt_override *)
+			                header);
 			break;
 		default:
 			break;
@@ -251,8 +278,102 @@ int apic_parse_madt(void)
 	return 0;
 }
 
-int apic_parse_mp(void)
+static int byte_sum(void *start, size_t len)
 {
+	char *s;
+	int sum;
+
+	for (sum = 0, s = start; s < (char *)start + len; ++s)
+	     sum += *s;
+
+	return sum & 0xFF;
+}
+
+/*
+ * find_mp_config_table
+ * Find the location of the MP spec configuration table and verify
+ * its vailidity. Return a pointer to the table if successful.
+ */
+struct mp_config_table *find_mp_config_table(void)
+{
+	struct mp_floating_pointer *fp;
+	struct mp_config_table *mp;
+
+	fp = bios_find_signature(MP_FP_SIGNATURE, sizeof fp->signature, 16);
+	if (!fp)
+		return NULL;
+
+	if (byte_sum(fp, fp->length << 4) != 0)
+		return NULL;
+
+	mp = (struct mp_config_table *)phys_to_virt(fp->config_base);
+	if (memcmp(mp->signature, MP_CONFIG_SIGNATURE, sizeof mp->signature))
+		return NULL;
+
+	return byte_sum(mp, mp->length) == 0 ? mp : NULL;
+}
+
+static void __mp_processor(struct mp_table_processor *s)
+{
+	apic_add_lapic(!!(s->cpu_flags & MP_PROCESSOR_ACTIVE));
+}
+
+static void __mp_bus(struct mp_table_bus *s)
+{
+	/* TODO */
+	(void)s;
+}
+
+static void __mp_ioapic(struct mp_table_io_apic *s)
+{
+	apic_add_ioapic(s->ioapic_id, s->ioapic_base, curr_ioapic_irq_base);
+}
+
+static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
+{
+	/* TODO */
+	(void)s;
+}
+
+static void __mp_local_int(struct mp_table_local_interrupt *s)
+{
+	/* TODO */
+	(void)s;
+}
+
+int apic_parse_mp_tables(void)
+{
+	struct mp_config_table *mp;
+	uint8_t *s;
+	size_t i;
+
+	mp = find_mp_config_table();
+	if (!mp)
+		return 1;
+
+	s = (uint8_t *)(mp + 1);
+	for (i = 0; i < mp->entry_count; ++i) {
+		switch (*s) {
+		case MP_TABLE_PROCESSOR:
+			__mp_processor((struct mp_table_processor *)s);
+			s += 20;
+			continue;
+		case MP_TABLE_BUS:
+			__mp_bus((struct mp_table_bus *)s);
+			break;
+		case MP_TABLE_IO_APIC:
+			__mp_ioapic((struct mp_table_io_apic *)s);
+			break;
+		case MP_TABLE_IO_INTERRUPT:
+			__mp_io_interrupt((struct mp_table_io_interrupt *)s);
+			break;
+		case MP_TABLE_LOCAL_INTERRUPT:
+			__mp_local_int((struct mp_table_local_interrupt *)s);
+			break;
+		}
+		s += 8;
+	}
+
 	return 0;
 }
 
@@ -268,7 +389,7 @@ int bsp_apic_init(void)
 			ACPI_MADT_INTI_TRIGGER_MODE_EDGE;
 	}
 
-	if (apic_parse_madt() != 0 && !apic_parse_mp() != 0)
+	if (apic_parse_madt() != 0 && apic_parse_mp_tables() != 0)
 		return 1;
 
 	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
