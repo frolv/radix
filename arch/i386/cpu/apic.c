@@ -32,6 +32,7 @@
 #include <rlibc/string.h>
 
 #include "apic.h"
+#include "isr.h"
 
 #define IA32_APIC_BASE_BSP    (1 << 8)  /* bootstrap processor */
 #define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
@@ -52,7 +53,8 @@ struct irq_map {
 	uint16_t global_irq;
 	uint16_t flags;
 };
-static struct irq_map bus_irqs[16];
+static struct irq_map isa_irqs[ISA_IRQ_COUNT];
+static uint16_t isa_irq_bus = 0xFFFF;
 
 #ifdef CONFIG_MAX_IOAPICS
 #define MAX_IOAPICS CONFIG_MAX_IOAPICS
@@ -211,14 +213,15 @@ static void apic_add_override(int bus, int src, int irq, unsigned int flags)
 	size_t i;
 
 	/* set bus for all ISA IRQs when first called */
-	if (bus_irqs[0].bus == 0xFFFF) {
-		for (i = 0; i < 16; ++i)
-			bus_irqs[i].bus = bus;
+	if (isa_irq_bus == 0xFFFF) {
+		for (i = 0; i < ISA_IRQ_COUNT; ++i)
+			isa_irqs[i].bus = bus;
+		isa_irq_bus = bus;
 	}
 
-	bus_irqs[src].bus = bus;
-	bus_irqs[src].global_irq = irq;
-	bus_irqs[src].flags = flags;
+	isa_irqs[src].bus = bus;
+	isa_irqs[src].global_irq = irq;
+	isa_irqs[src].flags = flags;
 }
 
 static void __madt_lapic(struct acpi_madt_local_apic *s)
@@ -320,8 +323,13 @@ static void __mp_processor(struct mp_table_processor *s)
 
 static void __mp_bus(struct mp_table_bus *s)
 {
-	/* TODO */
-	(void)s;
+	size_t i;
+
+	if (memcmp(s->bus_type, MP_BUS_SIGNATURE_ISA, 6) == 0) {
+		isa_irq_bus = s->bus_id;
+		for (i = 0; i < ISA_IRQ_COUNT; ++i)
+			isa_irqs[i].bus = s->bus_id;
+	}
 }
 
 static void __mp_ioapic(struct mp_table_io_apic *s)
@@ -381,11 +389,11 @@ int bsp_apic_init(void)
 {
 	size_t i;
 
-	for (i = 0; i < 16; ++i) {
-		bus_irqs[i].bus = 0xFFFF;
-		bus_irqs[i].source_irq = i;
-		bus_irqs[i].global_irq = i;
-		bus_irqs[i].flags = ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH |
+	for (i = 0; i < ISA_IRQ_COUNT; ++i) {
+		isa_irqs[i].bus = 0xFFFF;
+		isa_irqs[i].source_irq = i;
+		isa_irqs[i].global_irq = i;
+		isa_irqs[i].flags = ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH |
 			ACPI_MADT_INTI_TRIGGER_MODE_EDGE;
 	}
 
