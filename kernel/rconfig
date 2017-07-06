@@ -14,7 +14,7 @@ config MAX_CPUS
 	desc "Maximum number of CPUs to support"
 
 
-section General
+section Logging
 
 config KLOG_SHIFT
 	type options

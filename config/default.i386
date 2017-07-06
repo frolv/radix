@@ -9,7 +9,7 @@
 # rconfig
 #
 
-# section General
+# section Debugging
 CONFIG_DEBUG=false
 
 
@@ -18,7 +18,7 @@ CONFIG_DEBUG=false
 # arch/i386/rconfig
 #
 
-# section General
+# section Interrupts
 CONFIG_MAX_IOAPICS=8
 
 
@@ -31,5 +31,5 @@ CONFIG_MAX_IOAPICS=8
 CONFIG_SMP=true
 CONFIG_MAX_CPUS=64
 
-# section General
+# section Logging
 CONFIG_KLOG_SHIFT=19

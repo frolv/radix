@@ -1,6 +1,6 @@
 configfile radix
 
-section General
+section Debugging
 
 config DEBUG
 	type bool

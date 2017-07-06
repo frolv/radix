@@ -1,6 +1,6 @@
 configfile i386
 
-section General
+section Interrupts
 
 config MAX_IOAPICS
 	type int
