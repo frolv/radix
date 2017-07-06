@@ -12,3 +12,16 @@ config MAX_CPUS
 	range 1 256
 	default 64
 	desc "Maximum number of CPUs to support"
+
+
+section General
+
+config KLOG_SHIFT
+	type options
+	default 4
+	desc "Size of kernel log buffer"
+	option 16 "  64 KiB"
+	option 17 " 128 KiB"
+	option 18 " 256 KiB"
+	option 19 " 512 KiB"
+	option 20 "1024 KiB"
