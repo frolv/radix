@@ -52,7 +52,7 @@ static uint32_t klog_sequence_number = 0;
 static struct klog_entry *first_entry = (struct klog_entry *)klog_buffer;
 static struct klog_entry *next_entry  = (struct klog_entry *)klog_buffer;
 
-static int klog_written;
+static int klog_written = 0;
 
 #define klog_entry_size(entry) \
 	(sizeof *(entry) + ALIGN((entry)->msg_len, 8))
@@ -79,25 +79,7 @@ static __always_inline int klog_has_space(uint16_t msg_len)
 	/* must always have space for an empty klog_entry struct */
 	required = 2 * sizeof (struct klog_entry) + ALIGN(msg_len, 8);
 
-	return (uintptr_t)next_entry + required < klog_end;
-}
-
-static void klog_wraparound(uint16_t msg_len)
-{
-	struct klog_entry *entry;
-	size_t size;
-
-	next_entry->msg_len = KLOG_WRAPAROUND;
-	next_entry = (struct klog_entry *)klog_buffer;
-	entry = next_entry;
-	size = msg_len + sizeof *entry;
-
-	while (size > klog_entry_size(entry)) {
-		size -= klog_entry_size(entry);
-		entry = klog_next_entry(entry);
-	}
-	if (first_entry < entry)
-		first_entry = entry;
+	return (uintptr_t)next_entry + required <= klog_end;
 }
 
 static void klog_advance_first(uint16_t msg_len)
@@ -131,8 +113,11 @@ static int vklog(int level, const char *format, va_list ap)
 	if (buf[len - 1] == '\n')
 		--len;
 
-	if (!klog_has_space(len))
-		klog_wraparound(len);
+	if (!klog_has_space(len)) {
+		/* wraparound to the start of the buffer */
+		next_entry->msg_len = KLOG_WRAPAROUND;
+		next_entry = (struct klog_entry *)klog_buffer;
+	}
 
 	/* we don't want to do this the first time a log message is written */
 	if (klog_written)
