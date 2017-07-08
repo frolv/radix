@@ -20,7 +20,7 @@
 #include <radix/kernel.h>
 #include <radix/mutex.h>
 #include <radix/types.h>
-#include <radix/tty.h>
+#include <radix/time.h>
 
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
@@ -108,9 +108,31 @@ static void klog_advance_first(uint16_t msg_len)
 		first_entry = klog_next_entry(first_entry);
 }
 
+/*
+ * klog_print:
+ * Write the kernel log message represented by `entry` to `buf`.
+ * `buf` is assumed to be long enough to fit the formatted message.
+ */
+static int klog_print(struct klog_entry *entry, char *buf)
+{
+	unsigned long sec;
+	uint32_t rem;
+	int n;
+
+	sec = entry->timestamp / NSEC_PER_SEC;
+	rem = entry->timestamp % NSEC_PER_SEC;
+
+	n = sprintf(buf, "[%05lu.%06u] ", sec, rem / 1000);
+	memcpy(buf + n, entry->message, entry->msg_len);
+	buf[entry->msg_len] = '\n';
+
+	return n + entry->msg_len + 1;
+}
+
 static int vklog(int level, const char *format, va_list ap)
 {
 	char buf[KLOG_MAX_MSG_LEN];
+	struct klog_entry *entry;
 	int len;
 
 	len = vsnprintf(buf, sizeof buf, format, ap);
@@ -129,14 +151,16 @@ static int vklog(int level, const char *format, va_list ap)
 		klog_advance_first(len);
 	klog_written = 1;
 
-	next_entry->timestamp = 0;
-	next_entry->msg_len = len;
-	next_entry->level = level;
-	next_entry->flags = 0;
-	next_entry->seqno = klog_sequence_number++;
-	memcpy(next_entry->message, buf, len);
-
+	entry = next_entry;
 	next_entry = klog_next_entry(next_entry);
+
+	entry->timestamp = 0;
+	entry->msg_len = len;
+	entry->level = level;
+	entry->flags = 0;
+	entry->seqno = klog_sequence_number++;
+	memcpy(entry->message, buf, len);
+
 	mutex_unlock(&klog_mutex);
 
 	return len;
