@@ -47,6 +47,8 @@ char *strncpy(char *__restrict dst, const char *__restrict src, size_t n);
 char *strcat(char *__restrict dst, const char *__restrict src);
 char *strncat(char *__restrict dst, const char *__restrict src, size_t n);
 
+char *strchr(const char *s, int c);
+
 const char *strerror(int errno);
 
 char *strrev(char *s);
