@@ -1,6 +1,6 @@
 /*
  * kernel/rbtree.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,11 @@
 #define RB_BLACK 0
 #define RB_RED   1
 
-#define rb_colour(node) ((node)->__parent & 1)
-#define rb_set_colour(node, colour) \
-	((node)->__parent = (__rb_parent_addr(node)) | (colour))
+#define rb_color(node) ((node)->__parent & 1)
+#define rb_set_color(node, color) \
+	((node)->__parent = (__rb_parent_addr(node)) | (color))
 #define rb_set_parent(node, parent) \
-	((node)->__parent = ((unsigned long)parent) | rb_colour(node))
+	((node)->__parent = ((unsigned long)parent) | rb_color(node))
 
 /*
  * Red-black tree properties, from Wikipedia:
@@ -106,17 +106,17 @@ void rb_balance(struct rb_root *root, struct rb_node *node)
 	if (unlikely(!node || !root))
 		return;
 
-	/* case 1: node is root. Set its parent to NULL and colour black. */
+	/* case 1: node is root. Set its parent to NULL and color black. */
 	if (node == root->root_node) {
 		node->__parent = 0;
 		return;
 	}
 
-	rb_set_colour(node, RB_RED);
+	rb_set_color(node, RB_RED);
 	pa = rb_parent(node);
 
 	/* case 2: node's parent is black. The tree is valid. */
-	if (rb_colour(pa) == RB_BLACK)
+	if (rb_color(pa) == RB_BLACK)
 		return;
 
 	/*
@@ -133,9 +133,9 @@ void rb_balance(struct rb_root *root, struct rb_node *node)
 	 * Note that setting the grandparent red is done at the start
 	 * of the recursive rb_balance call.
 	 */
-	if (un && rb_colour(un) == RB_RED) {
-		rb_set_colour(pa, RB_BLACK);
-		rb_set_colour(un, RB_BLACK);
+	if (un && rb_color(un) == RB_RED) {
+		rb_set_color(pa, RB_BLACK);
+		rb_set_color(un, RB_BLACK);
 		rb_balance(root, gp);
 		return;
 	}
@@ -160,13 +160,13 @@ void rb_balance(struct rb_root *root, struct rb_node *node)
 	/*
 	 * case 5: parent is red and and uncle is black, and `node` and its
 	 *         parent are children on the same side.
-	 * Rotate around parent around grandparent and swap their colours.
+	 * Rotate around parent around grandparent and swap their colors.
 	 * This satisfies property 4, as both children of grandparent will be
 	 * black, and property 5, as all paths that used to go through
 	 * grandparent now go through parent, which is black.
 	 */
-	rb_set_colour(pa, RB_BLACK);
-	rb_set_colour(gp, RB_RED);
+	rb_set_color(pa, RB_BLACK);
+	rb_set_color(gp, RB_RED);
 	if (node == pa->left)
 		rb_rotate_right(root, gp);
 	else
@@ -260,7 +260,7 @@ static void rb_remove(struct rb_root *root, struct rb_node *node)
 	 * can be replaced with a black NULL leaf without violating any
 	 * tree properties.
 	 */
-	if (rb_colour(node) == RB_RED)
+	if (rb_color(node) == RB_RED)
 		return;
 
 	/*
@@ -272,7 +272,7 @@ static void rb_remove(struct rb_root *root, struct rb_node *node)
 	 * would be violated.
 	 */
 	if (child) {
-		rb_set_colour(child, RB_BLACK);
+		rb_set_color(child, RB_BLACK);
 		rb_set_parent(child, pa);
 		return;
 	}
@@ -291,12 +291,12 @@ begin_rebalance:
 
 	/*
 	 * case 2: sibling of `node` is red.
-	 * This means that the parent must be black. Swap colours of parent
+	 * This means that the parent must be black. Swap colors of parent
 	 * and sibling and rotate them to set up case 4, 5, or 6.
 	 */
-	if (rb_colour(sl) == RB_RED) {
-		rb_set_colour(pa, RB_RED);
-		rb_set_colour(sl, RB_BLACK);
+	if (rb_color(sl) == RB_RED) {
+		rb_set_color(pa, RB_RED);
+		rb_set_color(sl, RB_BLACK);
 		if (sl == pa->left)
 			rb_rotate_right(root, pa);
 		else
@@ -313,20 +313,20 @@ begin_rebalance:
 	 * before, so a rebalance is performed on parent.
 	 *
 	 * case 4: sibling and its children are black but parent is red.
-	 * The colours of sibling and parent are swapped, adding one black node
+	 * The colors of sibling and parent are swapped, adding one black node
 	 * to paths going through `node`, without changing the number of black
 	 * nodes in paths going through sibling, thus balancing the tree.
 	 */
-	if ((!sl->left || rb_colour(sl->left) == RB_BLACK) &&
-	    (!sl->right || rb_colour(sl->right) == RB_BLACK)) {
-		if (rb_colour(pa) == RB_BLACK) {
-			rb_set_colour(sl, RB_RED);
+	if ((!sl->left || rb_color(sl->left) == RB_BLACK) &&
+	    (!sl->right || rb_color(sl->right) == RB_BLACK)) {
+		if (rb_color(pa) == RB_BLACK) {
+			rb_set_color(sl, RB_RED);
 			node = pa;
 			pa = rb_parent(node);
 			goto begin_rebalance;
 		} else {
-			rb_set_colour(sl, RB_RED);
-			rb_set_colour(pa, RB_BLACK);
+			rb_set_color(sl, RB_RED);
+			rb_set_color(pa, RB_BLACK);
 			return;
 		}
 	}
@@ -334,19 +334,19 @@ begin_rebalance:
 	/*
 	 * case 5: sibling's red child is on the opposite side of sibling
 	 *         than sibling is of parent.
-	 * Rotate around sibling and change its colour, placing node's new
+	 * Rotate around sibling and change its color, placing node's new
 	 * sibling and its red child on the same side, setting up case 6.
 	 */
 	if (sl == pa->right &&
-	    sl->left && rb_colour(sl->left) == RB_RED) {
-		rb_set_colour(sl, RB_RED);
-		rb_set_colour(sl->left, RB_BLACK);
+	    sl->left && rb_color(sl->left) == RB_RED) {
+		rb_set_color(sl, RB_RED);
+		rb_set_color(sl->left, RB_BLACK);
 		rb_rotate_right(root, sl);
 		sl = pa->right;
 	} else if (sl == pa->left &&
-		   sl->right && rb_colour(sl->right) == RB_RED) {
-		rb_set_colour(sl, RB_RED);
-		rb_set_colour(sl->right, RB_BLACK);
+	           sl->right && rb_color(sl->right) == RB_RED) {
+		rb_set_color(sl, RB_RED);
+		rb_set_color(sl->right, RB_BLACK);
 		rb_rotate_left(root, sl);
 		sl = pa->left;
 	}
@@ -354,19 +354,19 @@ begin_rebalance:
 	/*
 	 * case 6: sibling's red child is on the same side of sibling
 	 *         as sibling is of parent.
-	 * The colours of parent and sibling are exchanged, sibling's red child
+	 * The colors of parent and sibling are exchanged, sibling's red child
 	 * is made black, and a rotation is performed around parent. This makes
-	 * sibling the new root of the subtree, with the same colour as the old
+	 * sibling the new root of the subtree, with the same color as the old
 	 * root, and adds one extra black node to all paths through `node`.
 	 * Done.
 	 */
-	rb_set_colour(sl, rb_colour(pa));
-	rb_set_colour(pa, RB_BLACK);
+	rb_set_color(sl, rb_color(pa));
+	rb_set_color(pa, RB_BLACK);
 	if (sl == pa->right) {
-		rb_set_colour(sl->right, RB_BLACK);
+		rb_set_color(sl->right, RB_BLACK);
 		rb_rotate_left(root, pa);
 	} else {
-		rb_set_colour(sl->left, RB_BLACK);
+		rb_set_color(sl->left, RB_BLACK);
 		rb_rotate_right(root, pa);
 	}
 }
