@@ -18,6 +18,7 @@
 
 #include <radix/compiler.h>
 #include <radix/kernel.h>
+#include <radix/mutex.h>
 #include <radix/types.h>
 #include <radix/tty.h>
 
@@ -46,6 +47,9 @@ struct klog_entry {
 
 static unsigned char klog_buffer[1 << KLOG_SHIFT];
 static uintptr_t klog_end = (uintptr_t)klog_buffer + sizeof klog_buffer;
+
+/* TODO: change this to a spinlock when we get those */
+static struct mutex klog_mutex = MUTEX_INIT(klog_mutex);
 
 static uint32_t klog_sequence_number = 0;
 
@@ -113,6 +117,7 @@ static int vklog(int level, const char *format, va_list ap)
 	if (buf[len - 1] == '\n')
 		--len;
 
+	mutex_lock(&klog_mutex);
 	if (!klog_has_space(len)) {
 		/* wraparound to the start of the buffer */
 		next_entry->msg_len = KLOG_WRAPAROUND;
@@ -132,6 +137,7 @@ static int vklog(int level, const char *format, va_list ap)
 	memcpy(next_entry->message, buf, len);
 
 	next_entry = klog_next_entry(next_entry);
+	mutex_unlock(&klog_mutex);
 
 	return len;
 }
