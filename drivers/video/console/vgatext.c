@@ -165,6 +165,7 @@ static int vgatext_write(struct console *c, const char *buf, size_t n)
 			} else {
 				--c->cursor_x;
 			}
+			vgatext_put(c, ' ', c->cursor_x, c->cursor_y);
 			break;
 		case '\n':
 			vgatext_nextrow(c);
