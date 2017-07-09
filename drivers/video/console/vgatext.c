@@ -33,7 +33,8 @@
 #define VGATEXT_NORMAL  0
 #define VGATEXT_BOLD    (1 << 3)
 
-#define VGA_MISC_OUTPUT 0x3C2
+#define VGA_MISC_OUTPUT_OUT     0x3C2
+#define VGA_MISC_OUTPUT_IN      0x3CC
 
 static __always_inline uint8_t vgatext_entry_color(uint8_t fg, uint8_t bg)
 {
@@ -93,8 +94,8 @@ static int vgatext_init(struct console *c)
 	mutex_init(&c->lock);
 
 	/* set bit 0 of the misc output register to map port 0x3D4 */
-	val = inb(VGA_MISC_OUTPUT);
-	outb(VGA_MISC_OUTPUT, val | 1);
+	val = inb(VGA_MISC_OUTPUT_IN);
+	outb(VGA_MISC_OUTPUT_OUT, val | 1);
 
 	return vgatext_clear(c);
 }
