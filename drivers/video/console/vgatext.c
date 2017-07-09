@@ -54,6 +54,8 @@ void vgatext_register(void)
 	klog_set_console(&vgatext_console);
 }
 
+static int vgatext_move_cursor(struct console *c, int x, int y);
+
 /* vgatext_clear: clear the VGA text buffer */
 static int vgatext_clear(struct console *c)
 {
@@ -68,8 +70,7 @@ static int vgatext_clear(struct console *c)
 		}
 	}
 
-	c->cursor_x = 0;
-	c->cursor_y = 0;
+	vgatext_move_cursor(c, 0, 0);
 	mutex_unlock(&c->lock);
 
 	return 0;
