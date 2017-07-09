@@ -18,6 +18,7 @@
 
 #include <radix/compiler.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mutex.h>
 #include <radix/types.h>
 #include <radix/time.h>
@@ -57,6 +58,8 @@ static struct klog_entry *first_entry = (struct klog_entry *)klog_buffer;
 static struct klog_entry *next_entry  = (struct klog_entry *)klog_buffer;
 
 static int klog_written = 0;
+
+static struct console *klog_console = NULL;
 
 #define klog_entry_size(entry) \
 	(sizeof *(entry) + ALIGN((entry)->msg_len, 8))
@@ -124,9 +127,18 @@ static int klog_print(struct klog_entry *entry, char *buf)
 
 	n = sprintf(buf, "[%05lu.%06u] ", sec, rem / 1000);
 	memcpy(buf + n, entry->message, entry->msg_len);
-	buf[entry->msg_len] = '\n';
+	buf[n + entry->msg_len] = '\n';
 
 	return n + entry->msg_len + 1;
+}
+
+static void klog_console_write(struct klog_entry *entry)
+{
+	char buf[512];
+	int n;
+
+	n = klog_print(entry, buf);
+	klog_console->actions->write(klog_console, buf, n);
 }
 
 static int vklog(int level, const char *format, va_list ap)
@@ -163,6 +175,9 @@ static int vklog(int level, const char *format, va_list ap)
 
 	mutex_unlock(&klog_mutex);
 
+	if (klog_console)
+		klog_console_write(entry);
+
 	return len;
 }
 
@@ -176,4 +191,9 @@ int klog(int level, const char *format, ...)
 	va_end(ap);
 
 	return n;
+}
+
+void klog_set_console(struct console *c)
+{
+	klog_console = c;
 }
