@@ -45,6 +45,7 @@ struct consfn {
 	int (*write)(struct console *, const char *, size_t);
 	int (*clear)(struct console *);
 	int (*set_color)(struct console *, int, int);
+	int (*move_cursor)(struct console *, int, int);
 	int (*destroy)(struct console *);
 };
 

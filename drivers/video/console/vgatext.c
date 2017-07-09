@@ -18,6 +18,7 @@
 
 #include <radix/compiler.h>
 #include <radix/console.h>
+#include <radix/io.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/mm.h>
@@ -31,6 +32,8 @@
 #define VGATEXT_TABSTOP 2
 #define VGATEXT_NORMAL  0
 #define VGATEXT_BOLD    (1 << 3)
+
+#define VGA_MISC_OUTPUT 0x3C2
 
 static __always_inline uint8_t vgatext_entry_color(uint8_t fg, uint8_t bg)
 {
@@ -74,6 +77,8 @@ static int vgatext_clear(struct console *c)
 
 static int vgatext_init(struct console *c)
 {
+	uint8_t val;
+
 	c->cols = VGATEXT_WIDTH;
 	c->rows = VGATEXT_HEIGHT;
 	c->cursor_x = 0;
@@ -85,6 +90,10 @@ static int vgatext_init(struct console *c)
 	c->default_color = vgatext_entry_color(c->fg_color, c->bg_color);
 	c->color = c->default_color;
 	mutex_init(&c->lock);
+
+	/* set bit 0 of the misc output register to map port 0x3D4 */
+	val = inb(VGA_MISC_OUTPUT);
+	outb(VGA_MISC_OUTPUT, val | 1);
 
 	return vgatext_clear(c);
 }
@@ -123,6 +132,16 @@ static __always_inline void vgatext_putchar(struct console *c, int ch)
 		vgatext_nextrow(c);
 }
 
+static void vgatext_update_cursor(int x, int y)
+{
+	int pos = y * VGATEXT_WIDTH + x;
+
+	outb(0x3D4, 14);
+	outb(0x3D5, (pos >> 8) & 0xFF);
+	outb(0x3D4, 15);
+	outb(0x3D5, pos & 0xFF);
+}
+
 /*
  * vgatext_write:
  * Write `n` characters from `buf` to the VGA text buffer.
@@ -159,6 +178,7 @@ static int vgatext_write(struct console *c, const char *buf, size_t n)
 		++buf;
 	}
 	mutex_unlock(&c->lock);
+	vgatext_update_cursor(c->cursor_x, c->cursor_y);
 
 	return written;
 }
@@ -189,6 +209,15 @@ static int vgatext_set_color(struct console *c, int fg, int bg)
 	return 0;
 }
 
+static int vgatext_move_cursor(struct console *c, int x, int y)
+{
+	c->cursor_x = x;
+	c->cursor_y = y;
+	vgatext_update_cursor(c->cursor_x, c->cursor_y);
+
+	return 0;
+}
+
 /* vgatext_dummy: dummy function for unimplemented operations */
 int vgatext_dummy()
 {
@@ -201,5 +230,6 @@ static struct consfn vgatext_fn = {
 	.write          = vgatext_write,
 	.clear          = vgatext_clear,
 	.set_color      = vgatext_set_color,
+	.move_cursor    = vgatext_move_cursor,
 	.destroy        = vgatext_dummy
 };
