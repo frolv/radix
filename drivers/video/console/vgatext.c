@@ -108,15 +108,17 @@ static __always_inline void vgatext_put(struct console *c, int ch, int x, int y)
 	screenbuf[y * VGATEXT_WIDTH + x] = vgatext_entry(ch, c->color);
 }
 
-/* vgatext_nextrow: advance to the next row, "scrolling" if necessary */
+/* vgatext_nextrow: advance to the next row, scrolling if necessary */
 static void vgatext_nextrow(struct console *c)
 {
+	uint16_t *screenbuf;
 	int x;
 
 	c->cursor_x = 0;
+	screenbuf = c->screenbuf;
 	if (c->cursor_y == VGATEXT_HEIGHT - 1) {
 		/* move each row up by one, discarding the first */
-		memmove(c->screenbuf, c->screenbuf + VGATEXT_WIDTH,
+		memmove(screenbuf, screenbuf + VGATEXT_WIDTH,
 		        c->cursor_y * VGATEXT_WIDTH * sizeof (uint16_t));
 		/* clear the final row */
 		for (x = 0; x < VGATEXT_WIDTH; ++x)
