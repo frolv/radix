@@ -21,6 +21,7 @@
 #include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/slab.h>
 
@@ -60,8 +61,6 @@ void slab_init(void)
 	grow_cache(&cache_cache);
 
 	kmalloc_init();
-	BOOT_OK_MSG("Memory allocators initialized (%llu MiB total)\n",
-	            totalmem() / MIB(1));
 }
 
 static struct slab_desc *init_slab(struct slab_cache *cache);
@@ -180,7 +179,9 @@ void free_cache(struct slab_cache *cache, void *obj)
 
 	s = virt_to_page(obj)->slab_desc;
 	if (unlikely((uintptr_t)s == PAGE_UNINIT_MAGIC)) {
-		/* klog("attempt to free non-allocated address %lu\n", obj); */
+		klog(KLOG_ERROR,
+		     "free_cache: attempt to free non-allocated address %p\n",
+		     obj);
 		return;
 	}
 
@@ -495,7 +496,9 @@ void kfree(void *ptr)
 
 	cache = virt_to_page(ptr)->slab_cache;
 	if (unlikely((uintptr_t)cache == PAGE_UNINIT_MAGIC)) {
-		/* klog("attempt to free non-allocated address %lu\n", ptr); */
+		klog(KLOG_ERROR,
+		     "kfree: attempt to free non-allocated address %p\n",
+		     ptr);
 		return;
 	}
 

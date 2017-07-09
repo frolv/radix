@@ -26,6 +26,7 @@
 #include <radix/cpu.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/vmm.h>
 
@@ -232,12 +233,16 @@ static void __madt_lapic(struct acpi_madt_local_apic *s)
 static void __madt_ioapic(struct acpi_madt_io_apic *s)
 {
 	apic_add_ioapic(s->id, s->address, s->global_irq_base);
+	klog(KLOG_INFO, "ACPI: I/O APIC id %d base %p irq_base %d",
+	     s->id, s->address, s->global_irq_base);
 }
 
 static void __madt_override(struct acpi_madt_interrupt_override *s)
 {
 	apic_add_override(s->bus_source, s->irq_source,
                           s->global_irq, s->flags);
+	klog(KLOG_INFO, "ACPI: IRQ override bus %d source %d irq %d",
+	     s->bus_source, s->irq_source, s->global_irq);
 }
 
 /*
@@ -254,6 +259,7 @@ int apic_parse_madt(void)
 		return 1;
 
 	lapic_phys_base = madt->address;
+	klog(KLOG_INFO, "APCI: local APIC %p", lapic_phys_base);
 
 	p = (unsigned char *)(madt + 1);
 	end = (unsigned char *)madt + madt->header.length;
@@ -334,6 +340,8 @@ static void __mp_bus(struct mp_table_bus *s)
 
 static void __mp_ioapic(struct mp_table_io_apic *s)
 {
+	klog(KLOG_INFO, "MPS: I/O APIC id %d base %p irq_base %d",
+	     s->ioapic_id, s->ioapic_base, curr_ioapic_irq_base);
 	apic_add_ioapic(s->ioapic_id, s->ioapic_base, curr_ioapic_irq_base);
 }
 
@@ -358,6 +366,9 @@ int apic_parse_mp_tables(void)
 	mp = find_mp_config_table();
 	if (!mp)
 		return 1;
+
+	lapic_phys_base = mp->lapic_base;
+	klog(KLOG_INFO, "MPS: local APIC %p", lapic_phys_base);
 
 	s = (uint8_t *)(mp + 1);
 	for (i = 0; i < mp->entry_count; ++i) {

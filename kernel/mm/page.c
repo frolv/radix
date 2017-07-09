@@ -18,6 +18,7 @@
 
 #include <radix/bits.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/vmm.h>
 
@@ -337,6 +338,21 @@ static struct memory_map *mmap = NULL;
 
 #define make64(low, high) ((uint64_t)(high) << 32 | (low))
 
+static void klog_mmap(struct memory_map *mmap)
+{
+	uint64_t base, len;
+
+	if (!mmap->type)
+		return;
+
+	base = make64(mmap->base_addr_low, mmap->base_addr_high);
+	len = make64(mmap->length_low, mmap->length_high);
+
+	klog(KLOG_INFO, "physmem: 0x%012llX-0x%012llX %s",
+	     base, base + len,
+	     mmap->type == 1 ? "available" : "reserved");
+}
+
 /*
  * next_phys_region:
  * Find the next physical region in the multiboot memory map.
@@ -353,10 +369,13 @@ static int next_phys_region(struct multiboot_info *mbt,
 	else
 		mmap = NEXT_MAP(mmap);
 
+	klog_mmap(mmap);
+
 	/* only consider available RAM */
 	while (mmap->type != 1 && IN_RANGE(mmap, mbt)) {
 		memsize += make64(mmap->length_low, mmap->length_high);
 		mmap = NEXT_MAP(mmap);
+		klog_mmap(mmap);
 	}
 
 	if (!IN_RANGE(mmap, mbt))

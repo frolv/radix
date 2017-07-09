@@ -23,6 +23,7 @@
 #include <radix/asm/bios.h>
 #include <radix/bootmsg.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/vmm.h>
 
@@ -67,6 +68,7 @@ void acpi_init(void)
 		return;
 	}
 
+	klog(KLOG_INFO, "ACPI: RSDP %p", virt_to_phys(rsdp));
 	acpi_virt_base = (addr_t)vmalloc(8 * PAGE_SIZE);
 
 	if (rsdp->revision == 2) {
@@ -175,6 +177,8 @@ static void rsdt_setup(addr_t rsdt_addr)
 	addr_t sdt_page;
 	int checksum, unmap;
 
+	klog(KLOG_INFO, "ACPI: RSDT %p", rsdt_addr);
+
 	unmap = 0;
 	rsdt = (struct rsdt *)((rsdt_addr & (PAGE_SIZE - 1))
 	                       + acpi_virt_base);
@@ -212,6 +216,8 @@ static void xsdt_setup(addr_t xsdt_addr)
 	struct xsdt *xsdt;
 	addr_t sdt_page;
 	int checksum, unmap;
+
+	klog(KLOG_INFO, "ACPI: XSDT %p", xsdt_addr);
 
 	unmap = 0;
 	xsdt = (struct xsdt *)((xsdt_addr & (PAGE_SIZE - 1))

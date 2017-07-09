@@ -20,6 +20,7 @@
 #include <radix/bootmsg.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/percpu.h>
 #include <radix/vmm.h>
@@ -81,13 +82,14 @@ void percpu_area_setup(void)
 	 */
 
 	if (percpu_size < PAGE_SIZE) {
-		BOOT_OK_MSG("percpu: allocated %uB for %d CPUs (%uB per CPU)\n",
-			    percpu_size * MAX_CPUS, MAX_CPUS, percpu_size);
+		klog(KLOG_INFO,
+		     "percpu: allocated %uB for %d CPUs (%uB per CPU)\n",
+		     percpu_size * MAX_CPUS, MAX_CPUS, percpu_size);
 	} else {
-		BOOT_OK_MSG("percpu: allocated %u pages for %d CPUs "
-			    "(%u page%s per CPU)\n",
-			    percpu_size / PAGE_SIZE * MAX_CPUS,
-			    MAX_CPUS, percpu_size / PAGE_SIZE,
-			    percpu_size > PAGE_SIZE ? "s" : "");
+		klog(KLOG_INFO, "percpu: allocated %u pages for %d CPUs "
+		     "(%u page%s per CPU)\n",
+		     percpu_size / PAGE_SIZE * MAX_CPUS,
+		     MAX_CPUS, percpu_size / PAGE_SIZE,
+		     percpu_size > PAGE_SIZE ? "s" : "");
 	}
 }

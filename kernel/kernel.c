@@ -21,10 +21,12 @@
 #include <radix/cpu.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/multiboot.h>
 #include <radix/percpu.h>
 #include <radix/tasking.h>
+#include <radix/version.h>
 #include <radix/vmm.h>
 
 #include "mm/slab.h"
@@ -32,7 +34,7 @@
 /* kernel entry point */
 int kmain(struct multiboot_info *mbt)
 {
-	BOOT_OK_MSG("Kernel loaded\n");
+	klog(KLOG_INFO, KERNEL_NAME " " KERNEL_VERSION);
 
 	buddy_init(mbt);
 	slab_init();
@@ -48,7 +50,6 @@ int kmain(struct multiboot_info *mbt)
 
 	extern void kbd_install(void);
 	kbd_install();
-	printf("\nWelcome to radix\n");
 
 	while (1)
 		;
