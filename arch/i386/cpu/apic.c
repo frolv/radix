@@ -228,6 +228,8 @@ static void apic_add_override(int bus, int src, int irq, unsigned int flags)
 static void __madt_lapic(struct acpi_madt_local_apic *s)
 {
 	apic_add_lapic(!!(s->flags & 1));
+	klog(KLOG_INFO, "APIC: LAPIC id %d %sactive",
+	     s->apic_id, s->flags & 1 ? "" : "in");
 }
 
 static void __madt_ioapic(struct acpi_madt_io_apic *s)
@@ -325,6 +327,8 @@ struct mp_config_table *find_mp_config_table(void)
 static void __mp_processor(struct mp_table_processor *s)
 {
 	apic_add_lapic(!!(s->cpu_flags & MP_PROCESSOR_ACTIVE));
+	klog(KLOG_INFO, "APIC: LAPIC id %d %sactive",
+	     s->apic_id, s->cpu_flags & MP_PROCESSOR_ACTIVE ? "" : "in");
 }
 
 static void __mp_bus(struct mp_table_bus *s)
