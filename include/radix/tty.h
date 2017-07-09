@@ -23,7 +23,6 @@
 
 #define TTY_TAB_STOP 8
 
-void tty_init(void);
 void tty_putchar(int c);
 void tty_write(const char *data, size_t size);
 void tty_flush(void);
