@@ -19,6 +19,7 @@
 #include <radix/compiler.h>
 #include <radix/console.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 
 #include <rlibc/string.h>
@@ -47,6 +48,7 @@ static struct consfn vgatext_fn;
 void vgatext_register(void)
 {
 	console_register(&vgatext_console, "vgatext", &vgatext_fn, 1);
+	klog_set_console(&vgatext_console);
 }
 
 /* vgatext_clear: clear the VGA text buffer */
