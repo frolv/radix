@@ -38,6 +38,10 @@ void *memmove(void *dst, const void *src, size_t n);
 void *memset(void *s, int c, size_t n);
 #endif
 
+#ifndef __ARCH_HAS_MEMCHR
+void *memchr(const void *s, int c, size_t n);
+#endif
+
 size_t strlen(const char *s);
 int strcmp(const char *s1, const char *s2);
 int strncmp(const char *s1, const char *s2, size_t n);
