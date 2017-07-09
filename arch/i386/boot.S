@@ -132,8 +132,7 @@ higher_half_start:
 	call bsp_init_early
 	sti
 
-	# Intitialize the TTY.
-	call tty_init
+	call vgatext_register
 
 kernel_start:
 	# ebx contains the physical address of the multiboot_info
