@@ -29,7 +29,7 @@
 #define VGATEXT_HEIGHT  25
 #define VGATEXT_PHYS    0x000B8000
 #define VGATEXT_BUFFER  (phys_to_virt(VGATEXT_PHYS))
-#define VGATEXT_TABSTOP 2
+#define VGATEXT_TABSTOP 8
 #define VGATEXT_NORMAL  0
 #define VGATEXT_BOLD    (1 << 3)
 
