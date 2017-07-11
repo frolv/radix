@@ -29,7 +29,7 @@
 #define VGATEXT_HEIGHT  25
 #define VGATEXT_PHYS    0x000B8000
 #define VGATEXT_BUFFER  (phys_to_virt(VGATEXT_PHYS))
-#define VGATEXT_TABSTOP 2
+#define VGATEXT_TABSTOP 8
 #define VGATEXT_NORMAL  0
 #define VGATEXT_BOLD    (1 << 3)
 
@@ -165,6 +165,7 @@ static int vgatext_write(struct console *c, const char *buf, size_t n)
 			} else {
 				--c->cursor_x;
 			}
+			vgatext_put(c, ' ', c->cursor_x, c->cursor_y);
 			break;
 		case '\n':
 			vgatext_nextrow(c);
