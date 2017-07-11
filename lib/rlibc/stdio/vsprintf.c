@@ -90,6 +90,9 @@ static int write_str(char *str, const char *s, struct printf_format *p)
 	int len, pad;
 
 	len = strlen(s);
+	if (p->precision && p->precision < len)
+		len = p->precision;
+
 	if ((pad = p->width - len) > 0) {
 		while (pad--)
 			*str++ = ' ';
