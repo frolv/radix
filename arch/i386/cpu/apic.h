@@ -19,7 +19,12 @@
 #ifndef ARCH_I386_APIC_H
 #define ARCH_I386_APIC_H
 
+#include <radix/mm_types.h>
+
 #define SPURIOUS_INTERRUPT 0xFF
+
+extern addr_t lapic_phys_base;
+extern addr_t lapic_virt_base;
 
 int bsp_apic_init(void);
 

@@ -138,4 +138,6 @@ struct mp_table_local_interrupt {
 #define MP_BUS_SIGNATURE_VME                    "VME   "
 #define MP_BUS_SIGNATURE_XPRESS                 "XPRESS"
 
+int parse_mp_tables(void);
+
 #endif /* ARCH_I386_RADIX_MPS_H */
