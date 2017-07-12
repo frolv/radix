@@ -59,4 +59,25 @@ static __always_inline void *memcpy(void *dst, const void *src, size_t n)
 	return dst;
 }
 
+#define __ARCH_HAS_MEMCHR
+static __always_inline void *memchr(void *s, int c, size_t n)
+{
+	void *ret;
+	int a;
+
+	if (!n)
+		return NULL;
+
+	asm volatile("repne\n\t"
+	             "scasb\n\t"
+	             "je 1f\n\t"
+	             "movl $1, %0\n"
+	             "1:\tdecl %0"
+	             : "=D"(ret), "=&c"(a)
+	             : "a"(c), "0"(s), "1"(n)
+	             : "memory");
+
+	return ret;
+}
+
 #endif /* ARCH_I386_RLIBC_STRING_H */
