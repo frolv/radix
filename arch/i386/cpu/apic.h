@@ -26,6 +26,15 @@
 extern addr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
 
+struct ioapic {
+	uint32_t id;
+	uint32_t irq_base;
+	uint32_t irq_count;
+	volatile uint32_t *base;
+};
+
 int bsp_apic_init(void);
+
+struct ioapic *apic_add_ioapic(int id, addr_t phys_addr, int irq_base);
 
 #endif /* ARCH_I386_APIC_H */

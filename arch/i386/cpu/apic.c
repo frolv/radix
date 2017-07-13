@@ -60,12 +60,6 @@ static uint16_t isa_irq_bus = 0xFFFF;
 #define MAX_IOAPICS 8
 #endif
 
-struct ioapic {
-	uint32_t id;
-	uint32_t irq_base;
-	uint32_t irq_count;
-	volatile uint32_t *base;
-};
 static struct ioapic ioapic_list[MAX_IOAPICS];
 static unsigned int ioapics_available;
 
@@ -179,14 +173,14 @@ static void apic_add_lapic(int valid_cpu)
 	cpus_available += valid_cpu;
 }
 
-static void apic_add_ioapic(int id, addr_t phys_addr, int irq_base)
+struct ioapic *apic_add_ioapic(int id, addr_t phys_addr, int irq_base)
 {
 	struct ioapic *ioapic;
 	uint32_t irq_count;
 	addr_t base;
 
 	if (ioapics_available == MAX_IOAPICS)
-		return;
+		return NULL;
 
 	base = (addr_t)vmalloc(PAGE_SIZE);
 	map_page_kernel(base, phys_addr, PROT_WRITE, PAGE_CP_UNCACHEABLE);
@@ -199,6 +193,8 @@ static void apic_add_ioapic(int id, addr_t phys_addr, int irq_base)
 	irq_count = ioapic_reg_read(ioapic, IOAPIC_REG_VER);
 	irq_count = ((irq_count >> 16) & 0xFF) + 1;
 	ioapic->irq_count = irq_count;
+
+	return ioapic;
 }
 
 static void apic_add_override(int bus, int src, int irq, unsigned int flags)
