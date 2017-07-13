@@ -18,8 +18,10 @@
 
 #include <radix/asm/mps.h>
 #include <radix/asm/bios.h>
+#include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/mm.h>
+#include <radix/slab.h>
 
 #include <rlibc/string.h>
 
@@ -27,6 +29,18 @@
 
 /* mp table i/o apic entries don't store irq base, so we need to keep track */
 static int curr_ioapic_irq_base = 0;
+
+enum bus_type {
+	BUS_TYPE_ISA,
+	BUS_TYPE_EISA,
+	BUS_TYPE_PCI,
+	BUS_TYPE_UNKNOWN,
+	BUS_TYPE_NONE
+};
+
+/* array of all buses in the system */
+static uint8_t *mp_buses;
+static int mp_max_bus_id = 0;
 
 static void __mp_processor(struct mp_table_processor *s)
 {
@@ -36,6 +50,15 @@ static void __mp_processor(struct mp_table_processor *s)
 
 static void __mp_bus(struct mp_table_bus *s)
 {
+	if (memcmp(s->bus_type, MP_BUS_SIGNATURE_ISA, 6) == 0)
+		mp_buses[s->bus_id] = BUS_TYPE_ISA;
+	else if (memcmp(s->bus_type, MP_BUS_SIGNATURE_EISA, 6) == 0)
+		mp_buses[s->bus_id] = BUS_TYPE_EISA;
+	else if (memcmp(s->bus_type, MP_BUS_SIGNATURE_PCI, 6) == 0)
+		mp_buses[s->bus_id] = BUS_TYPE_PCI;
+	else
+		mp_buses[s->bus_id] = BUS_TYPE_UNKNOWN;
+
 	klog(KLOG_INFO, "MPS: bus id %d signature %.6s",
 	     s->bus_id, s->bus_type);
 }
@@ -123,6 +146,18 @@ static void mp_walk(struct mp_config_table *mp, void (*entry_handler)(void *))
 	}
 }
 
+static void mp_count_handler(void *entry)
+{
+	struct mp_table_bus *bus;
+
+	switch (*(uint8_t *)entry) {
+	case MP_TABLE_BUS:
+		bus = entry;
+		mp_max_bus_id = max(mp_max_bus_id, bus->bus_id);
+		break;
+	}
+}
+
 static void mp_parse_handler(void *entry)
 {
 	switch (*(uint8_t *)entry) {
@@ -147,6 +182,7 @@ static void mp_parse_handler(void *entry)
 int parse_mp_tables(void)
 {
 	struct mp_config_table *mp;
+	int i;
 
 	mp = find_mp_config_table();
 	if (!mp)
@@ -154,6 +190,12 @@ int parse_mp_tables(void)
 
 	lapic_phys_base = mp->lapic_base;
 	klog(KLOG_INFO, "MPS: local APIC %p", lapic_phys_base);
+
+	/* count buses in the system */
+	mp_walk(mp, mp_count_handler);
+	mp_buses = kmalloc((mp_max_bus_id + 1) * sizeof *mp_buses);
+	for (i = 0; i <= mp_max_bus_id; ++i)
+		mp_buses[i] = BUS_TYPE_NONE;
 
 	mp_walk(mp, mp_parse_handler);
 
