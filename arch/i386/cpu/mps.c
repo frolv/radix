@@ -54,7 +54,7 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 	     s->source_bus, s->source_irq, s->dest_ioapic, s->dest_intin);
 }
 
-static void __mp_local_int(struct mp_table_local_interrupt *s)
+static void __mp_local_interrupt(struct mp_table_local_interrupt *s)
 {
 	/* TODO */
 	(void)s;
@@ -95,11 +95,58 @@ static struct mp_config_table *find_mp_config_table(void)
 	return byte_sum(mp, mp->length) == 0 ? mp : NULL;
 }
 
+/*
+ * mp_walk:
+ * Iterate over all entries in the MP config table pointed to by `mp`,
+ * calling `entry_handler` on each.
+ */
+static void mp_walk(struct mp_config_table *mp, void (*entry_handler)(void *))
+{
+	uint8_t *s;
+	size_t i;
+
+	s = (uint8_t *)(mp + 1);
+	for (i = 0; i < mp->entry_count; ++i) {
+		entry_handler(s);
+
+		switch (*s) {
+		case MP_TABLE_PROCESSOR:
+			s += 20;
+			break;
+		case MP_TABLE_BUS:
+		case MP_TABLE_IO_APIC:
+		case MP_TABLE_IO_INTERRUPT:
+		case MP_TABLE_LOCAL_INTERRUPT:
+			s += 8;
+			break;
+		}
+	}
+}
+
+static void mp_parse_handler(void *entry)
+{
+	switch (*(uint8_t *)entry) {
+	case MP_TABLE_PROCESSOR:
+		__mp_processor((struct mp_table_processor *)entry);
+		break;
+	case MP_TABLE_BUS:
+		__mp_bus((struct mp_table_bus *)entry);
+		break;
+	case MP_TABLE_IO_APIC:
+		__mp_ioapic((struct mp_table_io_apic *)entry);
+		break;
+	case MP_TABLE_IO_INTERRUPT:
+		__mp_io_interrupt((struct mp_table_io_interrupt *)entry);
+		break;
+	case MP_TABLE_LOCAL_INTERRUPT:
+		__mp_local_interrupt((struct mp_table_local_interrupt *)entry);
+		break;
+	}
+}
+
 int parse_mp_tables(void)
 {
 	struct mp_config_table *mp;
-	uint8_t *s;
-	size_t i;
 
 	mp = find_mp_config_table();
 	if (!mp)
@@ -108,28 +155,7 @@ int parse_mp_tables(void)
 	lapic_phys_base = mp->lapic_base;
 	klog(KLOG_INFO, "MPS: local APIC %p", lapic_phys_base);
 
-	s = (uint8_t *)(mp + 1);
-	for (i = 0; i < mp->entry_count; ++i) {
-		switch (*s) {
-		case MP_TABLE_PROCESSOR:
-			__mp_processor((struct mp_table_processor *)s);
-			s += 20;
-			continue;
-		case MP_TABLE_BUS:
-			__mp_bus((struct mp_table_bus *)s);
-			break;
-		case MP_TABLE_IO_APIC:
-			__mp_ioapic((struct mp_table_io_apic *)s);
-			break;
-		case MP_TABLE_IO_INTERRUPT:
-			__mp_io_interrupt((struct mp_table_io_interrupt *)s);
-			break;
-		case MP_TABLE_LOCAL_INTERRUPT:
-			__mp_local_int((struct mp_table_local_interrupt *)s);
-			break;
-		}
-		s += 8;
-	}
+	mp_walk(mp, mp_parse_handler);
 
 	return 0;
 }
