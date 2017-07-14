@@ -68,7 +68,7 @@ static int get_ansi_command(char *s, size_t n)
 		--n;
 	}
 
-	return (isdigit(*s) || *s == ';') ? '\0' : *s;
+	return n ? *s : '\0';
 }
 
 /* set_mode: set VGA buffer colors from ANSI graphics mode */
