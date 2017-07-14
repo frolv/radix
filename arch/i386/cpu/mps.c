@@ -27,9 +27,6 @@
 
 #include "apic.h"
 
-/* mp table i/o apic entries don't store irq base, so we need to keep track */
-static int curr_ioapic_irq_base = 0;
-
 enum bus_type {
 	BUS_TYPE_ISA,
 	BUS_TYPE_EISA,
@@ -63,16 +60,29 @@ static void __mp_bus(struct mp_table_bus *s)
 	     s->bus_id, s->bus_type);
 }
 
+/* mp table i/o apic entries don't store irq base, so we need to keep track */
+static int curr_ioapic_irq_base = 0;
+
 static void __mp_ioapic(struct mp_table_io_apic *s)
 {
+	struct ioapic *ioapic;
+
 	klog(KLOG_INFO, "MPS: I/O APIC id %d base %p irq_base %d",
 	     s->ioapic_id, s->ioapic_base, curr_ioapic_irq_base);
+
+	ioapic = apic_add_ioapic(s->ioapic_id,
+	                         s->ioapic_base,
+	                         curr_ioapic_irq_base);
+	if (!ioapic) {
+		klog(KLOG_WARNING, "MPS: "
+		     "maximum supported number of I/O APICs reached, ignoring");
+	} else {
+		curr_ioapic_irq_base += ioapic->irq_count;
+	}
 }
 
 static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 {
-	static struct ioapic *ioapic;
-
 	klog(KLOG_INFO, "MPS: I/O INT bus %d int %d ioapic %d pin %d",
 	     s->source_bus, s->source_irq, s->dest_ioapic, s->dest_intin);
 }
