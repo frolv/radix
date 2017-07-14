@@ -35,13 +35,15 @@ enum bus_type {
 	BUS_TYPE_NONE
 };
 
+#define MPS "MPS: "
+
 /* array of all buses in the system */
 static uint8_t *mp_buses;
 static int mp_max_bus_id = 0;
 
 static void __mp_processor(struct mp_table_processor *s)
 {
-	klog(KLOG_INFO, "MPS: LAPIC id %d %sactive",
+	klog(KLOG_INFO, MPS "LAPIC id %d %sactive",
 	     s->apic_id, s->cpu_flags & MP_PROCESSOR_ACTIVE ? "" : "in");
 }
 
@@ -56,7 +58,7 @@ static void __mp_bus(struct mp_table_bus *s)
 	else
 		mp_buses[s->bus_id] = BUS_TYPE_UNKNOWN;
 
-	klog(KLOG_INFO, "MPS: bus id %d signature %.6s",
+	klog(KLOG_INFO, MPS "bus id %d signature %.6s",
 	     s->bus_id, s->bus_type);
 }
 
@@ -67,14 +69,14 @@ static void __mp_ioapic(struct mp_table_io_apic *s)
 {
 	struct ioapic *ioapic;
 
-	klog(KLOG_INFO, "MPS: I/O APIC id %d base %p irq_base %d",
+	klog(KLOG_INFO, MPS "I/O APIC id %d base %p irq_base %d",
 	     s->ioapic_id, s->ioapic_base, curr_ioapic_irq_base);
 
 	ioapic = apic_add_ioapic(s->ioapic_id,
 	                         s->ioapic_base,
 	                         curr_ioapic_irq_base);
 	if (!ioapic) {
-		klog(KLOG_WARNING, "MPS: "
+		klog(KLOG_WARNING, MPS
 		     "maximum supported number of I/O APICs reached, ignoring");
 	} else {
 		curr_ioapic_irq_base += ioapic->irq_count;
@@ -83,7 +85,7 @@ static void __mp_ioapic(struct mp_table_io_apic *s)
 
 static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 {
-	klog(KLOG_INFO, "MPS: I/O INT bus %d int %d ioapic %d pin %d",
+	klog(KLOG_INFO, MPS "I/O INT bus %d int %d ioapic %d pin %d",
 	     s->source_bus, s->source_irq, s->dest_ioapic, s->dest_intin);
 }
 
@@ -199,7 +201,7 @@ int parse_mp_tables(void)
 		return 1;
 
 	lapic_phys_base = mp->lapic_base;
-	klog(KLOG_INFO, "MPS: local APIC %p", lapic_phys_base);
+	klog(KLOG_INFO, MPS "local APIC %p", lapic_phys_base);
 
 	/* count buses in the system */
 	mp_walk(mp, mp_count_handler);
