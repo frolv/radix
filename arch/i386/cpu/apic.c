@@ -24,6 +24,7 @@
 
 #include <radix/cpu.h>
 #include <radix/error.h>
+#include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/mm.h>
@@ -179,7 +180,7 @@ void apic_init(void)
 {
 	read_apic_id();
 	apic_enable(lapic_phys_base);
-	apic_reg_write(0xF0, 0x100 | SPURIOUS_INTERRUPT);
+	apic_reg_write(0xF0, 0x100 | IRQ_SPURIOUS);
 }
 
 static void apic_add_lapic(int valid_cpu)
@@ -231,6 +232,36 @@ struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 	}
 
 	return ioapic;
+}
+
+static int __ioapic_set_special(struct ioapic *ioapic,
+                                unsigned int pin,
+                                unsigned int irq)
+{
+	if (pin >= ioapic->irq_count)
+		return EINVAL;
+
+	ioapic->pins[pin].bus_type = BUS_TYPE_UNKNOWN;
+	ioapic->pins[pin].irq = irq;
+	ioapic->pins[pin].flags &= ~APIC_INT_MASKED;
+	ioapic->pins[pin].flags |= APIC_INT_ACTIVE_HIGH | APIC_INT_EDGE_TRIGGER;
+
+	return 0;
+}
+
+int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin)
+{
+	return __ioapic_set_special(ioapic, pin, IRQ_NMI);
+}
+
+int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin)
+{
+	return __ioapic_set_special(ioapic, pin, IRQ_SMI);
+}
+
+int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin)
+{
+	return __ioapic_set_special(ioapic, pin, IRQ_EXTINT);
 }
 
 static void apic_add_override(int bus, int src, int irq, unsigned int flags)

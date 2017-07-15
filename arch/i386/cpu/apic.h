@@ -21,7 +21,10 @@
 
 #include <radix/mm_types.h>
 
-#define SPURIOUS_INTERRUPT 0xFF
+#define IRQ_NMI      0xE0
+#define IRQ_SMI      0xE1
+#define IRQ_EXTINT   0xE2
+#define IRQ_SPURIOUS 0xFF
 
 extern addr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
@@ -50,5 +53,9 @@ int bsp_apic_init(void);
 struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base);
 struct ioapic *ioapic_from_id(unsigned int id);
 struct ioapic *ioapic_from_vector(unsigned int vec);
+
+int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin);
+int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin);
+int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin);
 
 #endif /* ARCH_I386_APIC_H */
