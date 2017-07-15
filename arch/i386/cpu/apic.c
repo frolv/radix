@@ -218,10 +218,12 @@ struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 		ioapic->pins[i].irq = irq_base + i;
 
 		/*
-		 * Assume that the first 16 interrupts are ISA IRQs
+		 * Assume that IRQ 0 is an EXTINT, 1-15 are ISA IRQs
 		 * and the rest are PCI.
 		 */
-		if (ioapic->pins[i].irq < ISA_IRQ_COUNT) {
+		if (ioapic->pins[i].irq == 0) {
+			ioapic_set_extint(ioapic, i);
+		} else if (ioapic->pins[i].irq < ISA_IRQ_COUNT) {
 			ioapic->pins[i].bus_type = BUS_TYPE_ISA;
 			ioapic->pins[i].flags = APIC_INT_ACTIVE_HIGH |
 				APIC_INT_EDGE_TRIGGER | APIC_INT_MASKED;
