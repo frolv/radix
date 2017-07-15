@@ -36,22 +36,47 @@ static void __tty_flush_unlocked(void);
 /* tty_putchar: write character c at current tty position, and increment pos */
 void tty_putchar(int c)
 {
-	/* flush the tty buffer if it is full */
-	mutex_lock(&flush_lock);
-	if (tty_pos - tty_buf == TTY_BUFSIZE)
-		__tty_flush_unlocked();
-	mutex_unlock(&flush_lock);
+	char ch = c;
 
-	*tty_pos++ = c;
-	if (c == '\n')
-		tty_flush();
+	tty_write(&ch, 1);
 }
 
 /* tty_write: write size bytes of string data to the tty */
 void tty_write(const char *data, size_t size)
 {
-	while (size--)
-		tty_putchar(*data++);
+	size_t space, write;
+	int flush;
+	char *s;
+
+	mutex_lock(&flush_lock);
+
+	do {
+		flush = 0;
+
+		space = TTY_BUFSIZE - (tty_pos - tty_buf);
+		if (size > space) {
+			write = space;
+			flush = 1;
+		} else {
+			write = size;
+		}
+
+		/* wrote a newline, flush buffer */
+		if ((s = memchr(data, '\n', write))) {
+			write = s - data + 1;
+			flush = 1;
+		}
+
+		memcpy(tty_pos, data, write);
+		tty_pos += write;
+		data += write;
+		size -= write;
+
+		if (flush)
+			__tty_flush_unlocked();
+	} while (size);
+
+	mutex_unlock(&flush_lock);
 }
 
 void tty_flush(void)
