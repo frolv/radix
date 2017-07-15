@@ -109,6 +109,11 @@ struct mp_table_local_interrupt {
 	uint8_t         dest_lintin;
 };
 
+#define MP_INTERRUPT_TYPE_INT                   0
+#define MP_INTERRUPT_TYPE_NMI                   1
+#define MP_INTERRUPT_TYPE_SMI                   2
+#define MP_INTERRUPT_TYPE_EXTINT                3
+
 #define MP_INTERRUPT_POLARITY_CONFORMS          0
 #define MP_INTERRUPT_POLARITY_ACTIVE_HIGH       1
 #define MP_INTERRUPT_POLARITY_RESERVED          2
