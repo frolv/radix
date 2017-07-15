@@ -36,6 +36,8 @@
 #define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
 #define IA32_APIC_BASE_ENABLE (1 << 11) /* XAPIC global enable */
 
+#define ACPI "ACPI: "
+
 static struct acpi_madt *madt;
 
 /* Local APIC base addresses */
@@ -216,14 +218,14 @@ static void apic_add_override(int bus, int src, int irq, unsigned int flags)
 static void __madt_lapic(struct acpi_madt_local_apic *s)
 {
 	apic_add_lapic(!!(s->flags & 1));
-	klog(KLOG_INFO, "ACPI: LAPIC id %d %sactive",
+	klog(KLOG_INFO, ACPI "LAPIC id %d %sactive",
 	     s->apic_id, s->flags & 1 ? "" : "in");
 }
 
 static void __madt_ioapic(struct acpi_madt_io_apic *s)
 {
 	apic_add_ioapic(s->id, s->address, s->global_irq_base);
-	klog(KLOG_INFO, "ACPI: I/O APIC id %d base %p irq_base %d",
+	klog(KLOG_INFO, ACPI "I/O APIC id %d base %p irq_base %d",
 	     s->id, s->address, s->global_irq_base);
 }
 
@@ -231,7 +233,7 @@ static void __madt_override(struct acpi_madt_interrupt_override *s)
 {
 	apic_add_override(s->bus_source, s->irq_source,
                           s->global_irq, s->flags);
-	klog(KLOG_INFO, "ACPI: IRQ override bus %d source %d irq %d",
+	klog(KLOG_INFO, ACPI "IRQ override bus %d source %d irq %d",
 	     s->bus_source, s->irq_source, s->global_irq);
 }
 
@@ -249,7 +251,7 @@ int apic_parse_madt(void)
 		return 1;
 
 	lapic_phys_base = madt->address;
-	klog(KLOG_INFO, "APCI: local APIC %p", lapic_phys_base);
+	klog(KLOG_INFO, ACPI "local APIC %p", lapic_phys_base);
 
 	p = (unsigned char *)(madt + 1);
 	end = (unsigned char *)madt + madt->header.length;
