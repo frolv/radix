@@ -23,6 +23,8 @@
 #error only <radix/irq.h> can be included directly
 #endif
 
+#define ISA_IRQ_COUNT           16
+
 #define __ARCH_SYSCALL_VECTOR   0x30
 
 #define __ARCH_TIMER_IRQ        0x0
