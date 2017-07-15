@@ -27,14 +27,6 @@
 
 #include "apic.h"
 
-enum bus_type {
-	BUS_TYPE_ISA,
-	BUS_TYPE_EISA,
-	BUS_TYPE_PCI,
-	BUS_TYPE_UNKNOWN,
-	BUS_TYPE_NONE
-};
-
 #define MPS "MPS: "
 
 /* array of all buses in the system */
@@ -72,9 +64,7 @@ static void __mp_ioapic(struct mp_table_io_apic *s)
 	klog(KLOG_INFO, MPS "I/O APIC id %d base %p irq_base %d",
 	     s->ioapic_id, s->ioapic_base, curr_ioapic_irq_base);
 
-	ioapic = apic_add_ioapic(s->ioapic_id,
-	                         s->ioapic_base,
-	                         curr_ioapic_irq_base);
+	ioapic = ioapic_add(s->ioapic_id, s->ioapic_base, curr_ioapic_irq_base);
 	if (!ioapic) {
 		klog(KLOG_WARNING, MPS
 		     "maximum supported number of I/O APICs reached, ignoring");
@@ -85,14 +75,77 @@ static void __mp_ioapic(struct mp_table_io_apic *s)
 
 static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 {
-	klog(KLOG_INFO, MPS "I/O INT bus %d int %d ioapic %d pin %d",
-	     s->source_bus, s->source_irq, s->dest_ioapic, s->dest_intin);
+	struct ioapic *ioapic;
+	const char *type;
+
+	if (s->dest_ioapic == 0xFF) {
+		/*
+		 * The interrupt is connected to the specified pin
+		 * on all I/O APICs in the system.
+		 * If only one I/O APIC exists, use it. Otherwise, ignore.
+		 */
+		if (ioapics_available != 1) {
+			klog(KLOG_ERROR, MPS "ignoring I/O INT for pin %d",
+			     s->dest_intin);
+			return;
+		}
+		ioapic = ioapic_from_vector(0);
+	} else {
+		ioapic = ioapic_from_id(s->dest_ioapic);
+	}
+
+	if (!ioapic) {
+		klog(KLOG_ERROR,
+		     MPS "ignoring I/O INT for non-existent I/O APIC %d",
+		     s->dest_ioapic);
+		return;
+	}
+
+	switch (s->interrupt_type) {
+	case MP_INTERRUPT_TYPE_INT:
+		type = "INT";
+		switch (mp_buses[s->source_bus]) {
+		case BUS_TYPE_ISA:
+		case BUS_TYPE_EISA:
+			break;
+		case BUS_TYPE_PCI:
+			break;
+		case BUS_TYPE_UNKNOWN:
+			break;
+		default:
+			klog(KLOG_ERROR,
+			     MPS "ignoring I/O INT from missing bus %d",
+			     s->source_bus);
+			return;
+		}
+		break;
+	case MP_INTERRUPT_TYPE_NMI:
+		ioapic_set_nmi(ioapic, s->dest_intin);
+		type = "NMI";
+		break;
+	case MP_INTERRUPT_TYPE_SMI:
+		ioapic_set_smi(ioapic, s->dest_intin);
+		type = "SMI";
+		break;
+	case MP_INTERRUPT_TYPE_EXTINT:
+		type = "EXTINT";
+		ioapic_set_extint(ioapic, s->dest_intin);
+		break;
+	default:
+		klog(KLOG_ERROR, MPS "ignoring unknown I/O INT type %d",
+		     s->interrupt_type);
+		return;
+	}
+
+	klog(KLOG_INFO, MPS "I/O INT bus %d int %d ioapic %d pin %d type %s",
+	     s->source_bus, s->source_irq, s->dest_ioapic, s->dest_intin, type);
 }
 
 static void __mp_local_interrupt(struct mp_table_local_interrupt *s)
 {
 	/* TODO */
-	(void)s;
+	klog(KLOG_INFO, MPS "Local INT bus %d int %d lapic %d pin %d",
+	     s->source_bus, s->source_irq, s->dest_lapic, s->dest_lintin);
 }
 
 static int byte_sum(void *start, size_t len)
