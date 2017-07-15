@@ -60,7 +60,7 @@ static __always_inline void *memcpy(void *dst, const void *src, size_t n)
 }
 
 #define __ARCH_HAS_MEMCHR
-static __always_inline void *memchr(void *s, int c, size_t n)
+static __always_inline void *memchr(const void *s, int c, size_t n)
 {
 	void *ret;
 	int a;
