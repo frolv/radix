@@ -27,6 +27,7 @@
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/mm.h>
+#include <radix/slab.h>
 #include <radix/vmm.h>
 
 #include "apic.h"
@@ -46,6 +47,17 @@ addr_t lapic_virt_base;
 
 static int cpus_available;
 
+struct ioapic_pin {
+	uint8_t         irq;
+	uint8_t         bus_type;
+	uint16_t        flags;
+};
+
+#define APIC_INT_ACTIVE_HIGH    (1 << 0)
+#define APIC_INT_EDGE_TRIGGER   (1 << 1)
+#define APIC_INT_MASKED         (1 << 2)
+
+/* TODO: remove this */
 /* Mapping between source and global IRQ */
 struct irq_map {
 	uint16_t bus;
@@ -175,11 +187,12 @@ static void apic_add_lapic(int valid_cpu)
 	cpus_available += valid_cpu;
 }
 
-struct ioapic *apic_add_ioapic(int id, addr_t phys_addr, int irq_base)
+struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 {
 	struct ioapic *ioapic;
 	uint32_t irq_count;
 	addr_t base;
+	size_t i;
 
 	if (ioapics_available == MAX_IOAPICS)
 		return NULL;
@@ -195,6 +208,27 @@ struct ioapic *apic_add_ioapic(int id, addr_t phys_addr, int irq_base)
 	irq_count = ioapic_reg_read(ioapic, IOAPIC_REG_VER);
 	irq_count = ((irq_count >> 16) & 0xFF) + 1;
 	ioapic->irq_count = irq_count;
+
+	ioapic->pins = kmalloc(irq_count * sizeof *ioapic->pins);
+	if (!ioapic->pins)
+		panic("failed to allocate memory for I/O APIC %d\n", id);
+
+	for (i = 0; i < irq_count; ++i) {
+		ioapic->pins[i].irq = irq_base + i;
+
+		/*
+		 * Assume that the first 16 interrupts are ISA IRQs
+		 * and the rest are PCI.
+		 */
+		if (ioapic->pins[i].irq < ISA_IRQ_COUNT) {
+			ioapic->pins[i].bus_type = BUS_TYPE_ISA;
+			ioapic->pins[i].flags = APIC_INT_ACTIVE_HIGH |
+				APIC_INT_EDGE_TRIGGER | APIC_INT_MASKED;
+		} else {
+			ioapic->pins[i].bus_type = BUS_TYPE_PCI;
+			ioapic->pins[i].flags = APIC_INT_MASKED;
+		}
+	}
 
 	return ioapic;
 }
@@ -224,7 +258,7 @@ static void __madt_lapic(struct acpi_madt_local_apic *s)
 
 static void __madt_ioapic(struct acpi_madt_io_apic *s)
 {
-	apic_add_ioapic(s->id, s->address, s->global_irq_base);
+	ioapic_add(s->id, s->address, s->global_irq_base);
 	klog(KLOG_INFO, ACPI "I/O APIC id %d base %p irq_base %d",
 	     s->id, s->address, s->global_irq_base);
 }

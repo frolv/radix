@@ -27,16 +27,27 @@ extern addr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
 extern unsigned int ioapics_available;
 
+struct ioapic_pin;
+
 struct ioapic {
 	uint32_t id;
 	uint32_t irq_base;
 	uint32_t irq_count;
 	volatile uint32_t *base;
+	struct ioapic_pin *pins;
+};
+
+enum bus_type {
+	BUS_TYPE_ISA,
+	BUS_TYPE_EISA,
+	BUS_TYPE_PCI,
+	BUS_TYPE_UNKNOWN,
+	BUS_TYPE_NONE
 };
 
 int bsp_apic_init(void);
 
-struct ioapic *apic_add_ioapic(int id, addr_t phys_addr, int irq_base);
+struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base);
 struct ioapic *ioapic_from_id(unsigned int id);
 struct ioapic *ioapic_from_vector(unsigned int vec);
 
