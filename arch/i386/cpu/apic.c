@@ -63,7 +63,7 @@ static uint16_t isa_irq_bus = 0xFFFF;
 #endif
 
 static struct ioapic ioapic_list[MAX_IOAPICS];
-static unsigned int ioapics_available;
+unsigned int ioapics_available;
 
 #define IOAPIC_IOREGSEL 0
 #define IOAPIC_IOREGWIN 4
@@ -86,7 +86,7 @@ static void ioapic_reg_write(struct ioapic *ioapic, int reg, uint32_t value)
 	ioapic->base[IOAPIC_IOREGWIN] = value;
 }
 
-static struct ioapic *ioapic_from_id(unsigned int id)
+struct ioapic *ioapic_from_id(unsigned int id)
 {
 	size_t i;
 
@@ -102,7 +102,7 @@ static struct ioapic *ioapic_from_id(unsigned int id)
  * ioapic_from_vector:
  * Return the I/O APIC that controls the given interrupt vector.
  */
-static struct ioapic *ioapic_from_vector(unsigned int vec)
+struct ioapic *ioapic_from_vector(unsigned int vec)
 {
 	size_t i;
 
