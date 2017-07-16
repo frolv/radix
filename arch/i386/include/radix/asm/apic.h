@@ -31,7 +31,19 @@ extern addr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
 extern unsigned int ioapics_available;
 
-struct ioapic_pin;
+enum bus_type {
+	BUS_TYPE_ISA,
+	BUS_TYPE_EISA,
+	BUS_TYPE_PCI,
+	BUS_TYPE_UNKNOWN,
+	BUS_TYPE_NONE
+};
+
+struct ioapic_pin {
+	uint8_t         irq;
+	uint8_t         bus_type;
+	uint16_t        flags;
+};
 
 struct ioapic {
 	uint32_t id;
@@ -41,13 +53,56 @@ struct ioapic {
 	struct ioapic_pin *pins;
 };
 
-enum bus_type {
-	BUS_TYPE_ISA,
-	BUS_TYPE_EISA,
-	BUS_TYPE_PCI,
-	BUS_TYPE_UNKNOWN,
-	BUS_TYPE_NONE
+
+#define APIC_LVT_LINT0          0
+#define APIC_LVT_LINT1          1
+#define APIC_LVT_TIMER          2
+#define APIC_LVT_ERROR          3
+#define APIC_LVT_PMC            4
+#define APIC_LVT_THERMAL        5
+#define APIC_LVT_CMCI           6
+#define APIC_LVT_MAX            APIC_LVT_CMCI
+
+enum lapic_timer_mode {
+	LAPIC_TIMER_ONESHOT,
+	LAPIC_TIMER_PERIODIC,
+	LAPIC_TIMER_DEADLINE,
+	LAPIC_TIMER_UNDEFINED
 };
+
+struct lapic_lvt {
+	uint8_t vector;
+	uint8_t flags;
+};
+
+struct lapic {
+	uint32_t                id;
+	uint8_t                 timer_mode;
+	uint8_t                 timer_div;
+	struct lapic_lvt	lvts[APIC_LVT_MAX + 1];
+};
+
+/* flags for ioapic_pin and lapic_lvt */
+#define APIC_INT_ACTIVE_HIGH    (1 << 0)
+#define APIC_INT_EDGE_TRIGGER   (1 << 1)
+#define APIC_INT_MASKED         (1 << 2)
+
+/* local APIC LVT delivery modes */
+#define APIC_LVT_MODE_FIXED     0
+#define APIC_LVT_MODE_SMI       2
+#define APIC_LVT_MODE_NMI       4
+#define APIC_LVT_MODE_INIT      5
+#define APIC_LVT_MODE_EXTINT    7
+
+#define APIC_LVT_MODE_SHIFT     4
+#define APIC_LVT_MODE_MASK      0x70
+
+#define APIC_LVT_MODE(flags) \
+	(((flags) & APIC_LVT_MODE_MASK) >> APIC_LVT_MODE_SHIFT)
+
+#define APIC_LVT_SET_MODE(flags, mode)                          \
+	(flags) = ((flags & ~APIC_LVT_MODE_MASK) |              \
+	           ((mode) << APIC_LVT_MODE_SHIFT))
 
 int bsp_apic_init(void);
 
