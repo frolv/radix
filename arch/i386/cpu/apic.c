@@ -266,6 +266,15 @@ int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin)
 	return __ioapic_set_special(ioapic, pin, IRQ_EXTINT);
 }
 
+int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type)
+{
+	if (pin >= ioapic->irq_count)
+		return EINVAL;
+
+	ioapic->pins[pin].bus_type = bus_type;
+	return 0;
+}
+
 static void apic_add_override(int bus, int src, int irq, unsigned int flags)
 {
 	size_t i;

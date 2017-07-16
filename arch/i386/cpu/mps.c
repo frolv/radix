@@ -109,8 +109,9 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 		case BUS_TYPE_EISA:
 			break;
 		case BUS_TYPE_PCI:
-			break;
 		case BUS_TYPE_UNKNOWN:
+			ioapic_set_bus(ioapic, s->dest_intin,
+			               mp_buses[s->source_bus]);
 			break;
 		default:
 			klog(KLOG_ERROR,

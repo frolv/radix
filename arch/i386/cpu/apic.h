@@ -57,5 +57,6 @@ struct ioapic *ioapic_from_vector(unsigned int vec);
 int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin);
 int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin);
 int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin);
+int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type);
 
 #endif /* ARCH_I386_APIC_H */
