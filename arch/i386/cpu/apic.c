@@ -24,23 +24,15 @@
 #include <radix/asm/msr.h>
 
 #include <radix/cpu.h>
+#include <radix/cpumask.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
+#include <radix/percpu.h>
 #include <radix/slab.h>
 #include <radix/vmm.h>
 
 #include "isr.h"
-
-struct ioapic_pin {
-	uint8_t         irq;
-	uint8_t         bus_type;
-	uint16_t        flags;
-};
-
-#define APIC_INT_ACTIVE_HIGH    (1 << 0)
-#define APIC_INT_EDGE_TRIGGER   (1 << 1)
-#define APIC_INT_MASKED         (1 << 2)
 
 #ifdef CONFIG_MAX_IOAPICS
 #define MAX_IOAPICS CONFIG_MAX_IOAPICS
@@ -67,9 +59,10 @@ unsigned int ioapics_available;
 addr_t lapic_phys_base;
 addr_t lapic_virt_base;
 
-static int cpus_available;
+static struct lapic lapic_list[MAX_CPUS];
+static unsigned int cpus_available;
 
-DEFINE_PER_CPU(int, apic_id);
+DEFINE_PER_CPU(struct lapic *, local_apic);
 
 
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
@@ -243,33 +236,46 @@ int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig)
 	return 0;
 }
 
-static void apic_enable(addr_t base)
+static void lapic_enable(addr_t base)
 {
 	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
 }
 
-static uint32_t apic_reg_read(uint16_t reg)
+static uint32_t lapic_reg_read(uint16_t reg)
 {
 	return *(uint32_t *)(lapic_virt_base + reg);
 }
 
-static void apic_reg_write(uint16_t reg, uint32_t value)
+static void lapic_reg_write(uint16_t reg, uint32_t value)
 {
 	*(uint32_t *)(lapic_virt_base + reg) = value;
 }
 
-/*
- * read_apic_id:
- * Read the local APIC ID of the executing processor
- * and save it in the `apic_id` per-CPU variable.
- */
-static void read_apic_id(void)
+struct lapic *lapic_from_id(unsigned int id)
 {
+	size_t i;
+
+	for (i = 0; i < cpus_available; ++i) {
+		if (lapic_list[i].id == id)
+			return lapic_list + i;
+	}
+
+	return NULL;
+}
+
+/*
+ * find_cpu_lapic:
+ * Read the local APIC ID of the executing processor,
+ * find the corresponding struct lapic, and save it.
+ */
+static void find_cpu_lapic(void)
+{
+	struct lapic *lapic;
 	uint32_t eax, edx;
-	int id;
+	int lapic_id;
 
 	if (!cpu_supports(CPUID_APIC)) {
-		this_cpu_write(apic_id, -1);
+		this_cpu_write(local_apic, NULL);
 		return;
 	}
 
@@ -278,24 +284,28 @@ static void read_apic_id(void)
 		rdmsr(IA32_APIC_BASE, &eax, &edx);
 		if (eax & IA32_APIC_BASE_EXTD) {
 			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
-			this_cpu_write(apic_id, eax);
-			return;
+			lapic_id = eax;
+			goto find_lapic;
 		}
 	}
 
-	id = apic_reg_read(0x20) >> 24;
-	this_cpu_write(apic_id, id);
+	lapic_id = lapic_reg_read(0x20) >> 24;
+
+find_lapic:
+	lapic = lapic_from_id(lapic_id);
+	this_cpu_write(local_apic, lapic);
 }
+
 
 /*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
  */
-void apic_init(void)
+void lapic_init(void)
 {
-	read_apic_id();
-	apic_enable(lapic_phys_base);
-	apic_reg_write(0xF0, 0x100 | IRQ_SPURIOUS);
+	find_cpu_lapic();
+	lapic_enable(lapic_phys_base);
+	lapic_reg_write(0xF0, 0x100 | IRQ_SPURIOUS);
 }
 
 int bsp_apic_init(void)
@@ -306,7 +316,7 @@ int bsp_apic_init(void)
 	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
 	map_page_kernel(lapic_virt_base, lapic_phys_base,
 	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
-	apic_init();
+	lapic_init();
 
 	return 0;
 }
