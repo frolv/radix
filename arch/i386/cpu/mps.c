@@ -242,17 +242,23 @@ static void mp_count_handler(void *entry)
 	}
 }
 
-static void mp_parse_handler(void *entry)
+static void mp_bus_ioapic_handler(void *entry)
 {
 	switch (*(uint8_t *)entry) {
-	case MP_TABLE_PROCESSOR:
-		__mp_processor((struct mp_table_processor *)entry);
-		break;
 	case MP_TABLE_BUS:
 		__mp_bus((struct mp_table_bus *)entry);
 		break;
 	case MP_TABLE_IO_APIC:
 		__mp_ioapic((struct mp_table_io_apic *)entry);
+		break;
+	}
+}
+
+static void mp_parse_handler(void *entry)
+{
+	switch (*(uint8_t *)entry) {
+	case MP_TABLE_PROCESSOR:
+		__mp_processor((struct mp_table_processor *)entry);
 		break;
 	case MP_TABLE_IO_INTERRUPT:
 		__mp_io_interrupt((struct mp_table_io_interrupt *)entry);
@@ -281,6 +287,8 @@ int parse_mp_tables(void)
 	for (i = 0; i <= mp_max_bus_id; ++i)
 		mp_buses[i] = BUS_TYPE_NONE;
 
+	/* parse buses and ioapics first as they're required for interrupts */
+	mp_walk(mp, mp_bus_ioapic_handler);
 	mp_walk(mp, mp_parse_handler);
 
 	return 0;
