@@ -58,17 +58,6 @@ struct ioapic_pin {
 #define APIC_INT_EDGE_TRIGGER   (1 << 1)
 #define APIC_INT_MASKED         (1 << 2)
 
-/* TODO: remove this */
-/* Mapping between source and global IRQ */
-struct irq_map {
-	uint16_t bus;
-	uint16_t source_irq;
-	uint16_t global_irq;
-	uint16_t flags;
-};
-static struct irq_map isa_irqs[ISA_IRQ_COUNT];
-static uint16_t isa_irq_bus = 0xFFFF;
-
 #ifdef CONFIG_MAX_IOAPICS
 #define MAX_IOAPICS CONFIG_MAX_IOAPICS
 #else
@@ -318,22 +307,6 @@ int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig)
 	return 0;
 }
 
-static void apic_add_override(int bus, int src, int irq, unsigned int flags)
-{
-	size_t i;
-
-	/* set bus for all ISA IRQs when first called */
-	if (isa_irq_bus == 0xFFFF) {
-		for (i = 0; i < ISA_IRQ_COUNT; ++i)
-			isa_irqs[i].bus = bus;
-		isa_irq_bus = bus;
-	}
-
-	isa_irqs[src].bus = bus;
-	isa_irqs[src].global_irq = irq;
-	isa_irqs[src].flags = flags;
-}
-
 static void __madt_lapic(struct acpi_madt_local_apic *s)
 {
 	apic_add_lapic(!!(s->flags & 1));
@@ -350,10 +323,25 @@ static void __madt_ioapic(struct acpi_madt_io_apic *s)
 
 static void __madt_override(struct acpi_madt_interrupt_override *s)
 {
-	apic_add_override(s->bus_source, s->irq_source,
-                          s->global_irq, s->flags);
-	klog(KLOG_INFO, ACPI "IRQ override bus %d source %d irq %d",
-	     s->bus_source, s->irq_source, s->global_irq);
+	struct ioapic *ioapic;
+	int pin, polarity, trigger;
+
+	ioapic = ioapic_from_vector(s->irq_source);
+	if (!ioapic)
+		klog(KLOG_ERROR, ACPI
+		     "ignoring ISA IRQ override for invalid vector %d",
+		     s->irq_source);
+
+	pin = s->global_irq - ioapic->irq_base;
+	polarity = s->flags & ACPI_MADT_INTI_POLARITY_MASK;
+	trigger = s->flags & ACPI_MADT_INTI_TRIGGER_MODE_MASK;
+
+	ioapic_set_vector(ioapic, pin, s->irq_source);
+	ioapic_set_polarity(ioapic, pin, polarity);
+	ioapic_set_trigger_mode(ioapic, pin, trigger);
+
+	klog(KLOG_INFO, ACPI "IRQ override bus %d int %d ioapic %d pin %d",
+	     s->bus_source, s->irq_source, ioapic->id, pin);
 }
 
 /*
@@ -400,16 +388,6 @@ int apic_parse_madt(void)
 
 int bsp_apic_init(void)
 {
-	size_t i;
-
-	for (i = 0; i < ISA_IRQ_COUNT; ++i) {
-		isa_irqs[i].bus = 0xFFFF;
-		isa_irqs[i].source_irq = i;
-		isa_irqs[i].global_irq = i;
-		isa_irqs[i].flags = ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH |
-			ACPI_MADT_INTI_TRIGGER_MODE_EDGE;
-	}
-
 	if (apic_parse_madt() != 0 && parse_mp_tables() != 0)
 		return 1;
 
