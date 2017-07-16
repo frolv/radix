@@ -27,6 +27,11 @@
 
 #include "apic.h"
 
+/*
+ * Multiprocessor specification table parsing.
+ * Inspired by FreeBSD's sys/x86/x86/mptable.c.
+ */
+
 #define MPS "MPS: "
 
 /* array of all buses in the system */
@@ -76,6 +81,7 @@ static void __mp_ioapic(struct mp_table_io_apic *s)
 static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 {
 	struct ioapic *ioapic;
+	unsigned int trigger, polarity;
 	const char *type;
 
 	if (s->dest_ioapic == 0xFF) {
@@ -106,11 +112,9 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 		switch (mp_buses[s->source_bus]) {
 		case BUS_TYPE_ISA:
 		case BUS_TYPE_EISA:
-			ioapic_set_bus(ioapic, s->dest_intin,
-			               mp_buses[s->source_bus]);
 			ioapic_set_vector(ioapic, s->dest_intin,
 			                  s->source_irq);
-			break;
+			/* fall through */
 		case BUS_TYPE_PCI:
 		case BUS_TYPE_UNKNOWN:
 			ioapic_set_bus(ioapic, s->dest_intin,
@@ -141,6 +145,17 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 		     s->interrupt_type);
 		return;
 	}
+
+	polarity = s->flags & MP_INTERRUPT_POLARITY_MASK;
+	trigger = s->flags & MP_INTERRUPT_TRIGGER_MODE_MASK;
+
+	if (s->interrupt_type == MP_INTERRUPT_TYPE_INT ||
+	    polarity != MP_INTERRUPT_POLARITY_CONFORMS)
+		ioapic_set_polarity(ioapic, s->dest_intin, polarity);
+
+	if (s->interrupt_type == MP_INTERRUPT_TYPE_INT ||
+	    trigger != MP_INTERRUPT_TRIGGER_MODE_CONFORMS)
+		ioapic_set_trigger_mode(ioapic, s->dest_intin, trigger);
 
 	klog(KLOG_INFO, MPS "I/O INT bus %d int %d ioapic %d pin %d type %s",
 	     s->source_bus, s->source_irq, s->dest_ioapic, s->dest_intin, type);

@@ -284,6 +284,40 @@ int ioapic_set_vector(struct ioapic *ioapic, unsigned int pin, int vec)
 	return 0;
 }
 
+int ioapic_set_polarity(struct ioapic *ioapic, unsigned int pin, int polarity)
+{
+	if (pin >= ioapic->irq_count)
+		return EINVAL;
+
+	if (polarity == MP_INTERRUPT_POLARITY_ACTIVE_HIGH ||
+	    polarity == ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH)
+		ioapic->pins[pin].flags |= APIC_INT_ACTIVE_HIGH;
+	else if (polarity == MP_INTERRUPT_POLARITY_ACTIVE_LOW ||
+		 polarity == ACPI_MADT_INTI_POLARITY_ACTIVE_LOW)
+		ioapic->pins[pin].flags &= ~APIC_INT_ACTIVE_HIGH;
+	else
+		return EINVAL;
+
+	return 0;
+}
+
+int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig)
+{
+	if (pin >= ioapic->irq_count)
+		return EINVAL;
+
+	if (trig == MP_INTERRUPT_TRIGGER_MODE_EDGE ||
+	    trig == ACPI_MADT_INTI_TRIGGER_MODE_EDGE)
+		ioapic->pins[pin].flags |= APIC_INT_EDGE_TRIGGER;
+	else if (trig == MP_INTERRUPT_TRIGGER_MODE_LEVEL ||
+		 trig == ACPI_MADT_INTI_TRIGGER_MODE_LEVEL)
+		ioapic->pins[pin].flags &= ~APIC_INT_EDGE_TRIGGER;
+	else
+		return EINVAL;
+
+	return 0;
+}
+
 static void apic_add_override(int bus, int src, int irq, unsigned int flags)
 {
 	size_t i;
