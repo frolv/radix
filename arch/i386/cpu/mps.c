@@ -39,6 +39,15 @@ static int mp_max_bus_id = 0;
 
 static void __mp_processor(struct mp_table_processor *s)
 {
+	if (s->cpu_flags & MP_PROCESSOR_ACTIVE) {
+		if (!lapic_add(s->apic_id)) {
+			klog(KLOG_WARNING, MPS
+			     "maximum number of CPUs reached, ignoring lapic %d",
+			     s->apic_id);
+			return;
+		}
+	}
+
 	klog(KLOG_INFO, MPS "LAPIC id %d %sactive",
 	     s->apic_id, s->cpu_flags & MP_PROCESSOR_ACTIVE ? "" : "in");
 }

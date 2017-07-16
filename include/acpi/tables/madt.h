@@ -60,6 +60,8 @@ struct acpi_madt_local_apic {
 	uint32_t flags;
 };
 
+#define ACPI_MADT_LOCAL_APIC_ACTIVE 1
+
 struct acpi_madt_io_apic {
 	struct acpi_subtable_header header;
 	uint8_t id;

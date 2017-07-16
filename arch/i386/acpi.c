@@ -27,8 +27,17 @@
 
 static void __madt_lapic(struct acpi_madt_local_apic *s)
 {
+	if (s->flags & ACPI_MADT_LOCAL_APIC_ACTIVE) {
+		if (!lapic_add(s->apic_id)) {
+			klog(KLOG_WARNING, ACPI
+			     "maximum number of CPUs reached, ignoring lapic %d",
+			     s->apic_id);
+			return;
+		}
+	}
+
 	klog(KLOG_INFO, ACPI "LAPIC id %d %sactive",
-	     s->apic_id, s->flags & 1 ? "" : "in");
+	     s->apic_id, s->flags & ACPI_MADT_LOCAL_APIC_ACTIVE ? "" : "in");
 }
 
 static void __madt_ioapic(struct acpi_madt_io_apic *s)
