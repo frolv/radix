@@ -81,11 +81,13 @@ struct acpi_madt_interrupt_override {
 #define ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH     1
 #define ACPI_MADT_INTI_POLARITY_RESERVED        2
 #define ACPI_MADT_INTI_POLARITY_ACTIVE_LOW      3
+#define ACPI_MADT_INTI_POLARITY_MASK            3
 
 #define ACPI_MADT_INTI_TRIGGER_MODE_CONFORMS    0
 #define ACPI_MADT_INTI_TRIGGER_MODE_EDGE        (1 << 2)
 #define ACPI_MADT_INTI_TRIGGER_MODE_RESERVED    (2 << 2)
 #define ACPI_MADT_INTI_TRIGGER_MODE_LEVEL       (3 << 2)
+#define ACPI_MADT_INTI_TRIGGER_MODE_MASK        (3 << 2)
 
 
 struct acpi_madt_nmi_source {
