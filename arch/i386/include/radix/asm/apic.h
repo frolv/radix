@@ -19,13 +19,20 @@
 #ifndef ARCH_I386_RADIX_APIC_H
 #define ARCH_I386_RADIX_APIC_H
 
+#include <radix/irq.h>
 #include <radix/mm_types.h>
 #include <radix/types.h>
 
-#define IRQ_NMI      0xE0
-#define IRQ_SMI      0xE1
-#define IRQ_EXTINT   0xE2
-#define IRQ_SPURIOUS 0xFF
+/* have the APIC timer use the same interrupt vector as the PIT */
+#define APIC_IRQ_TIMER          __ARCH_TIMER_VECTOR
+
+#define APIC_IRQ_NMI            0xE0
+#define APIC_IRQ_SMI            0xE1
+#define APIC_IRQ_EXTINT         0xE2
+#define APIC_IRQ_ERROR          0xE3
+#define APIC_IRQ_THERMAL        0xE4
+#define APIC_IRQ_CMCI           0xE5
+#define APIC_IRQ_SPURIOUS       0xFF
 
 extern addr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
@@ -88,21 +95,12 @@ struct lapic {
 #define APIC_INT_MASKED         (1 << 2)
 
 /* local APIC LVT delivery modes */
-#define APIC_LVT_MODE_FIXED     0
-#define APIC_LVT_MODE_SMI       2
-#define APIC_LVT_MODE_NMI       4
-#define APIC_LVT_MODE_INIT      5
-#define APIC_LVT_MODE_EXTINT    7
-
-#define APIC_LVT_MODE_SHIFT     4
+#define APIC_LVT_MODE_FIXED     0x00
+#define APIC_LVT_MODE_SMI       0x20
+#define APIC_LVT_MODE_NMI       0x40
+#define APIC_LVT_MODE_INIT      0x50
+#define APIC_LVT_MODE_EXTINT    0x70
 #define APIC_LVT_MODE_MASK      0x70
-
-#define APIC_LVT_MODE(flags) \
-	(((flags) & APIC_LVT_MODE_MASK) >> APIC_LVT_MODE_SHIFT)
-
-#define APIC_LVT_SET_MODE(flags, mode)                          \
-	(flags) = ((flags & ~APIC_LVT_MODE_MASK) |              \
-	           ((mode) << APIC_LVT_MODE_SHIFT))
 
 int bsp_apic_init(void);
 
@@ -117,5 +115,8 @@ int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type);
 int ioapic_set_vector(struct ioapic *ioapic, unsigned int pin, int vec);
 int ioapic_set_polarity(struct ioapic *ioapic, unsigned int pin, int polarity);
 int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig);
+
+struct lapic *lapic_add(unsigned int id);
+struct lapic *lapic_from_id(unsigned int id);
 
 #endif /* ARCH_I386_RADIX_APIC_H */

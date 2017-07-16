@@ -27,10 +27,13 @@
 #include <radix/cpumask.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/percpu.h>
 #include <radix/slab.h>
 #include <radix/vmm.h>
+
+#include <rlibc/string.h>
 
 #include "isr.h"
 
@@ -41,7 +44,7 @@
 #endif
 
 static struct ioapic ioapic_list[MAX_IOAPICS];
-unsigned int ioapics_available;
+unsigned int ioapics_available = 0;
 
 #define IOAPIC_IOREGSEL 0
 #define IOAPIC_IOREGWIN 4
@@ -59,8 +62,29 @@ unsigned int ioapics_available;
 addr_t lapic_phys_base;
 addr_t lapic_virt_base;
 
+#define __ET    APIC_INT_EDGE_TRIGGER
+#define __AH    APIC_INT_ACTIVE_HIGH
+#define __MASK  APIC_INT_MASKED
+
+static struct lapic_lvt lapic_lvt_default[] = {
+	/* LINT0: EXTINT */
+	{ 0, APIC_LVT_MODE_EXTINT | __ET | __AH | __MASK },
+	/* LINT1: NMI */
+	{ 0, APIC_LVT_MODE_NMI | __ET | __AH },
+	/* timer */
+	{ APIC_IRQ_TIMER, APIC_LVT_MODE_FIXED | __ET | __AH | __MASK },
+	/* error */
+	{ APIC_IRQ_ERROR, APIC_LVT_MODE_FIXED | __ET | __AH },
+	/* PMC */
+	{ 0, APIC_LVT_MODE_NMI | __ET | __AH | __MASK },
+	/* thermal */
+	{ APIC_IRQ_THERMAL, APIC_LVT_MODE_FIXED | __ET | __AH | __MASK },
+	/* CMCI */
+	{ APIC_IRQ_CMCI, APIC_LVT_MODE_FIXED | __ET | __AH | __MASK }
+};
+
 static struct lapic lapic_list[MAX_CPUS];
-static unsigned int cpus_available;
+static unsigned int cpus_available = 0;
 
 DEFINE_PER_CPU(struct lapic *, local_apic);
 
@@ -171,17 +195,17 @@ static int __ioapic_set_special(struct ioapic *ioapic,
 
 int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, IRQ_NMI);
+	return __ioapic_set_special(ioapic, pin, APIC_IRQ_NMI);
 }
 
 int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, IRQ_SMI);
+	return __ioapic_set_special(ioapic, pin, APIC_IRQ_SMI);
 }
 
 int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, IRQ_EXTINT);
+	return __ioapic_set_special(ioapic, pin, APIC_IRQ_EXTINT);
 }
 
 int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type)
@@ -263,6 +287,22 @@ struct lapic *lapic_from_id(unsigned int id)
 	return NULL;
 }
 
+struct lapic *lapic_add(unsigned int id)
+{
+	struct lapic *lapic;
+
+	if (cpus_available == MAX_CPUS)
+		return NULL;
+
+	lapic = &lapic_list[cpus_available++];
+	lapic->id = id;
+	lapic->timer_mode = LAPIC_TIMER_UNDEFINED;
+	lapic->timer_div = 1;
+	memcpy(&lapic->lvts, &lapic_lvt_default, sizeof lapic->lvts);
+
+	return lapic;
+}
+
 /*
  * find_cpu_lapic:
  * Read the local APIC ID of the executing processor,
@@ -300,7 +340,7 @@ void lapic_init(void)
 {
 	find_cpu_lapic();
 	lapic_enable(lapic_phys_base);
-	lapic_reg_write(0xF0, 0x100 | IRQ_SPURIOUS);
+	lapic_reg_write(0xF0, 0x100 | APIC_IRQ_SPURIOUS);
 }
 
 int bsp_apic_init(void)
