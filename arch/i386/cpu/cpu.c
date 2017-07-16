@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/apic.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/percpu.h>
@@ -23,7 +24,6 @@
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
-#include "apic.h"
 #include "gdt.h"
 #include "idt.h"
 

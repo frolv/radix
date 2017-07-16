@@ -23,7 +23,6 @@
 #include <radix/kernel.h>
 #include <radix/task.h>
 
-#include "apic.h"
 #include "idt.h"
 #include "isr.h"
 #include "pic.h"

@@ -1,6 +1,6 @@
 /*
- * arch/i386/cpu/apic.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * arch/i386/include/radix/asm/apic.h
+ * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_APIC_H
-#define ARCH_I386_APIC_H
+#ifndef ARCH_I386_RADIX_APIC_H
+#define ARCH_I386_RADIX_APIC_H
 
 #include <radix/mm_types.h>
+#include <radix/types.h>
 
 #define IRQ_NMI      0xE0
 #define IRQ_SMI      0xE1
@@ -62,4 +63,4 @@ int ioapic_set_vector(struct ioapic *ioapic, unsigned int pin, int vec);
 int ioapic_set_polarity(struct ioapic *ioapic, unsigned int pin, int polarity);
 int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig);
 
-#endif /* ARCH_I386_APIC_H */
+#endif /* ARCH_I386_RADIX_APIC_H */

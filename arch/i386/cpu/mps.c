@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/apic.h>
 #include <radix/asm/mps.h>
 #include <radix/asm/bios.h>
 #include <radix/kernel.h>
@@ -24,8 +25,6 @@
 #include <radix/slab.h>
 
 #include <rlibc/string.h>
-
-#include "apic.h"
 
 /*
  * Multiprocessor specification table parsing.
