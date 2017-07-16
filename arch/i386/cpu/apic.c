@@ -274,11 +274,6 @@ static void find_cpu_lapic(void)
 	uint32_t eax, edx;
 	int lapic_id;
 
-	if (!cpu_supports(CPUID_APIC)) {
-		this_cpu_write(local_apic, NULL);
-		return;
-	}
-
 	if (cpu_supports(CPUID_X2APIC)) {
 		/* check if operating in X2APIC mode */
 		rdmsr(IA32_APIC_BASE, &eax, &edx);
@@ -310,8 +305,12 @@ void lapic_init(void)
 
 int bsp_apic_init(void)
 {
-	if (acpi_parse_madt() != 0 && parse_mp_tables() != 0)
+	if (!cpu_supports(CPUID_APIC | CPUID_MSR) ||
+	    (acpi_parse_madt() != 0 && parse_mp_tables() != 0)) {
+		this_cpu_write(local_apic, NULL);
+		cpus_available = 1;
 		return 1;
+	}
 
 	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
 	map_page_kernel(lapic_virt_base, lapic_phys_base,

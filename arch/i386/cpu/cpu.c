@@ -19,6 +19,7 @@
 #include <radix/asm/apic.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/percpu.h>
 
 #include <rlibc/stdio.h>
@@ -1014,8 +1015,9 @@ void bsp_init_early(void)
 
 void i386_bsp_init(void)
 {
-	if (!cpu_supports(CPUID_APIC | CPUID_MSR) || bsp_apic_init() != 0) {
-		/* fallback to 8259 PIC */
+	if (bsp_apic_init() != 0) {
+		klog(KLOG_WARNING, "bsp_init: "
+		     "could not initialize APIC, falling back to 8259 PIC");
 		return;
 	}
 }
