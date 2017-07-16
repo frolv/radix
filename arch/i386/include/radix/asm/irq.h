@@ -24,11 +24,14 @@
 #endif
 
 #define ISA_IRQ_COUNT           16
-
-#define __ARCH_SYSCALL_VECTOR   0x30
+#define IRQ_BASE                0x20
 
 #define __ARCH_TIMER_IRQ        0x0
 #define __ARCH_KBD_IRQ          0x1
+
+#define __ARCH_TIMER_VECTOR     (__ARCH_TIMER_IRQ + IRQ_BASE)
+#define __ARCH_KBD_VECTOR       (__ARCH_KBD_IRQ + IRQ_BASE)
+#define __ARCH_SYSCALL_VECTOR   0x80
 
 #define __arch_irq_init         idt_init
 #define __arch_in_irq           in_interrupt

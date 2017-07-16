@@ -21,7 +21,6 @@
 
 #define NUM_ISR_VECTORS 256
 #define NUM_EXCEPTIONS  32
-#define IRQ_BASE        0x20
 
 void early_isr_0(void);
 void early_isr_1(void);
