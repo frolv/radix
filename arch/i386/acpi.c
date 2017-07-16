@@ -62,14 +62,54 @@ static void __madt_override(struct acpi_madt_interrupt_override *s)
 }
 
 /*
+ * madt_walk:
+ * Walk the ACPI MADT table, calling `entry_handler` on each entry.
+ */
+static void madt_walk(struct acpi_madt *madt,
+                      void (*entry_handler)(struct acpi_subtable_header *))
+{
+	struct acpi_subtable_header *header;
+	unsigned char *p, *end;
+
+	p = (unsigned char *)(madt + 1);
+	end = (unsigned char *)madt + madt->header.length;
+
+	while (p < end) {
+		header = (struct acpi_subtable_header *)p;
+		entry_handler(header);
+		p += header->length;
+	}
+}
+
+static void madt_parse_ioapics(struct acpi_subtable_header *header)
+{
+	switch (header->type) {
+	case ACPI_MADT_IO_APIC:
+		__madt_ioapic((struct acpi_madt_io_apic *)header);
+		break;
+	}
+}
+
+static void madt_parse_all(struct acpi_subtable_header *header)
+{
+	switch (header->type) {
+	/* TODO: add other MADT entries */
+	case ACPI_MADT_LOCAL_APIC:
+		__madt_lapic((struct acpi_madt_local_apic *)header);
+		break;
+	case ACPI_MADT_INTERRUPT_OVERRIDE:
+		__madt_override((struct acpi_madt_interrupt_override *) header);
+		break;
+	}
+}
+
+/*
  * acpi_parse_madt:
  * Parse the ACPI MADT table and extract APIC information.
  */
 int acpi_parse_madt(void)
 {
 	struct acpi_madt *madt;
-	struct acpi_subtable_header *header;
-	unsigned char *p, *end;
 
 	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
 	if (!madt)
@@ -78,28 +118,8 @@ int acpi_parse_madt(void)
 	lapic_phys_base = madt->address;
 	klog(KLOG_INFO, ACPI "local APIC %p", lapic_phys_base);
 
-	p = (unsigned char *)(madt + 1);
-	end = (unsigned char *)madt + madt->header.length;
-
-	while (p < end) {
-		header = (struct acpi_subtable_header *)p;
-		/* TODO: add other MADT entries */
-		switch (header->type) {
-		case ACPI_MADT_LOCAL_APIC:
-			__madt_lapic((struct acpi_madt_local_apic *)header);
-			break;
-		case ACPI_MADT_IO_APIC:
-			__madt_ioapic((struct acpi_madt_io_apic *)header);
-			break;
-		case ACPI_MADT_INTERRUPT_OVERRIDE:
-			__madt_override((struct acpi_madt_interrupt_override *)
-			                header);
-			break;
-		default:
-			break;
-		}
-		p += header->length;
-	}
+	madt_walk(madt, madt_parse_ioapics);
+	madt_walk(madt, madt_parse_all);
 
 	return 0;
 }
