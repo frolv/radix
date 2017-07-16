@@ -89,6 +89,8 @@ struct lapic {
 	struct lapic_lvt	lvts[APIC_LVT_MAX + 1];
 };
 
+#define APIC_ID_ALL             0xFFFFFFFF
+
 /* flags for ioapic_pin and lapic_lvt */
 #define APIC_INT_ACTIVE_HIGH    (1 << 0)
 #define APIC_INT_EDGE_TRIGGER   (1 << 1)
@@ -118,5 +120,7 @@ int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig);
 
 struct lapic *lapic_add(unsigned int id);
 struct lapic *lapic_from_id(unsigned int id);
+
+int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode);
 
 #endif /* ARCH_I386_RADIX_APIC_H */

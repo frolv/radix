@@ -303,6 +303,31 @@ struct lapic *lapic_add(unsigned int id)
 	return lapic;
 }
 
+static void __lapic_set_lvt_mode(struct lapic *lapic, int pin, uint32_t mode)
+{
+	lapic->lvts[pin].flags &= ~APIC_LVT_MODE_MASK;
+	lapic->lvts[pin].flags |= mode;
+}
+
+int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode)
+{
+	struct lapic *lapic;
+	size_t i;
+
+	if (pin > APIC_LVT_MAX)
+		return EINVAL;
+
+	if (apic_id == APIC_ID_ALL) {
+		for (i = 0; i < cpus_available; ++i)
+			__lapic_set_lvt_mode(&lapic_list[i], pin, mode);
+	} else {
+		lapic = lapic_from_id(apic_id);
+		__lapic_set_lvt_mode(lapic, pin, mode);
+	}
+
+	return 0;
+}
+
 /*
  * find_cpu_lapic:
  * Read the local APIC ID of the executing processor,
