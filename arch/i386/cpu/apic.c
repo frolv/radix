@@ -16,37 +16,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <acpi/acpi.h>
 #include <acpi/tables/madt.h>
 
+#include <radix/asm/acpi.h>
+#include <radix/asm/apic.h>
 #include <radix/asm/mps.h>
 #include <radix/asm/msr.h>
 
 #include <radix/cpu.h>
-#include <radix/error.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
-#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/slab.h>
 #include <radix/vmm.h>
 
-#include "apic.h"
 #include "isr.h"
-
-#define IA32_APIC_BASE_BSP    (1 << 8)  /* bootstrap processor */
-#define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
-#define IA32_APIC_BASE_ENABLE (1 << 11) /* XAPIC global enable */
-
-#define ACPI "ACPI: "
-
-static struct acpi_madt *madt;
-
-/* Local APIC base addresses */
-addr_t lapic_phys_base;
-addr_t lapic_virt_base;
-
-static int cpus_available;
 
 struct ioapic_pin {
 	uint8_t         irq;
@@ -74,7 +58,19 @@ unsigned int ioapics_available;
 #define IOAPIC_REG_VER  1
 #define IOAPIC_REG_ARB  2
 
+
+#define IA32_APIC_BASE_BSP    (1 << 8)  /* bootstrap processor */
+#define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
+#define IA32_APIC_BASE_ENABLE (1 << 11) /* XAPIC global enable */
+
+/* Local APIC base addresses */
+addr_t lapic_phys_base;
+addr_t lapic_virt_base;
+
+static int cpus_available;
+
 DEFINE_PER_CPU(int, apic_id);
+
 
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
 {
@@ -115,66 +111,6 @@ struct ioapic *ioapic_from_vector(unsigned int vec)
 	}
 
 	return NULL;
-}
-
-static void apic_enable(addr_t base)
-{
-	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
-}
-
-static uint32_t apic_reg_read(uint16_t reg)
-{
-	return *(uint32_t *)(lapic_virt_base + reg);
-}
-
-static void apic_reg_write(uint16_t reg, uint32_t value)
-{
-	*(uint32_t *)(lapic_virt_base + reg) = value;
-}
-
-/*
- * read_apic_id:
- * Read the local APIC ID of the executing processor
- * and save it in the `apic_id` per-CPU variable.
- */
-static void read_apic_id(void)
-{
-	uint32_t eax, edx;
-	int id;
-
-	if (!cpu_supports(CPUID_APIC)) {
-		this_cpu_write(apic_id, -1);
-		return;
-	}
-
-	if (cpu_supports(CPUID_X2APIC)) {
-		/* check if operating in X2APIC mode */
-		rdmsr(IA32_APIC_BASE, &eax, &edx);
-		if (eax & IA32_APIC_BASE_EXTD) {
-			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
-			this_cpu_write(apic_id, eax);
-			return;
-		}
-	}
-
-	id = apic_reg_read(0x20) >> 24;
-	this_cpu_write(apic_id, id);
-}
-
-/*
- * apic_init:
- * Configure the LAPIC to send interrupts and enable it.
- */
-void apic_init(void)
-{
-	read_apic_id();
-	apic_enable(lapic_phys_base);
-	apic_reg_write(0xF0, 0x100 | IRQ_SPURIOUS);
-}
-
-static void apic_add_lapic(int valid_cpu)
-{
-	cpus_available += valid_cpu;
 }
 
 struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
@@ -307,88 +243,64 @@ int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig)
 	return 0;
 }
 
-static void __madt_lapic(struct acpi_madt_local_apic *s)
+static void apic_enable(addr_t base)
 {
-	apic_add_lapic(!!(s->flags & 1));
-	klog(KLOG_INFO, ACPI "LAPIC id %d %sactive",
-	     s->apic_id, s->flags & 1 ? "" : "in");
+	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
 }
 
-static void __madt_ioapic(struct acpi_madt_io_apic *s)
+static uint32_t apic_reg_read(uint16_t reg)
 {
-	ioapic_add(s->id, s->address, s->global_irq_base);
-	klog(KLOG_INFO, ACPI "I/O APIC id %d base %p irq_base %d",
-	     s->id, s->address, s->global_irq_base);
+	return *(uint32_t *)(lapic_virt_base + reg);
 }
 
-static void __madt_override(struct acpi_madt_interrupt_override *s)
+static void apic_reg_write(uint16_t reg, uint32_t value)
 {
-	struct ioapic *ioapic;
-	int pin, polarity, trigger;
-
-	ioapic = ioapic_from_vector(s->irq_source);
-	if (!ioapic)
-		klog(KLOG_ERROR, ACPI
-		     "ignoring ISA IRQ override for invalid vector %d",
-		     s->irq_source);
-
-	pin = s->global_irq - ioapic->irq_base;
-	polarity = s->flags & ACPI_MADT_INTI_POLARITY_MASK;
-	trigger = s->flags & ACPI_MADT_INTI_TRIGGER_MODE_MASK;
-
-	ioapic_set_vector(ioapic, pin, s->irq_source);
-	ioapic_set_polarity(ioapic, pin, polarity);
-	ioapic_set_trigger_mode(ioapic, pin, trigger);
-
-	klog(KLOG_INFO, ACPI "IRQ override bus %d int %d ioapic %d pin %d",
-	     s->bus_source, s->irq_source, ioapic->id, pin);
+	*(uint32_t *)(lapic_virt_base + reg) = value;
 }
 
 /*
- * apic_parse_madt:
- * Parse the ACPI MADT table and extract APIC information.
+ * read_apic_id:
+ * Read the local APIC ID of the executing processor
+ * and save it in the `apic_id` per-CPU variable.
  */
-int apic_parse_madt(void)
+static void read_apic_id(void)
 {
-	struct acpi_subtable_header *header;
-	unsigned char *p, *end;
+	uint32_t eax, edx;
+	int id;
 
-	madt = acpi_find_table(ACPI_MADT_SIGNATURE);
-	if (!madt)
-		return 1;
-
-	lapic_phys_base = madt->address;
-	klog(KLOG_INFO, ACPI "local APIC %p", lapic_phys_base);
-
-	p = (unsigned char *)(madt + 1);
-	end = (unsigned char *)madt + madt->header.length;
-
-	while (p < end) {
-		header = (struct acpi_subtable_header *)p;
-		/* TODO: add other MADT entries */
-		switch (header->type) {
-		case ACPI_MADT_LOCAL_APIC:
-			__madt_lapic((struct acpi_madt_local_apic *)header);
-			break;
-		case ACPI_MADT_IO_APIC:
-			__madt_ioapic((struct acpi_madt_io_apic *)header);
-			break;
-		case ACPI_MADT_INTERRUPT_OVERRIDE:
-			__madt_override((struct acpi_madt_interrupt_override *)
-			                header);
-			break;
-		default:
-			break;
-		}
-		p += header->length;
+	if (!cpu_supports(CPUID_APIC)) {
+		this_cpu_write(apic_id, -1);
+		return;
 	}
 
-	return 0;
+	if (cpu_supports(CPUID_X2APIC)) {
+		/* check if operating in X2APIC mode */
+		rdmsr(IA32_APIC_BASE, &eax, &edx);
+		if (eax & IA32_APIC_BASE_EXTD) {
+			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
+			this_cpu_write(apic_id, eax);
+			return;
+		}
+	}
+
+	id = apic_reg_read(0x20) >> 24;
+	this_cpu_write(apic_id, id);
+}
+
+/*
+ * apic_init:
+ * Configure the LAPIC to send interrupts and enable it.
+ */
+void apic_init(void)
+{
+	read_apic_id();
+	apic_enable(lapic_phys_base);
+	apic_reg_write(0xF0, 0x100 | IRQ_SPURIOUS);
 }
 
 int bsp_apic_init(void)
 {
-	if (apic_parse_madt() != 0 && parse_mp_tables() != 0)
+	if (acpi_parse_madt() != 0 && parse_mp_tables() != 0)
 		return 1;
 
 	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
