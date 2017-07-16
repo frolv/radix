@@ -103,10 +103,13 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 
 	switch (s->interrupt_type) {
 	case MP_INTERRUPT_TYPE_INT:
-		type = "INT";
 		switch (mp_buses[s->source_bus]) {
 		case BUS_TYPE_ISA:
 		case BUS_TYPE_EISA:
+			ioapic_set_bus(ioapic, s->dest_intin,
+			               mp_buses[s->source_bus]);
+			ioapic_set_vector(ioapic, s->dest_intin,
+			                  s->source_irq);
 			break;
 		case BUS_TYPE_PCI:
 		case BUS_TYPE_UNKNOWN:
@@ -119,6 +122,7 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 			     s->source_bus);
 			return;
 		}
+		type = "INT";
 		break;
 	case MP_INTERRUPT_TYPE_NMI:
 		ioapic_set_nmi(ioapic, s->dest_intin);

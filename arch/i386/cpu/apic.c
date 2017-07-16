@@ -275,6 +275,15 @@ int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type)
 	return 0;
 }
 
+int ioapic_set_vector(struct ioapic *ioapic, unsigned int pin, int vec)
+{
+	if (pin >= ioapic->irq_count || vec > NUM_ISR_VECTORS - IRQ_BASE)
+		return EINVAL;
+
+	ioapic->pins[pin].irq = vec;
+	return 0;
+}
+
 static void apic_add_override(int bus, int src, int irq, unsigned int flags)
 {
 	size_t i;
