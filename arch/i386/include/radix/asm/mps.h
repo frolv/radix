@@ -118,11 +118,13 @@ struct mp_table_local_interrupt {
 #define MP_INTERRUPT_POLARITY_ACTIVE_HIGH       1
 #define MP_INTERRUPT_POLARITY_RESERVED          2
 #define MP_INTERRUPT_POLARITY_ACTIVE_LOW        3
+#define MP_INTERRUPT_POLARITY_MASK              3
 
 #define MP_INTERRUPT_TRIGGER_MODE_CONFORMS      0
 #define MP_INTERRUPT_TRIGGER_MODE_EDGE          (1 << 2)
 #define MP_INTERRUPT_TRIGGER_MODE_RESERVED      (2 << 2)
 #define MP_INTERRUPT_TRIGGER_MODE_LEVEL         (3 << 2)
+#define MP_INTERRUPT_TRIGGER_MODE_MASK          (3 << 2)
 
 #define MP_BUS_SIGNATURE_CBUS                   "CBUS  "
 #define MP_BUS_SIGNATURE_CBUS_II                "CBUSII"
