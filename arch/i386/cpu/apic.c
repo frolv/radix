@@ -381,14 +381,13 @@ static void find_cpu_lapic(void)
 {
 	struct lapic *lapic;
 	uint32_t eax, edx;
-	int lapic_id;
+	uint32_t lapic_id;
 
 	if (cpu_supports(CPUID_X2APIC)) {
 		/* check if operating in X2APIC mode */
 		rdmsr(IA32_APIC_BASE, &eax, &edx);
 		if (eax & IA32_APIC_BASE_EXTD) {
-			rdmsr(IA32_X2APIC_APICID, &eax, &edx);
-			lapic_id = eax;
+			rdmsr(IA32_X2APIC_APICID, &lapic_id, &edx);
 			goto find_lapic;
 		}
 	}
