@@ -340,12 +340,10 @@ int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode)
 	case APIC_LVT_MODE_NMI:
 	case APIC_LVT_MODE_INIT:
 	case APIC_LVT_MODE_EXTINT:
-		break;
+		return __lvt_set(apic_id, pin, APIC_LVT_MODE_MASK, mode);
 	default:
 		return EINVAL;
 	}
-
-	return __lvt_set(apic_id, pin, APIC_LVT_MODE_MASK, mode);
 }
 
 int lapic_set_lvt_polarity(uint32_t apic_id, unsigned int pin, int polarity)

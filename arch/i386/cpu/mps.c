@@ -145,8 +145,8 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 		type = "SMI";
 		break;
 	case MP_INTERRUPT_TYPE_EXTINT:
-		type = "EXTINT";
 		ioapic_set_extint(ioapic, s->dest_intin);
+		type = "EXTINT";
 		break;
 	default:
 		klog(KLOG_ERROR, MPS "ignoring unknown I/O INT type %d",
@@ -171,9 +171,48 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 
 static void __mp_local_interrupt(struct mp_table_local_interrupt *s)
 {
-	/* TODO */
-	klog(KLOG_INFO, MPS "Local INT bus %d int %d lapic %d pin %d",
-	     s->source_bus, s->source_irq, s->dest_lapic, s->dest_lintin);
+	uint32_t apic_id;
+	unsigned int trigger, polarity;
+	int pin;
+	char *type;
+
+	apic_id = (s->dest_lapic == 0xFF) ? APIC_ID_ALL : s->dest_lapic;
+	pin = (s->dest_lintin == 0) ? APIC_LVT_LINT0 : APIC_LVT_LINT1;
+
+	switch (s->interrupt_type) {
+	case MP_INTERRUPT_TYPE_INT:
+		klog(KLOG_WARNING, MPS "ignoring LOC INT vector %d for LINT%d",
+		     s->source_irq, s->dest_lintin);
+		type = "INT";
+		break;
+	case MP_INTERRUPT_TYPE_NMI:
+		lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_NMI);
+		type = "NMI";
+		break;
+	case MP_INTERRUPT_TYPE_SMI:
+		lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_SMI);
+		type = "SMI";
+		break;
+	case MP_INTERRUPT_TYPE_EXTINT:
+		lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_EXTINT);
+		type = "EXTINT";
+		break;
+	default:
+		klog(KLOG_ERROR, MPS "ignoring unknown LOC INT type %d",
+		     s->interrupt_type);
+		return;
+	}
+
+	polarity = s->flags & MP_INTERRUPT_POLARITY_MASK;
+	trigger = s->flags & MP_INTERRUPT_TRIGGER_MODE_MASK;
+
+	if (polarity != MP_INTERRUPT_POLARITY_CONFORMS)
+		lapic_set_lvt_polarity(apic_id, pin, polarity);
+	if (trigger != MP_INTERRUPT_TRIGGER_MODE_CONFORMS)
+		lapic_set_lvt_trigger_mode(apic_id, pin, trigger);
+
+	klog(KLOG_INFO, MPS "LOC INT bus %d int %d lapic %d LINT%d type %s",
+	     s->source_bus, s->source_irq, s->dest_lapic, s->dest_lintin, type);
 }
 
 static int byte_sum(void *start, size_t len)
