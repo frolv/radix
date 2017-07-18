@@ -122,5 +122,7 @@ struct lapic *lapic_add(unsigned int id);
 struct lapic *lapic_from_id(unsigned int id);
 
 int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode);
+int lapic_set_lvt_polarity(uint32_t apic_id, unsigned int pin, int polarity);
+int lapic_set_lvt_trigger_mode(uint32_t apic_id, unsigned int pin, int trig);
 
 #endif /* ARCH_I386_RADIX_APIC_H */

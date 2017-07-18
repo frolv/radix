@@ -303,13 +303,15 @@ struct lapic *lapic_add(unsigned int id)
 	return lapic;
 }
 
-static void __lapic_set_lvt_mode(struct lapic *lapic, int pin, uint32_t mode)
+static __always_inline void __lvt_set_flags(struct lapic *lapic, int pin,
+                                            uint32_t clear, uint32_t set)
 {
-	lapic->lvts[pin].flags &= ~APIC_LVT_MODE_MASK;
-	lapic->lvts[pin].flags |= mode;
+	lapic->lvts[pin].flags &= ~clear;
+	lapic->lvts[pin].flags |= set;
 }
 
-int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode)
+static int __lvt_set(uint32_t apic_id, unsigned int pin,
+                     uint32_t clear, uint32_t set)
 {
 	struct lapic *lapic;
 	size_t i;
@@ -319,13 +321,55 @@ int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode)
 
 	if (apic_id == APIC_ID_ALL) {
 		for (i = 0; i < cpus_available; ++i)
-			__lapic_set_lvt_mode(&lapic_list[i], pin, mode);
+			__lvt_set_flags(&lapic_list[i], pin, clear, set);
 	} else {
 		lapic = lapic_from_id(apic_id);
-		__lapic_set_lvt_mode(lapic, pin, mode);
+		if (!lapic)
+			return EINVAL;
+		__lvt_set_flags(lapic, pin, clear, set);
 	}
 
 	return 0;
+}
+
+int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode)
+{
+	switch (mode) {
+	case APIC_LVT_MODE_FIXED:
+	case APIC_LVT_MODE_SMI:
+	case APIC_LVT_MODE_NMI:
+	case APIC_LVT_MODE_INIT:
+	case APIC_LVT_MODE_EXTINT:
+		break;
+	default:
+		return EINVAL;
+	}
+
+	return __lvt_set(apic_id, pin, APIC_LVT_MODE_MASK, mode);
+}
+
+int lapic_set_lvt_polarity(uint32_t apic_id, unsigned int pin, int polarity)
+{
+	if (polarity == MP_INTERRUPT_POLARITY_ACTIVE_HIGH ||
+	    polarity == ACPI_MADT_INTI_POLARITY_ACTIVE_HIGH)
+		return __lvt_set(apic_id, pin, 0, APIC_INT_ACTIVE_HIGH);
+	else if (polarity == MP_INTERRUPT_POLARITY_ACTIVE_LOW ||
+		 polarity == ACPI_MADT_INTI_POLARITY_ACTIVE_LOW)
+		return __lvt_set(apic_id, pin, APIC_INT_ACTIVE_HIGH, 0);
+	else
+		return EINVAL;
+}
+
+int lapic_set_lvt_trigger_mode(uint32_t apic_id, unsigned int pin, int trig)
+{
+	if (trig == MP_INTERRUPT_TRIGGER_MODE_EDGE ||
+	    trig == ACPI_MADT_INTI_TRIGGER_MODE_EDGE)
+		return __lvt_set(apic_id, pin, 0, APIC_INT_EDGE_TRIGGER);
+	else if (trig == MP_INTERRUPT_TRIGGER_MODE_LEVEL ||
+		 trig == ACPI_MADT_INTI_TRIGGER_MODE_LEVEL)
+		return __lvt_set(apic_id, pin, APIC_INT_EDGE_TRIGGER, 0);
+	else
+		return EINVAL;
 }
 
 /*
