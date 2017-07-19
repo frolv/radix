@@ -50,7 +50,8 @@ static void __madt_ioapic(struct acpi_madt_io_apic *s)
 static void __madt_override(struct acpi_madt_interrupt_override *s)
 {
 	struct ioapic *ioapic;
-	int pin, polarity, trigger;
+	unsigned int polarity, trigger;
+	int pin;
 
 	ioapic = ioapic_from_vector(s->irq_source);
 	if (!ioapic) {
@@ -77,6 +78,7 @@ static void __madt_override(struct acpi_madt_interrupt_override *s)
 static void __madt_nmi(struct acpi_madt_nmi_source *s)
 {
 	struct ioapic *ioapic;
+	unsigned int polarity, trigger;
 	int pin;
 
 	ioapic = ioapic_from_vector(s->global_irq);
@@ -88,8 +90,39 @@ static void __madt_nmi(struct acpi_madt_nmi_source *s)
 
 	pin = s->global_irq - ioapic->irq_base;
 	ioapic_set_nmi(ioapic, pin);
+
+	polarity = s->flags & ACPI_MADT_INTI_POLARITY_MASK;
+	trigger = s->flags & ACPI_MADT_INTI_TRIGGER_MODE_MASK;
+
+	if (polarity != ACPI_MADT_INTI_POLARITY_CONFORMS)
+		ioapic_set_polarity(ioapic, pin, polarity);
+	if (trigger != ACPI_MADT_INTI_TRIGGER_MODE_CONFORMS)
+		ioapic_set_trigger_mode(ioapic, pin, trigger);
+
 	klog(KLOG_INFO, ACPI "NMI int %d ioapic %d pin %d",
 	     s->global_irq, ioapic->id, pin);
+}
+
+static void __madt_lapic_nmi(struct acpi_madt_local_apic_nmi *s)
+{
+	uint32_t apic_id;
+	unsigned int polarity, trigger;
+	int pin;
+
+	apic_id = (s->processor_id == 0xFF) ? APIC_ID_ALL : s->processor_id;
+	pin = (s->lint == 0) ? APIC_LVT_LINT0 : APIC_LVT_LINT1;
+
+	lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_NMI);
+
+	polarity = s->flags & ACPI_MADT_INTI_POLARITY_MASK;
+	trigger = s->flags & ACPI_MADT_INTI_TRIGGER_MODE_MASK;
+
+	if (polarity != ACPI_MADT_INTI_POLARITY_CONFORMS)
+		lapic_set_lvt_polarity(apic_id, pin, polarity);
+	if (trigger != ACPI_MADT_INTI_TRIGGER_MODE_CONFORMS)
+		lapic_set_lvt_trigger_mode(apic_id, pin, trigger);
+
+	klog(KLOG_INFO, ACPI "LOC NMI lapic %d LINT%d", s->processor_id, pin);
 }
 
 /*
@@ -129,10 +162,13 @@ static void madt_parse_all(struct acpi_subtable_header *header)
 		__madt_lapic((struct acpi_madt_local_apic *)header);
 		break;
 	case ACPI_MADT_INTERRUPT_OVERRIDE:
-		__madt_override((struct acpi_madt_interrupt_override *) header);
+		__madt_override((struct acpi_madt_interrupt_override *)header);
 		break;
 	case ACPI_MADT_NMI_SOURCE:
-		__madt_nmi((struct acpi_madt_nmi_source *) header);
+		__madt_nmi((struct acpi_madt_nmi_source *)header);
+		break;
+	case ACPI_MADT_LOCAL_APIC_NMI:
+		__madt_lapic_nmi((struct acpi_madt_local_apic_nmi *)header);
 		break;
 	}
 }
