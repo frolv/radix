@@ -63,8 +63,10 @@ static void __madt_override(struct acpi_madt_interrupt_override *s)
 	trigger = s->flags & ACPI_MADT_INTI_TRIGGER_MODE_MASK;
 
 	ioapic_set_vector(ioapic, pin, s->irq_source);
-	ioapic_set_polarity(ioapic, pin, polarity);
-	ioapic_set_trigger_mode(ioapic, pin, trigger);
+	if (polarity != ACPI_MADT_INTI_POLARITY_CONFORMS)
+		ioapic_set_polarity(ioapic, pin, polarity);
+	if (trigger != ACPI_MADT_INTI_TRIGGER_MODE_CONFORMS)
+		ioapic_set_trigger_mode(ioapic, pin, trigger);
 
 	klog(KLOG_INFO, ACPI "IRQ override bus %d int %d ioapic %d pin %d",
 	     s->bus_source, s->irq_source, ioapic->id, pin);
