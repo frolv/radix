@@ -53,10 +53,12 @@ static void __madt_override(struct acpi_madt_interrupt_override *s)
 	int pin, polarity, trigger;
 
 	ioapic = ioapic_from_vector(s->irq_source);
-	if (!ioapic)
+	if (!ioapic) {
 		klog(KLOG_ERROR, ACPI
 		     "ignoring ISA IRQ override for invalid vector %d",
 		     s->irq_source);
+		return;
+	}
 
 	pin = s->global_irq - ioapic->irq_base;
 	polarity = s->flags & ACPI_MADT_INTI_POLARITY_MASK;
@@ -70,6 +72,24 @@ static void __madt_override(struct acpi_madt_interrupt_override *s)
 
 	klog(KLOG_INFO, ACPI "IRQ override bus %d int %d ioapic %d pin %d",
 	     s->bus_source, s->irq_source, ioapic->id, pin);
+}
+
+static void __madt_nmi(struct acpi_madt_nmi_source *s)
+{
+	struct ioapic *ioapic;
+	int pin;
+
+	ioapic = ioapic_from_vector(s->global_irq);
+	if (!ioapic) {
+		klog(KLOG_ERROR, ACPI "ignoring NMI for invalid vector %d",
+		     s->global_irq);
+		return;
+	}
+
+	pin = s->global_irq - ioapic->irq_base;
+	ioapic_set_nmi(ioapic, pin);
+	klog(KLOG_INFO, ACPI "NMI int %d ioapic %d pin %d",
+	     s->global_irq, ioapic->id, pin);
 }
 
 /*
@@ -110,6 +130,9 @@ static void madt_parse_all(struct acpi_subtable_header *header)
 		break;
 	case ACPI_MADT_INTERRUPT_OVERRIDE:
 		__madt_override((struct acpi_madt_interrupt_override *) header);
+		break;
+	case ACPI_MADT_NMI_SOURCE:
+		__madt_nmi((struct acpi_madt_nmi_source *) header);
 		break;
 	}
 }
