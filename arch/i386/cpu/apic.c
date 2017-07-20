@@ -46,12 +46,15 @@
 static struct ioapic ioapic_list[MAX_IOAPICS];
 unsigned int ioapics_available = 0;
 
-#define IOAPIC_IOREGSEL 0
-#define IOAPIC_IOREGWIN 4
+#define IOAPIC_IOREGSEL         0
+#define IOAPIC_IOWIN            4
 
-#define IOAPIC_REG_ID   0
-#define IOAPIC_REG_VER  1
-#define IOAPIC_REG_ARB  2
+#define IOAPIC_IOAPICID         0
+#define IOAPIC_IOAPICVER        1
+#define IOAPIC_IOAPICARB        2
+#define IOAPIC_IOREDTBL         16
+#define IOAPIC_IOREDLO(n)       (IOAPIC_IOREDTBL + (n) * 2)
+#define IOAPIC_IOREDHI(n)       (IOAPIC_IOREDLO(n) + 1)
 
 
 #define IA32_APIC_BASE_BSP    (1 << 8)  /* bootstrap processor */
@@ -92,13 +95,13 @@ DEFINE_PER_CPU(struct lapic *, local_apic);
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
 {
 	ioapic->base[IOAPIC_IOREGSEL] = reg;
-	return ioapic->base[IOAPIC_IOREGWIN];
+	return ioapic->base[IOAPIC_IOWIN];
 }
 
 static void ioapic_reg_write(struct ioapic *ioapic, int reg, uint32_t value)
 {
 	ioapic->base[IOAPIC_IOREGSEL] = reg;
-	ioapic->base[IOAPIC_IOREGWIN] = value;
+	ioapic->base[IOAPIC_IOWIN] = value;
 }
 
 struct ioapic *ioapic_from_id(unsigned int id)
@@ -148,7 +151,7 @@ struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 	ioapic->irq_base = irq_base;
 	ioapic->base = (uint32_t *)base;
 
-	irq_count = ioapic_reg_read(ioapic, IOAPIC_REG_VER);
+	irq_count = ioapic_reg_read(ioapic, IOAPIC_IOAPICVER);
 	irq_count = ((irq_count >> 16) & 0xFF) + 1;
 	ioapic->irq_count = irq_count;
 
