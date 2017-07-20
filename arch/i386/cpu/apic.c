@@ -272,6 +272,26 @@ int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig)
 	return 0;
 }
 
+int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del)
+{
+	if (pin >= ioapic->irq_count)
+		return EINVAL;
+
+	switch (del) {
+	case APIC_INT_MODE_FIXED:
+	case APIC_INT_MODE_LOW_PRIO:
+	case APIC_INT_MODE_SMI:
+	case APIC_INT_MODE_NMI:
+	case APIC_INT_MODE_INIT:
+	case APIC_INT_MODE_EXTINT:
+		ioapic->pins[pin].flags &= APIC_INT_MODE_MASK;
+		ioapic->pins[pin].flags |= del;
+		return 0;
+	default:
+		return EINVAL;
+	}
+}
+
 static void lapic_enable(addr_t base)
 {
 	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
