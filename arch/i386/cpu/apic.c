@@ -284,7 +284,7 @@ int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del)
 	case APIC_INT_MODE_NMI:
 	case APIC_INT_MODE_INIT:
 	case APIC_INT_MODE_EXTINT:
-		ioapic->pins[pin].flags &= APIC_INT_MODE_MASK;
+		ioapic->pins[pin].flags &= ~APIC_INT_MODE_MASK;
 		ioapic->pins[pin].flags |= del;
 		return 0;
 	default:
