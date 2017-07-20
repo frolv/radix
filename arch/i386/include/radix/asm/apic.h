@@ -92,17 +92,17 @@ struct lapic {
 #define APIC_ID_ALL             0xFFFFFFFF
 
 /* flags for ioapic_pin and lapic_lvt */
-#define APIC_INT_ACTIVE_HIGH    (1 << 0)
-#define APIC_INT_EDGE_TRIGGER   (1 << 1)
-#define APIC_INT_MASKED         (1 << 2)
+#define APIC_INT_MASKED         (1 << 3)
+#define APIC_INT_ACTIVE_HIGH    (1 << 4)
+#define APIC_INT_EDGE_TRIGGER   (1 << 5)
 
 #define APIC_INT_MODE_FIXED     0x00
-#define APIC_INT_MODE_LOW_PRIO  0x10
-#define APIC_INT_MODE_SMI       0x20
-#define APIC_INT_MODE_NMI       0x40
-#define APIC_INT_MODE_INIT      0x50
-#define APIC_INT_MODE_EXTINT    0x70
-#define APIC_INT_MODE_MASK      0x70
+#define APIC_INT_MODE_LOW_PRIO  0x01
+#define APIC_INT_MODE_SMI       0x02
+#define APIC_INT_MODE_NMI       0x04
+#define APIC_INT_MODE_INIT      0x05
+#define APIC_INT_MODE_EXTINT    0x07
+#define APIC_INT_MODE_MASK      0x07
 
 int bsp_apic_init(void);
 
