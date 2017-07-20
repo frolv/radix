@@ -186,15 +186,15 @@ static void __mp_local_interrupt(struct mp_table_local_interrupt *s)
 		type = "INT";
 		break;
 	case MP_INTERRUPT_TYPE_NMI:
-		lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_NMI);
+		lapic_set_lvt_mode(apic_id, pin, APIC_INT_MODE_NMI);
 		type = "NMI";
 		break;
 	case MP_INTERRUPT_TYPE_SMI:
-		lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_SMI);
+		lapic_set_lvt_mode(apic_id, pin, APIC_INT_MODE_SMI);
 		type = "SMI";
 		break;
 	case MP_INTERRUPT_TYPE_EXTINT:
-		lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_EXTINT);
+		lapic_set_lvt_mode(apic_id, pin, APIC_INT_MODE_EXTINT);
 		type = "EXTINT";
 		break;
 	default:

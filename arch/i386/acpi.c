@@ -112,7 +112,7 @@ static void __madt_lapic_nmi(struct acpi_madt_local_apic_nmi *s)
 	apic_id = (s->processor_id == 0xFF) ? APIC_ID_ALL : s->processor_id;
 	pin = (s->lint == 0) ? APIC_LVT_LINT0 : APIC_LVT_LINT1;
 
-	lapic_set_lvt_mode(apic_id, pin, APIC_LVT_MODE_NMI);
+	lapic_set_lvt_mode(apic_id, pin, APIC_INT_MODE_NMI);
 
 	polarity = s->flags & ACPI_MADT_INTI_POLARITY_MASK;
 	trigger = s->flags & ACPI_MADT_INTI_TRIGGER_MODE_MASK;
