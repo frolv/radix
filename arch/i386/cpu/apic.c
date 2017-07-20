@@ -71,19 +71,19 @@ addr_t lapic_virt_base;
 
 static struct lapic_lvt lapic_lvt_default[] = {
 	/* LINT0: EXTINT */
-	{ 0, APIC_LVT_MODE_EXTINT | __ET | __AH | __MASK },
+	{ 0, APIC_INT_MODE_EXTINT | __ET | __AH | __MASK },
 	/* LINT1: NMI */
-	{ 0, APIC_LVT_MODE_NMI | __ET | __AH },
+	{ 0, APIC_INT_MODE_NMI | __ET | __AH },
 	/* timer */
-	{ APIC_IRQ_TIMER, APIC_LVT_MODE_FIXED | __ET | __AH | __MASK },
+	{ APIC_IRQ_TIMER, APIC_INT_MODE_FIXED | __ET | __AH | __MASK },
 	/* error */
-	{ APIC_IRQ_ERROR, APIC_LVT_MODE_FIXED | __ET | __AH },
+	{ APIC_IRQ_ERROR, APIC_INT_MODE_FIXED | __ET | __AH },
 	/* PMC */
-	{ 0, APIC_LVT_MODE_NMI | __ET | __AH | __MASK },
+	{ 0, APIC_INT_MODE_NMI | __ET | __AH | __MASK },
 	/* thermal */
-	{ APIC_IRQ_THERMAL, APIC_LVT_MODE_FIXED | __ET | __AH | __MASK },
+	{ APIC_IRQ_THERMAL, APIC_INT_MODE_FIXED | __ET | __AH | __MASK },
 	/* CMCI */
-	{ APIC_IRQ_CMCI, APIC_LVT_MODE_FIXED | __ET | __AH | __MASK }
+	{ APIC_IRQ_CMCI, APIC_INT_MODE_FIXED | __ET | __AH | __MASK }
 };
 
 static struct lapic lapic_list[MAX_CPUS];
@@ -171,10 +171,13 @@ struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 		} else if (ioapic->pins[i].irq < ISA_IRQ_COUNT) {
 			ioapic->pins[i].bus_type = BUS_TYPE_ISA;
 			ioapic->pins[i].flags = APIC_INT_ACTIVE_HIGH |
-				APIC_INT_EDGE_TRIGGER | APIC_INT_MASKED;
+			                        APIC_INT_EDGE_TRIGGER |
+			                        APIC_INT_MASKED |
+			                        APIC_INT_MODE_LOW_PRIO;
 		} else {
 			ioapic->pins[i].bus_type = BUS_TYPE_PCI;
-			ioapic->pins[i].flags = APIC_INT_MASKED;
+			ioapic->pins[i].flags = APIC_INT_MASKED |
+			                        APIC_INT_MODE_LOW_PRIO;
 		}
 	}
 
@@ -183,32 +186,38 @@ struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 
 static int __ioapic_set_special(struct ioapic *ioapic,
                                 unsigned int pin,
-                                unsigned int irq)
+                                unsigned int irq,
+                                unsigned int delivery)
 {
 	if (pin >= ioapic->irq_count)
 		return EINVAL;
 
 	ioapic->pins[pin].bus_type = BUS_TYPE_UNKNOWN;
 	ioapic->pins[pin].irq = irq;
-	ioapic->pins[pin].flags &= ~APIC_INT_MASKED;
-	ioapic->pins[pin].flags |= APIC_INT_ACTIVE_HIGH | APIC_INT_EDGE_TRIGGER;
+	ioapic->pins[pin].flags &= ~(APIC_INT_MASKED | APIC_INT_MODE_MASK);
+	ioapic->pins[pin].flags |= APIC_INT_ACTIVE_HIGH |
+	                           APIC_INT_EDGE_TRIGGER |
+	                           delivery;
 
 	return 0;
 }
 
 int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, APIC_IRQ_NMI);
+	return __ioapic_set_special(ioapic, pin, APIC_IRQ_NMI,
+	                            APIC_INT_MODE_NMI);
 }
 
 int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, APIC_IRQ_SMI);
+	return __ioapic_set_special(ioapic, pin, APIC_IRQ_SMI,
+	                            APIC_INT_MODE_SMI);
 }
 
 int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, APIC_IRQ_EXTINT);
+	return __ioapic_set_special(ioapic, pin, APIC_IRQ_EXTINT,
+	                            APIC_INT_MODE_EXTINT);
 }
 
 int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type)
@@ -338,12 +347,12 @@ static int __lvt_set(uint32_t apic_id, unsigned int pin,
 int lapic_set_lvt_mode(uint32_t apic_id, unsigned int pin, uint32_t mode)
 {
 	switch (mode) {
-	case APIC_LVT_MODE_FIXED:
-	case APIC_LVT_MODE_SMI:
-	case APIC_LVT_MODE_NMI:
-	case APIC_LVT_MODE_INIT:
-	case APIC_LVT_MODE_EXTINT:
-		return __lvt_set(apic_id, pin, APIC_LVT_MODE_MASK, mode);
+	case APIC_INT_MODE_FIXED:
+	case APIC_INT_MODE_SMI:
+	case APIC_INT_MODE_NMI:
+	case APIC_INT_MODE_INIT:
+	case APIC_INT_MODE_EXTINT:
+		return __lvt_set(apic_id, pin, APIC_INT_MODE_MASK, mode);
 	default:
 		return EINVAL;
 	}

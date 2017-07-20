@@ -96,13 +96,13 @@ struct lapic {
 #define APIC_INT_EDGE_TRIGGER   (1 << 1)
 #define APIC_INT_MASKED         (1 << 2)
 
-/* local APIC LVT delivery modes */
-#define APIC_LVT_MODE_FIXED     0x00
-#define APIC_LVT_MODE_SMI       0x20
-#define APIC_LVT_MODE_NMI       0x40
-#define APIC_LVT_MODE_INIT      0x50
-#define APIC_LVT_MODE_EXTINT    0x70
-#define APIC_LVT_MODE_MASK      0x70
+#define APIC_INT_MODE_FIXED     0x00
+#define APIC_INT_MODE_LOW_PRIO  0x10
+#define APIC_INT_MODE_SMI       0x20
+#define APIC_INT_MODE_NMI       0x40
+#define APIC_INT_MODE_INIT      0x50
+#define APIC_INT_MODE_EXTINT    0x70
+#define APIC_INT_MODE_MASK      0x70
 
 int bsp_apic_init(void);
 
