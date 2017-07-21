@@ -19,12 +19,8 @@
 #ifndef ARCH_I386_RADIX_APIC_H
 #define ARCH_I386_RADIX_APIC_H
 
-#include <radix/irq.h>
 #include <radix/mm_types.h>
 #include <radix/types.h>
-
-/* have the APIC timer use the same interrupt vector as the PIT */
-#define APIC_IRQ_TIMER          __ARCH_TIMER_VECTOR
 
 #define APIC_IRQ_NMI            0xE0
 #define APIC_IRQ_SMI            0xE1
@@ -32,6 +28,7 @@
 #define APIC_IRQ_ERROR          0xE3
 #define APIC_IRQ_THERMAL        0xE4
 #define APIC_IRQ_CMCI           0xE5
+#define APIC_IRQ_TIMER          0xF0
 #define APIC_IRQ_SPURIOUS       0xFF
 
 extern addr_t lapic_phys_base;
