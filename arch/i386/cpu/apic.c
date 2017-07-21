@@ -56,6 +56,17 @@ unsigned int ioapics_available = 0;
 #define IOAPIC_IOREDLO(n)       (IOAPIC_IOREDTBL + (n) * 2)
 #define IOAPIC_IOREDHI(n)       (IOAPIC_IOREDLO(n) + 1)
 
+#define IOREDLO_DELMODE_MASK            0x700
+#define IOREDLO_DELMODE_SHIFT           8
+#define IOREDLO_DESTMODE_LOGICAL        (1 << 11)
+#define IOREDLO_DELIVERY_STATUS         (1 << 12)
+#define IOREDLO_POLARITY_ACTIVE_LOW     (1 << 13)
+#define IOREDLO_REMOTE_IRR              (1 << 14)
+#define IOREDLO_TRIGGER_MODE_LEVEL      (1 << 15)
+#define IOREDLO_INTERRUPT_MASK          (1 << 16)
+
+#define IOREDHI_DESTINATION_SHIFT       24
+
 
 #define IA32_APIC_BASE_BSP    (1 << 8)  /* bootstrap processor */
 #define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
@@ -290,6 +301,40 @@ int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del)
 	default:
 		return EINVAL;
 	}
+}
+
+/*
+ * ioapic_progam_pin:
+ * Program the I/O APIC redirection table entry for the specified pin
+ * with data from its ioapic_pin struct.
+ */
+static void ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
+{
+	struct ioapic_pin *p;
+	uint32_t low, high;
+
+	if (pin >= ioapic->irq_count)
+		return;
+
+	p = &ioapic->pins[pin];
+	if (p->bus_type == BUS_TYPE_NONE)
+		return;
+
+	low = p->irq | IOREDLO_DESTMODE_LOGICAL;
+	low |= (p->flags & APIC_INT_MODE_MASK) << IOREDLO_DELMODE_SHIFT;
+
+	if (!(p->flags & APIC_INT_ACTIVE_HIGH))
+		low |= IOREDLO_POLARITY_ACTIVE_LOW;
+	if (!(p->flags & APIC_INT_EDGE_TRIGGER))
+		low |= IOREDLO_TRIGGER_MODE_LEVEL;
+	if (p->flags & APIC_INT_MASKED)
+		low |= IOREDLO_INTERRUPT_MASK;
+
+	/* send interrupt to all CPUs */
+	high = 0xFF << IOREDHI_DESTINATION_SHIFT;
+
+	ioapic_reg_write(ioapic, IOAPIC_IOREDLO(pin), low);
+	ioapic_reg_write(ioapic, IOAPIC_IOREDHI(pin), high);
 }
 
 static void lapic_enable(addr_t base)
