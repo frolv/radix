@@ -5,15 +5,6 @@
 
 
 #
-# rconfig radix
-# rconfig
-#
-
-# section Debugging
-CONFIG_DEBUG=false
-
-
-#
 # rconfig i386
 # arch/i386/rconfig
 #
@@ -23,13 +14,22 @@ CONFIG_MAX_IOAPICS=8
 
 
 #
+# rconfig radix
+# rconfig
+#
+
+# section Debugging
+CONFIG_DEBUG=false
+
+
+#
 # rconfig Kernel
 # kernel/rconfig
 #
 
 # section Multiprocessing
 CONFIG_SMP=true
-CONFIG_MAX_CPUS=64
+CONFIG_MAX_CPUS=16
 
 # section Logging
 CONFIG_KLOG_SHIFT=19

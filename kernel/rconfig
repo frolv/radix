@@ -9,8 +9,8 @@ config SMP
 
 config MAX_CPUS
 	type int
-	range 1 256
-	default 64
+	range 1 64
+	default 16
 	desc "Maximum number of CPUs to support"
 
 
