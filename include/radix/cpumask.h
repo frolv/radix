@@ -22,7 +22,7 @@
 #ifdef CONFIG_MAX_CPUS
 #define MAX_CPUS CONFIG_MAX_CPUS
 #else
-#define MAX_CPUS 64
+#define MAX_CPUS 16
 #endif
 
 #endif /* RADIX_CPUMASK_H */
