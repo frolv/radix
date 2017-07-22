@@ -305,6 +305,48 @@ int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del)
 	}
 }
 
+/*
+ * ioapic_mask:
+ * Mask the IRQ controlled by the specified I/O APIC pin.
+ */
+int ioapic_mask(struct ioapic *ioapic, unsigned int pin)
+{
+	uint32_t low;
+
+	if (pin >= ioapic->irq_count)
+		return EINVAL;
+
+	spin_lock_irq(&ioapic_lock);
+	ioapic->pins[pin].flags |= APIC_INT_MASKED;
+	low = ioapic_reg_read(ioapic, IOAPIC_IOREDLO(pin));
+	low |= IOREDLO_INTERRUPT_MASK;
+	ioapic_reg_write(ioapic, IOAPIC_IOREDLO(pin), low);
+	spin_unlock_irq(&ioapic_lock);
+
+	return 0;
+}
+
+/*
+ * ioapic_unmask:
+ * Unmask the IRQ controlled by the specified I/O APIC pin.
+ */
+int ioapic_unmask(struct ioapic *ioapic, unsigned int pin)
+{
+	uint32_t low;
+
+	if (pin >= ioapic->irq_count)
+		return EINVAL;
+
+	spin_lock_irq(&ioapic_lock);
+	ioapic->pins[pin].flags &= ~APIC_INT_MASKED;
+	low = ioapic_reg_read(ioapic, IOAPIC_IOREDLO(pin));
+	low &= ~IOREDLO_INTERRUPT_MASK;
+	ioapic_reg_write(ioapic, IOAPIC_IOREDLO(pin), low);
+	spin_unlock_irq(&ioapic_lock);
+
+	return 0;
+}
+
 static void __ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
 {
 	struct ioapic_pin *p;
