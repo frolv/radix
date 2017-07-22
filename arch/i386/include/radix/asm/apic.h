@@ -115,6 +115,8 @@ int ioapic_set_vector(struct ioapic *ioapic, unsigned int pin, int vec);
 int ioapic_set_polarity(struct ioapic *ioapic, unsigned int pin, int polarity);
 int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig);
 int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del);
+void ioapic_program_pin(struct ioapic *ioapic, unsigned int pin);
+void ioapic_program(struct ioapic *ioapic);
 
 struct lapic *lapic_add(unsigned int id);
 struct lapic *lapic_from_id(unsigned int id);

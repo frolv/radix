@@ -1,6 +1,6 @@
 /*
  * arch/i386/cpu/apic.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <radix/mm.h>
 #include <radix/percpu.h>
 #include <radix/slab.h>
+#include <radix/spinlock.h>
 #include <radix/vmm.h>
 
 #include <rlibc/string.h>
@@ -45,6 +46,7 @@
 
 static struct ioapic ioapic_list[MAX_IOAPICS];
 unsigned int ioapics_available = 0;
+static spinlock_t ioapic_lock = SPINLOCK_INIT;
 
 #define IOAPIC_IOREGSEL         0
 #define IOAPIC_IOWIN            4
@@ -303,12 +305,7 @@ int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del)
 	}
 }
 
-/*
- * ioapic_progam_pin:
- * Program the I/O APIC redirection table entry for the specified pin
- * with data from its ioapic_pin struct.
- */
-static void ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
+static void __ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
 {
 	struct ioapic_pin *p;
 	uint32_t low, high;
@@ -335,6 +332,40 @@ static void ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
 
 	ioapic_reg_write(ioapic, IOAPIC_IOREDLO(pin), low);
 	ioapic_reg_write(ioapic, IOAPIC_IOREDHI(pin), high);
+}
+
+/*
+ * ioapic_progam_pin:
+ * Program the I/O APIC redirection table entry for the specified pin
+ * with data from its ioapic_pin struct.
+ */
+void ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
+{
+	spin_lock_irq(&ioapic_lock);
+	__ioapic_program_pin(ioapic, pin);
+	spin_unlock_irq(&ioapic_lock);
+}
+
+/*
+ * ioapic_program:
+ * Program all redirection table entries for the specified I/O APIC.
+ */
+void ioapic_program(struct ioapic *ioapic)
+{
+	size_t pin;
+
+	spin_lock_irq(&ioapic_lock);
+	for (pin = 0; pin < ioapic->irq_count; ++pin)
+		__ioapic_program_pin(ioapic, pin);
+	spin_unlock_irq(&ioapic_lock);
+}
+
+static void ioapic_program_all(void)
+{
+	size_t i;
+
+	for (i = 0; i < ioapics_available; ++i)
+		ioapic_program(&ioapic_list[i]);
 }
 
 static void lapic_enable(addr_t base)
@@ -495,6 +526,7 @@ int bsp_apic_init(void)
 		return 1;
 	}
 
+	ioapic_program_all();
 	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
 	map_page_kernel(lapic_virt_base, lapic_phys_base,
 	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
