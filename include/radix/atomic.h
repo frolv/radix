@@ -21,6 +21,7 @@
 
 #include <radix/asm/atomic.h>
 
-#define atomic_swap __arch_atomic_swap
+#define atomic_swap(p, val)     __arch_atomic_swap(p, val)
+#define atomic_write(p, val)    __arch_atomic_write(p, val)
 
 #endif /* RADIX_ATOMIC_H */

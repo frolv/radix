@@ -26,12 +26,18 @@
 
 #include <radix/compiler.h>
 
-#define __arch_atomic_swap x86_atomic_swap
+#define __arch_atomic_swap      x86_atomic_swap
+#define __arch_atomic_write     x86_atomic_write
 
 static __always_inline int x86_atomic_swap(int *a, int b)
 {
 	asm volatile("xchg %0, %1" : "=r"(b), "=m"(*a) : "0"(b) : "memory");
 	return b;
+}
+
+static __always_inline void x86_atomic_write(int *p, int val)
+{
+	asm volatile("movl %1, %0" : "=m"(*p) : "r"(val) : "memory");
 }
 
 #endif /* ARCH_I386_RADIX_ATOMIC_H */
