@@ -74,6 +74,54 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
 #define IA32_APIC_BASE_ENABLE (1 << 11) /* XAPIC global enable */
 
+#define APIC_REG_APICID         0x02
+#define APIC_REG_APICVER        0x03
+#define APIC_REG_TPR            0x08
+#define APIC_REG_APR            0x09
+#define APIC_REG_PPR            0x0A
+#define APIC_REG_EOI            0x0B
+#define APIC_REG_RRD            0x0C
+#define APIC_REG_LDR            0x0D
+#define APIC_REG_DFR            0x0E
+#define APIC_REG_SPURINT        0x0F
+#define APIC_REG_ISR0           0x10
+#define APIC_REG_ISR1           0x11
+#define APIC_REG_ISR2           0x12
+#define APIC_REG_ISR3           0x13
+#define APIC_REG_ISR4           0x14
+#define APIC_REG_ISR5           0x15
+#define APIC_REG_ISR6           0x16
+#define APIC_REG_ISR7           0x17
+#define APIC_REG_TMR0           0x18
+#define APIC_REG_TMR1           0x19
+#define APIC_REG_TMR2           0x1A
+#define APIC_REG_TMR3           0x1B
+#define APIC_REG_TMR4           0x1C
+#define APIC_REG_TMR5           0x1D
+#define APIC_REG_TMR6           0x1E
+#define APIC_REG_TMR7           0x1F
+#define APIC_REG_IRR0           0x20
+#define APIC_REG_IRR1           0x21
+#define APIC_REG_IRR2           0x22
+#define APIC_REG_IRR3           0x23
+#define APIC_REG_IRR4           0x24
+#define APIC_REG_IRR5           0x25
+#define APIC_REG_IRR6           0x26
+#define APIC_REG_IRR7           0x27
+#define APIC_REG_ESR            0x28
+#define APIC_REG_LVT_CMCI       0x2F
+#define APIC_REG_ICR_LO         0x30
+#define APIC_REG_ICR_HI         0x31
+#define APIC_REG_LVT_TIMER      0x32
+#define APIC_REG_LVT_THERMAL    0x33
+#define APIC_REG_LVT_PERF       0x34
+#define APIC_REG_LVT_LINT0      0x35
+#define APIC_REG_LVT_LINT1      0x36
+#define APIC_REG_LVT_ERROR      0x37
+#define APIC_REG_TIMER_INITIAL  0x38
+#define APIC_REG_TIMER_COUNT    0x39
+#define APIC_REG_TIMER_DIVIDE   0x3E
+
 /* Local APIC base addresses */
 addr_t lapic_phys_base;
 addr_t lapic_virt_base;
@@ -415,14 +463,14 @@ static void lapic_enable(addr_t base)
 	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
 }
 
-static uint32_t lapic_reg_read(uint16_t reg)
+static __always_inline uint32_t lapic_reg_read(uint16_t reg)
 {
-	return *(uint32_t *)(lapic_virt_base + reg);
+	return *(uint32_t *)(lapic_virt_base + (reg << 4));
 }
 
-static void lapic_reg_write(uint16_t reg, uint32_t value)
+static __always_inline void lapic_reg_write(uint16_t reg, uint32_t value)
 {
-	*(uint32_t *)(lapic_virt_base + reg) = value;
+	*(uint32_t *)(lapic_virt_base + (reg << 4)) = value;
 }
 
 struct lapic *lapic_from_id(unsigned int id)
@@ -540,7 +588,7 @@ static void find_cpu_lapic(void)
 		}
 	}
 
-	lapic_id = lapic_reg_read(0x20) >> 24;
+	lapic_id = lapic_reg_read(APIC_REG_APICID) >> 24;
 
 find_lapic:
 	lapic = lapic_from_id(lapic_id);
@@ -556,7 +604,7 @@ void lapic_init(void)
 {
 	find_cpu_lapic();
 	lapic_enable(lapic_phys_base);
-	lapic_reg_write(0xF0, 0x100 | APIC_IRQ_SPURIOUS);
+	lapic_reg_write(APIC_REG_SPURINT, 0x100 | APIC_IRQ_SPURIOUS);
 }
 
 int bsp_apic_init(void)
