@@ -604,6 +604,7 @@ void lapic_init(void)
 {
 	find_cpu_lapic();
 	lapic_enable(lapic_phys_base);
+	lapic_reg_write(APIC_REG_TPR, 0);
 	lapic_reg_write(APIC_REG_SPURINT, 0x100 | APIC_IRQ_SPURIOUS);
 }
 
