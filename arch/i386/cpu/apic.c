@@ -621,6 +621,16 @@ static uint8_t lapic_logid_cluster(int cpu_number)
 }
 
 /*
+ * lapic_eoi:
+ * Send an end of interrupt signal to the local APIC by writing
+ * to its EOI register.
+ */
+void lapic_eoi(int vector)
+{
+	lapic_reg_write(APIC_REG_EOI, vector);
+}
+
+/*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
  */
