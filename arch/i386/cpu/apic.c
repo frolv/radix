@@ -122,6 +122,12 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_REG_TIMER_COUNT    0x39
 #define APIC_REG_TIMER_DIVIDE   0x3E
 
+#define APIC_LDR_ID_SHIFT       24
+#define APIC_DFR_MODEL_FLAT     0xF0000000
+#define APIC_DFR_MODEL_CLUSTER  0x00000000
+
+#define APIC_FLAT_MODEL_BITS    8
+
 /* Local APIC base addresses */
 addr_t lapic_phys_base;
 addr_t lapic_virt_base;
@@ -595,7 +601,6 @@ find_lapic:
 	this_cpu_write(local_apic, lapic);
 }
 
-
 /*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
@@ -604,6 +609,13 @@ void lapic_init(void)
 {
 	find_cpu_lapic();
 	lapic_enable(lapic_phys_base);
+
+	if (cpus_available < APIC_FLAT_MODEL_BITS) {
+		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_FLAT);
+	} else {
+		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_CLUSTER);
+	}
+
 	lapic_reg_write(APIC_REG_TPR, 0);
 	lapic_reg_write(APIC_REG_SPURINT, 0x100 | APIC_IRQ_SPURIOUS);
 }
