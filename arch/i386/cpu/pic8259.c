@@ -1,5 +1,5 @@
 /*
- * arch/i386/cpu/pic.c
+ * arch/i386/cpu/pic8259.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -39,8 +39,8 @@
 
 #include <radix/io.h>
 
-/* pic_eoi: send an end-of-interrupt signal to the PIC chips */
-void pic_eoi(uint32_t irq)
+/* pic8259_eoi: send an end-of-interrupt signal to the PIC chips */
+void pic8259_eoi(uint32_t irq)
 {
 	if (irq >= 8)
 		outb(PIC_SLAVE_CMD, PIC_EOI);
@@ -49,11 +49,11 @@ void pic_eoi(uint32_t irq)
 }
 
 /*
- * pic_remap:
- * Remap the master PIC to start at vector offset1
- * and the slave PIC to start at vector offset2.
+ * pic8259_remap:
+ * Remap the master 8259 PIC to start at vector offset1
+ * and the slave 8259 PIC to start at vector offset2.
  */
-void pic_remap(uint32_t offset1, uint32_t offset2)
+void pic8259_remap(uint32_t offset1, uint32_t offset2)
 {
 	uint8_t a1, a2;
 
@@ -77,8 +77,8 @@ void pic_remap(uint32_t offset1, uint32_t offset2)
 	outb(PIC_SLAVE_DATA,  a2);
 }
 
-/* pic_disable: prevent the PIC from sending interrupts */
-void pic_disable(void)
+/* pic8259_disable: mask all 8259 PIC interrupts */
+void pic8259_disable(void)
 {
 	outb(PIC_SLAVE_DATA, 0xFF);
 	outb(PIC_MASTER_DATA, 0xFF);

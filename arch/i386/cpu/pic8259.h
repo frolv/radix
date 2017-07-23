@@ -1,6 +1,6 @@
 /*
- * arch/i386/cpu/pic.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * arch/i386/cpu/pic8259.h
+ * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_PIC_H
-#define ARCH_I386_PIC_H
+#ifndef ARCH_I386_PIC8259_H
+#define ARCH_I386_PIC8259_H
 
-#endif /* ARCH_I386_PIC_H */
+void pic8259_remap(uint32_t offset1, uint32_t offset2);
+void pic8259_disable(void);
+
+#endif /* ARCH_I386_PIC8259_H */

@@ -22,7 +22,7 @@
 
 #include "idt.h"
 #include "isr.h"
-#include "pic.h"
+#include "pic8259.h"
 
 static uint64_t idt[IDT_ENTRIES];
 
@@ -76,8 +76,8 @@ void idt_init_early(void)
 	for (i = 0; i < ARRAY_SIZE(early_isr_fn); ++i)
 		idt[i] = idt_pack((uintptr_t)early_isr_fn[i], 0x08, 0x8E);
 
-	pic_remap(IRQ_BASE, IRQ_BASE + 8);
-	pic_disable();
+	pic8259_remap(IRQ_BASE, IRQ_BASE + 8);
+	pic8259_disable();
 
 	idt_load(idt, sizeof idt);
 }
