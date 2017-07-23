@@ -25,4 +25,12 @@
 #define MAX_CPUS 16
 #endif
 
+#include <radix/types.h>
+
+#if MAX_CPUS > 32
+typedef uint64_t cpumask_t;
+#else
+typedef uint32_t cpumask_t;
+#endif
+
 #endif /* RADIX_CPUMASK_H */
