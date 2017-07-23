@@ -31,6 +31,7 @@
 #include <radix/mm.h>
 #include <radix/percpu.h>
 #include <radix/slab.h>
+#include <radix/smp.h>
 #include <radix/spinlock.h>
 #include <radix/vmm.h>
 
@@ -126,7 +127,8 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_DFR_MODEL_FLAT     0xF0000000
 #define APIC_DFR_MODEL_CLUSTER  0x00000000
 
-#define APIC_FLAT_MODEL_BITS    8
+#define APIC_MAX_FLAT_CPUS      8
+#define APIC_MAX_CLUSTER_CPUS   60
 
 /* Local APIC base addresses */
 addr_t lapic_phys_base;
@@ -155,6 +157,8 @@ static struct lapic_lvt lapic_lvt_default[] = {
 
 static struct lapic lapic_list[MAX_CPUS];
 static unsigned int cpus_available = 0;
+static unsigned int cpus_online = 0;
+static spinlock_t cpus_online_lock = SPINLOCK_INIT;
 
 DEFINE_PER_CPU(struct lapic *, local_apic);
 
@@ -601,22 +605,51 @@ find_lapic:
 	this_cpu_write(local_apic, lapic);
 }
 
+static uint8_t lapic_logid_flat(int cpu_number)
+{
+	return 1 << cpu_number;
+}
+
+static uint8_t lapic_logid_cluster(int cpu_number)
+{
+	uint8_t cluster, id;
+
+	cluster = cpu_number >> 2;
+	id = cpu_number & 3;
+
+	return (cluster << 4) | id;
+}
+
 /*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
  */
 void lapic_init(void)
 {
+	int cpu_number;
+	uint32_t logical_id;
+
+	spin_lock(&cpus_online_lock);
+	cpu_number = cpus_online++;
+	spin_unlock(&cpus_online_lock);
+
+	this_cpu_write(processor_id, cpu_number);
 	find_cpu_lapic();
 	lapic_enable(lapic_phys_base);
 
-	if (cpus_available < APIC_FLAT_MODEL_BITS) {
+	if (cpus_available <= APIC_MAX_FLAT_CPUS) {
 		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_FLAT);
+		logical_id = lapic_logid_flat(cpu_number);
+	} else if (cpus_available > APIC_MAX_CLUSTER_CPUS) {
+		/* TODO: give multiple CPUs same logical ID */
+		logical_id = 0;
 	} else {
 		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_CLUSTER);
+		logical_id = lapic_logid_cluster(cpu_number);
 	}
 
 	lapic_reg_write(APIC_REG_TPR, 0);
+	lapic_reg_write(APIC_REG_LDR, logical_id << APIC_LDR_ID_SHIFT);
 	lapic_reg_write(APIC_REG_SPURINT, 0x100 | APIC_IRQ_SPURIOUS);
 }
 
