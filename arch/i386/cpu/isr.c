@@ -25,7 +25,6 @@
 
 #include "idt.h"
 #include "isr.h"
-#include "pic.h"
 
 static void (*isr_vectors[])(void) = {
 	isr_0, isr_1, isr_2, isr_3, isr_4, isr_5, isr_6, isr_7,

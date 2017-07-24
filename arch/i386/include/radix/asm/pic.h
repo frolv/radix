@@ -1,6 +1,6 @@
 /*
- * arch/i386/cpu/pic.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * arch/i386/include/radix/asm/pic.h
+ * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_PIC_H
-#define ARCH_I386_PIC_H
+#ifndef ARCH_I386_RADIX_PIC_H
+#define ARCH_I386_RADIX_PIC_H
 
-#endif /* ARCH_I386_PIC_H */
+struct pic {
+	void (*eoi)(int);
+	void (*mask)(int);
+	void (*unmask)(int);
+};
+
+#endif /* ARCH_I386_RADIX_PIC_H */
