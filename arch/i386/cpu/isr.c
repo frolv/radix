@@ -16,7 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/pic.h>
 #include <radix/asm/regs.h>
+
 #include <radix/cpu.h>
 #include <radix/error.h>
 #include <radix/irq.h>
@@ -25,6 +27,8 @@
 
 #include "idt.h"
 #include "isr.h"
+
+struct pic *system_pic = NULL;
 
 static void (*isr_vectors[])(void) = {
 	isr_0, isr_1, isr_2, isr_3, isr_4, isr_5, isr_6, isr_7,
