@@ -21,9 +21,9 @@
 
 struct pic {
 	char name[16];
-	void (*eoi)(int);
-	void (*mask)(int);
-	void (*unmask)(int);
+	void (*eoi)(unsigned int);
+	void (*mask)(unsigned int);
+	void (*unmask)(unsigned int);
 };
 
 extern struct pic *system_pic;
