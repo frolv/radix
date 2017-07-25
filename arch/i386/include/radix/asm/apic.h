@@ -105,13 +105,13 @@ int bsp_apic_init(void);
 
 struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base);
 struct ioapic *ioapic_from_id(unsigned int id);
-struct ioapic *ioapic_from_vector(unsigned int vec);
+struct ioapic *ioapic_from_irq(unsigned int irq);
 
 int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin);
 int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin);
 int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin);
 int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type);
-int ioapic_set_vector(struct ioapic *ioapic, unsigned int pin, int vec);
+int ioapic_set_irq(struct ioapic *ioapic, unsigned int pin, int irq);
 int ioapic_set_polarity(struct ioapic *ioapic, unsigned int pin, int polarity);
 int ioapic_set_trigger_mode(struct ioapic *ioapic, unsigned int pin, int trig);
 int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del);

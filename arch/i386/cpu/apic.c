@@ -188,16 +188,16 @@ struct ioapic *ioapic_from_id(unsigned int id)
 }
 
 /*
- * ioapic_from_vector:
- * Return the I/O APIC that controls the given interrupt vector.
+ * ioapic_from_irq:
+ * Return the I/O APIC that controls the given IRQ number.
  */
-struct ioapic *ioapic_from_vector(unsigned int vec)
+struct ioapic *ioapic_from_irq(unsigned int irq)
 {
 	size_t i;
 
 	for (i = 0; i < ioapics_available; ++i) {
-		if (vec >= ioapic_list[i].irq_base &&
-		    vec < ioapic_list[i].irq_base + ioapic_list[i].irq_count)
+		if (irq >= ioapic_list[i].irq_base &&
+		    irq < ioapic_list[i].irq_base + ioapic_list[i].irq_count)
 			return ioapic_list + i;
 	}
 
@@ -300,12 +300,12 @@ int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type)
 	return 0;
 }
 
-int ioapic_set_vector(struct ioapic *ioapic, unsigned int pin, int vec)
+int ioapic_set_irq(struct ioapic *ioapic, unsigned int pin, int irq)
 {
-	if (pin >= ioapic->irq_count || vec > NUM_ISR_VECTORS - IRQ_BASE)
+	if (pin >= ioapic->irq_count || irq > NUM_ISR_VECTORS - IRQ_BASE)
 		return EINVAL;
 
-	ioapic->pins[pin].irq = vec;
+	ioapic->pins[pin].irq = irq;
 	return 0;
 }
 
@@ -417,7 +417,7 @@ static void __ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
 	if (p->bus_type == BUS_TYPE_NONE)
 		return;
 
-	low = p->irq | IOREDLO_DESTMODE_LOGICAL;
+	low = (p->irq + IRQ_BASE) | IOREDLO_DESTMODE_LOGICAL;
 	low |= (p->flags & APIC_INT_MODE_MASK) << IOREDLO_DELMODE_SHIFT;
 
 	if (!(p->flags & APIC_INT_ACTIVE_HIGH))
@@ -621,16 +621,6 @@ static uint8_t lapic_logid_cluster(int cpu_number)
 }
 
 /*
- * lapic_eoi:
- * Send an end of interrupt signal to the local APIC by writing
- * to its EOI register.
- */
-void lapic_eoi(int vector)
-{
-	lapic_reg_write(APIC_REG_EOI, vector);
-}
-
-/*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
  */
@@ -661,6 +651,16 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_TPR, 0);
 	lapic_reg_write(APIC_REG_LDR, logical_id << APIC_LDR_ID_SHIFT);
 	lapic_reg_write(APIC_REG_SPURINT, 0x100 | APIC_IRQ_SPURIOUS);
+}
+
+/*
+ * lapic_eoi:
+ * Send an end of interrupt signal to the local APIC by writing
+ * to its EOI register.
+ */
+void lapic_eoi(int irq)
+{
+	lapic_reg_write(APIC_REG_EOI, irq);
 }
 
 int bsp_apic_init(void)

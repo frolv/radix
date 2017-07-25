@@ -103,7 +103,7 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 			     s->dest_intin);
 			return;
 		}
-		ioapic = ioapic_from_vector(0);
+		ioapic = ioapic_from_irq(0);
 	} else {
 		ioapic = ioapic_from_id(s->dest_ioapic);
 	}
@@ -120,8 +120,7 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 		switch (mp_buses[s->source_bus]) {
 		case BUS_TYPE_ISA:
 		case BUS_TYPE_EISA:
-			ioapic_set_vector(ioapic, s->dest_intin,
-			                  s->source_irq);
+			ioapic_set_irq(ioapic, s->dest_intin, s->source_irq);
 			/* fall through */
 		case BUS_TYPE_PCI:
 		case BUS_TYPE_UNKNOWN:
@@ -181,7 +180,7 @@ static void __mp_local_interrupt(struct mp_table_local_interrupt *s)
 
 	switch (s->interrupt_type) {
 	case MP_INTERRUPT_TYPE_INT:
-		klog(KLOG_WARNING, MPS "ignoring LOC INT vector %d for LINT%d",
+		klog(KLOG_WARNING, MPS "ignoring LOC INT irq %d for LINT%d",
 		     s->source_irq, s->dest_lintin);
 		type = "INT";
 		break;
