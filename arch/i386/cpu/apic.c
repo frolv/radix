@@ -22,6 +22,7 @@
 #include <radix/asm/apic.h>
 #include <radix/asm/mps.h>
 #include <radix/asm/msr.h>
+#include <radix/asm/pic.h>
 
 #include <radix/cpu.h>
 #include <radix/cpumask.h>
@@ -654,14 +655,43 @@ void lapic_init(void)
 }
 
 /*
- * lapic_eoi:
+ * apic_eoi:
  * Send an end of interrupt signal to the local APIC by writing
  * to its EOI register.
  */
-void lapic_eoi(int irq)
+static void apic_eoi(unsigned int irq)
 {
 	lapic_reg_write(APIC_REG_EOI, irq);
 }
+
+static void apic_mask(unsigned int irq)
+{
+	struct ioapic *ioapic;
+
+	ioapic = ioapic_from_irq(irq);
+	if (!ioapic)
+		return;
+
+	ioapic_mask(ioapic, irq - ioapic->irq_base);
+}
+
+static void apic_unmask(unsigned int irq)
+{
+	struct ioapic *ioapic;
+
+	ioapic = ioapic_from_irq(irq);
+	if (!ioapic)
+		return;
+
+	ioapic_mask(ioapic, irq - ioapic->irq_base);
+}
+
+static struct pic apic = {
+	.name   = "APIC",
+	.eoi    = apic_eoi,
+	.mask   = apic_mask,
+	.unmask = apic_unmask
+};
 
 int bsp_apic_init(void)
 {
@@ -677,6 +707,7 @@ int bsp_apic_init(void)
 	map_page_kernel(lapic_virt_base, lapic_phys_base,
 	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
 	lapic_init();
+	system_pic = &apic;
 
 	return 0;
 }
