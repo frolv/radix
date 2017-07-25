@@ -72,9 +72,9 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define IOREDHI_DESTINATION_SHIFT       24
 
 
-#define IA32_APIC_BASE_BSP    (1 << 8)  /* bootstrap processor */
-#define IA32_APIC_BASE_EXTD   (1 << 10) /* X2APIC mode enable */
-#define IA32_APIC_BASE_ENABLE (1 << 11) /* XAPIC global enable */
+#define IA32_APIC_BASE_BSP      (1 << 8)  /* bootstrap processor */
+#define IA32_APIC_BASE_EXTD     (1 << 10) /* X2APIC mode enable */
+#define IA32_APIC_BASE_ENABLE   (1 << 11) /* XAPIC global enable */
 
 #define APIC_REG_APICID         0x02
 #define APIC_REG_APICVER        0x03
@@ -85,7 +85,7 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_REG_RRD            0x0C
 #define APIC_REG_LDR            0x0D
 #define APIC_REG_DFR            0x0E
-#define APIC_REG_SPURINT        0x0F
+#define APIC_REG_SVR            0x0F
 #define APIC_REG_ISR0           0x10
 #define APIC_REG_ISR1           0x11
 #define APIC_REG_ISR2           0x12
@@ -651,7 +651,7 @@ void lapic_init(void)
 
 	lapic_reg_write(APIC_REG_TPR, 0);
 	lapic_reg_write(APIC_REG_LDR, logical_id << APIC_LDR_ID_SHIFT);
-	lapic_reg_write(APIC_REG_SPURINT, 0x100 | APIC_IRQ_SPURIOUS);
+	lapic_reg_write(APIC_REG_SVR, 0x100 | APIC_IRQ_SPURIOUS);
 }
 
 /*
@@ -702,12 +702,16 @@ int bsp_apic_init(void)
 		return 1;
 	}
 
+	irq_disable();
+
 	ioapic_program_all();
 	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
 	map_page_kernel(lapic_virt_base, lapic_phys_base,
 	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
 	lapic_init();
 	system_pic = &apic;
+
+	irq_enable();
 
 	return 0;
 }
