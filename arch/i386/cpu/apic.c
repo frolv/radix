@@ -582,11 +582,10 @@ int lapic_set_lvt_trigger_mode(uint32_t apic_id, unsigned int pin, int trig)
 /*
  * find_cpu_lapic:
  * Read the local APIC ID of the executing processor,
- * find the corresponding struct lapic, and save it.
+ * find the corresponding struct lapic, and return it.
  */
-static void find_cpu_lapic(void)
+static struct lapic *find_cpu_lapic(void)
 {
-	struct lapic *lapic;
 	uint32_t eax, edx;
 	uint32_t lapic_id;
 
@@ -595,15 +594,12 @@ static void find_cpu_lapic(void)
 		rdmsr(IA32_APIC_BASE, &eax, &edx);
 		if (eax & IA32_APIC_BASE_EXTD) {
 			rdmsr(IA32_X2APIC_APICID, &lapic_id, &edx);
-			goto find_lapic;
+			return lapic_from_id(lapic_id);
 		}
 	}
 
 	lapic_id = lapic_reg_read(APIC_REG_APICID) >> 24;
-
-find_lapic:
-	lapic = lapic_from_id(lapic_id);
-	this_cpu_write(local_apic, lapic);
+	return lapic_from_id(lapic_id);
 }
 
 static uint8_t lapic_logid_flat(int cpu_number)
@@ -627,15 +623,21 @@ static uint8_t lapic_logid_cluster(int cpu_number)
  */
 void lapic_init(void)
 {
+	struct lapic *lapic;
 	int cpu_number;
 	uint32_t logical_id;
 
 	spin_lock(&cpus_online_lock);
 	cpu_number = cpus_online++;
 	spin_unlock(&cpus_online_lock);
-
 	this_cpu_write(processor_id, cpu_number);
-	find_cpu_lapic();
+
+	lapic = find_cpu_lapic();
+	if (!lapic)
+		panic("CPU %d: LAPIC ID does not represent a valid LAPIC\n",
+		      cpu_number);
+
+	this_cpu_write(local_apic, lapic);
 	lapic_enable(lapic_phys_base);
 
 	if (cpus_available <= APIC_MAX_FLAT_CPUS) {
