@@ -76,7 +76,7 @@ void idt_init_early(void)
 	for (i = 0; i < ARRAY_SIZE(early_isr_fn); ++i)
 		idt[i] = idt_pack((uintptr_t)early_isr_fn[i], 0x08, 0x8E);
 
-	pic8259_remap(IRQ_BASE, IRQ_BASE + 8);
+	pic8259_init();
 	pic8259_disable();
 
 	idt_load(idt, sizeof idt);

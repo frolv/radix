@@ -19,7 +19,7 @@
 #ifndef ARCH_I386_PIC8259_H
 #define ARCH_I386_PIC8259_H
 
-void pic8259_remap(uint32_t offset1, uint32_t offset2);
+void pic8259_init(void);
 void pic8259_disable(void);
 
 #endif /* ARCH_I386_PIC8259_H */
