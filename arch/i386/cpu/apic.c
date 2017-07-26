@@ -515,7 +515,7 @@ struct lapic *lapic_add(unsigned int id)
 
 	lapic = &lapic_list[cpus_available++];
 	lapic->id = id;
-	lapic->timer_mode = LAPIC_TIMER_UNDEFINED;
+	lapic->timer_mode = LAPIC_TIMER_ONESHOT;
 	lapic->timer_div = 1;
 	memcpy(&lapic->lvts, &lapic_lvt_default, sizeof lapic->lvts);
 
