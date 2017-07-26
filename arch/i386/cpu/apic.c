@@ -50,15 +50,15 @@ static struct ioapic ioapic_list[MAX_IOAPICS];
 unsigned int ioapics_available = 0;
 static spinlock_t ioapic_lock = SPINLOCK_INIT;
 
-#define IOAPIC_IOREGSEL         0
-#define IOAPIC_IOWIN            4
+#define IOAPIC_IOREGSEL                 0
+#define IOAPIC_IOWIN                    4
 
-#define IOAPIC_IOAPICID         0
-#define IOAPIC_IOAPICVER        1
-#define IOAPIC_IOAPICARB        2
-#define IOAPIC_IOREDTBL         16
-#define IOAPIC_IOREDLO(n)       (IOAPIC_IOREDTBL + (n) * 2)
-#define IOAPIC_IOREDHI(n)       (IOAPIC_IOREDLO(n) + 1)
+#define IOAPIC_IOAPICID                 0
+#define IOAPIC_IOAPICVER                1
+#define IOAPIC_IOAPICARB                2
+#define IOAPIC_IOREDTBL                 16
+#define IOAPIC_IOREDLO(n)               (IOAPIC_IOREDTBL + (n) * 2)
+#define IOAPIC_IOREDHI(n)               (IOAPIC_IOREDLO(n) + 1)
 
 #define IOREDLO_DELMODE_MASK            0x700
 #define IOREDLO_DELMODE_SHIFT           8
@@ -72,64 +72,74 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define IOREDHI_DESTINATION_SHIFT       24
 
 
-#define IA32_APIC_BASE_BSP      (1 << 8)  /* bootstrap processor */
-#define IA32_APIC_BASE_EXTD     (1 << 10) /* X2APIC mode enable */
-#define IA32_APIC_BASE_ENABLE   (1 << 11) /* XAPIC global enable */
+/* local APIC MSR values */
+#define IA32_APIC_BASE_BSP              (1 << 8)
+#define IA32_APIC_BASE_EXTD             (1 << 10)
+#define IA32_APIC_BASE_ENABLE           (1 << 11)
 
-#define APIC_REG_APICID         0x02
-#define APIC_REG_APICVER        0x03
-#define APIC_REG_TPR            0x08
-#define APIC_REG_APR            0x09
-#define APIC_REG_PPR            0x0A
-#define APIC_REG_EOI            0x0B
-#define APIC_REG_RRD            0x0C
-#define APIC_REG_LDR            0x0D
-#define APIC_REG_DFR            0x0E
-#define APIC_REG_SVR            0x0F
-#define APIC_REG_ISR0           0x10
-#define APIC_REG_ISR1           0x11
-#define APIC_REG_ISR2           0x12
-#define APIC_REG_ISR3           0x13
-#define APIC_REG_ISR4           0x14
-#define APIC_REG_ISR5           0x15
-#define APIC_REG_ISR6           0x16
-#define APIC_REG_ISR7           0x17
-#define APIC_REG_TMR0           0x18
-#define APIC_REG_TMR1           0x19
-#define APIC_REG_TMR2           0x1A
-#define APIC_REG_TMR3           0x1B
-#define APIC_REG_TMR4           0x1C
-#define APIC_REG_TMR5           0x1D
-#define APIC_REG_TMR6           0x1E
-#define APIC_REG_TMR7           0x1F
-#define APIC_REG_IRR0           0x20
-#define APIC_REG_IRR1           0x21
-#define APIC_REG_IRR2           0x22
-#define APIC_REG_IRR3           0x23
-#define APIC_REG_IRR4           0x24
-#define APIC_REG_IRR5           0x25
-#define APIC_REG_IRR6           0x26
-#define APIC_REG_IRR7           0x27
-#define APIC_REG_ESR            0x28
-#define APIC_REG_LVT_CMCI       0x2F
-#define APIC_REG_ICR_LO         0x30
-#define APIC_REG_ICR_HI         0x31
-#define APIC_REG_LVT_TIMER      0x32
-#define APIC_REG_LVT_THERMAL    0x33
-#define APIC_REG_LVT_PERF       0x34
-#define APIC_REG_LVT_LINT0      0x35
-#define APIC_REG_LVT_LINT1      0x36
-#define APIC_REG_LVT_ERROR      0x37
-#define APIC_REG_TIMER_INITIAL  0x38
-#define APIC_REG_TIMER_COUNT    0x39
-#define APIC_REG_TIMER_DIVIDE   0x3E
+/* local APIC registers */
+#define APIC_REG_APICID                 0x02
+#define APIC_REG_APICVER                0x03
+#define APIC_REG_TPR                    0x08
+#define APIC_REG_APR                    0x09
+#define APIC_REG_PPR                    0x0A
+#define APIC_REG_EOI                    0x0B
+#define APIC_REG_RRD                    0x0C
+#define APIC_REG_LDR                    0x0D
+#define APIC_REG_DFR                    0x0E
+#define APIC_REG_SVR                    0x0F
+#define APIC_REG_ISR0                   0x10
+#define APIC_REG_ISR1                   0x11
+#define APIC_REG_ISR2                   0x12
+#define APIC_REG_ISR3                   0x13
+#define APIC_REG_ISR4                   0x14
+#define APIC_REG_ISR5                   0x15
+#define APIC_REG_ISR6                   0x16
+#define APIC_REG_ISR7                   0x17
+#define APIC_REG_TMR0                   0x18
+#define APIC_REG_TMR1                   0x19
+#define APIC_REG_TMR2                   0x1A
+#define APIC_REG_TMR3                   0x1B
+#define APIC_REG_TMR4                   0x1C
+#define APIC_REG_TMR5                   0x1D
+#define APIC_REG_TMR6                   0x1E
+#define APIC_REG_TMR7                   0x1F
+#define APIC_REG_IRR0                   0x20
+#define APIC_REG_IRR1                   0x21
+#define APIC_REG_IRR2                   0x22
+#define APIC_REG_IRR3                   0x23
+#define APIC_REG_IRR4                   0x24
+#define APIC_REG_IRR5                   0x25
+#define APIC_REG_IRR6                   0x26
+#define APIC_REG_IRR7                   0x27
+#define APIC_REG_ESR                    0x28
+#define APIC_REG_LVT_CMCI               0x2F
+#define APIC_REG_ICR_LO                 0x30
+#define APIC_REG_ICR_HI                 0x31
+#define APIC_REG_LVT_TIMER              0x32
+#define APIC_REG_LVT_THERMAL            0x33
+#define APIC_REG_LVT_PMC                0x34
+#define APIC_REG_LVT_LINT0              0x35
+#define APIC_REG_LVT_LINT1              0x36
+#define APIC_REG_LVT_ERROR              0x37
+#define APIC_REG_TIMER_INITIAL          0x38
+#define APIC_REG_TIMER_COUNT            0x39
+#define APIC_REG_TIMER_DIVIDE           0x3E
 
-#define APIC_LDR_ID_SHIFT       24
-#define APIC_DFR_MODEL_FLAT     0xF0000000
-#define APIC_DFR_MODEL_CLUSTER  0x00000000
+#define APIC_LDR_ID_SHIFT               24
+#define APIC_DFR_MODEL_FLAT             0xF0000000
+#define APIC_DFR_MODEL_CLUSTER          0x00000000
 
-#define APIC_MAX_FLAT_CPUS      8
-#define APIC_MAX_CLUSTER_CPUS   60
+#define APIC_LVT_DELMODE_SHIFT          8
+#define APIC_LVT_DELIVERY_STATUS        (1 << 12)
+#define APIC_LVT_POLARITY_ACTIVE_LOW    (1 << 13)
+#define APIC_LVT_REMOTE_IRR             (1 << 14)
+#define APIC_LVT_TRIGGER_MODE_LEVEL     (1 << 15)
+#define APIC_LVT_INTERRUPT_MASK         (1 << 16)
+#define APIC_LVT_TIMER_MODE_SHIFT       17
+
+#define APIC_MAX_FLAT_CPUS              8
+#define APIC_MAX_CLUSTER_CPUS           60
 
 /* Local APIC base addresses */
 addr_t lapic_phys_base;
@@ -580,6 +590,35 @@ int lapic_set_lvt_trigger_mode(uint32_t apic_id, unsigned int pin, int trig)
 }
 
 /*
+ * lapic_lvt_entry:
+ * Pack a local APIC LVT entry for the given pin based on its struct lapic_lvt.
+ */
+static uint32_t lapic_lvt_entry(struct lapic *lapic, unsigned int pin)
+{
+	struct lapic_lvt *lvt;
+	uint32_t entry;
+
+	if (pin > APIC_LVT_MAX)
+		return 0;
+
+	lvt = &lapic->lvts[pin];
+	entry = lvt->vector;
+	entry |= (lvt->flags & APIC_INT_MODE_MASK) << APIC_LVT_DELMODE_SHIFT;
+
+	if (!(lvt->flags & APIC_INT_ACTIVE_HIGH))
+		entry |= APIC_LVT_POLARITY_ACTIVE_LOW;
+	if (!(lvt->flags & APIC_INT_EDGE_TRIGGER))
+		entry |= APIC_LVT_TRIGGER_MODE_LEVEL;
+	if (lvt->flags & APIC_INT_MASKED)
+		entry |= APIC_LVT_INTERRUPT_MASK;
+
+	if (pin == APIC_LVT_TIMER && lapic->timer_mode != LAPIC_TIMER_UNDEFINED)
+		entry |= lapic->timer_mode << APIC_LVT_TIMER_MODE_SHIFT;
+
+	return entry;
+}
+
+/*
  * find_cpu_lapic:
  * Read the local APIC ID of the executing processor,
  * find the corresponding struct lapic, and return it.
@@ -653,6 +692,23 @@ void lapic_init(void)
 
 	lapic_reg_write(APIC_REG_TPR, 0);
 	lapic_reg_write(APIC_REG_LDR, logical_id << APIC_LDR_ID_SHIFT);
+
+	/* program LVT entires */
+	lapic_reg_write(APIC_REG_LVT_LINT0,
+	                lapic_lvt_entry(lapic, APIC_LVT_LINT0));
+	lapic_reg_write(APIC_REG_LVT_LINT1,
+	                lapic_lvt_entry(lapic, APIC_LVT_LINT1));
+	lapic_reg_write(APIC_REG_LVT_TIMER,
+	                lapic_lvt_entry(lapic, APIC_LVT_TIMER));
+	lapic_reg_write(APIC_REG_LVT_ERROR,
+	                lapic_lvt_entry(lapic, APIC_LVT_ERROR));
+	lapic_reg_write(APIC_REG_LVT_PMC,
+	                lapic_lvt_entry(lapic, APIC_LVT_PMC));
+	lapic_reg_write(APIC_REG_LVT_THERMAL,
+	                lapic_lvt_entry(lapic, APIC_LVT_THERMAL));
+	lapic_reg_write(APIC_REG_LVT_CMCI,
+	                lapic_lvt_entry(lapic, APIC_LVT_CMCI));
+
 	lapic_reg_write(APIC_REG_SVR, 0x100 | APIC_IRQ_SPURIOUS);
 }
 
