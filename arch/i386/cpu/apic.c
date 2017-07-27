@@ -693,6 +693,7 @@ void lapic_init(void)
 
 	lapic_reg_write(APIC_REG_TPR, 0);
 	lapic_reg_write(APIC_REG_LDR, logical_id << APIC_LDR_ID_SHIFT);
+	lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
 
 	/* program LVT entires */
 	lapic_reg_write(APIC_REG_LVT_LINT0,
