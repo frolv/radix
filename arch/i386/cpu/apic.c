@@ -280,14 +280,14 @@ struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 
 static int __ioapic_set_special(struct ioapic *ioapic,
                                 unsigned int pin,
-                                unsigned int irq,
+                                unsigned int vec,
                                 unsigned int delivery)
 {
 	if (pin >= ioapic->irq_count)
 		return EINVAL;
 
 	ioapic->pins[pin].bus_type = BUS_TYPE_UNKNOWN;
-	ioapic->pins[pin].irq = irq;
+	ioapic->pins[pin].irq = vec - IRQ_BASE;
 	ioapic->pins[pin].flags &= ~(APIC_INT_MASKED | APIC_INT_MODE_MASK);
 	ioapic->pins[pin].flags |= APIC_INT_ACTIVE_HIGH |
 	                           APIC_INT_EDGE_TRIGGER |
@@ -712,13 +712,13 @@ void lapic_init(void)
 	spin_unlock(&cpus_online_lock);
 	this_cpu_write(processor_id, cpu_number);
 
+	lapic_enable(lapic_phys_base);
 	lapic = find_cpu_lapic();
 	if (!lapic)
 		panic("CPU %d: LAPIC ID does not represent a valid LAPIC\n",
 		      cpu_number);
 
 	this_cpu_write(local_apic, lapic);
-	lapic_enable(lapic_phys_base);
 
 	if (cpus_available <= APIC_MAX_FLAT_CPUS) {
 		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_FLAT);
