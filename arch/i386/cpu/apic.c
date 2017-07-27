@@ -129,6 +129,7 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_LDR_ID_SHIFT               24
 #define APIC_DFR_MODEL_FLAT             0xF0000000
 #define APIC_DFR_MODEL_CLUSTER          0x00000000
+#define APIC_SVR_ENABLE                 (1 << 8)
 
 #define APIC_LVT_DELMODE_SHIFT          8
 #define APIC_LVT_DELIVERY_STATUS        (1 << 12)
@@ -709,7 +710,7 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_LVT_CMCI,
 	                lapic_lvt_entry(lapic, APIC_LVT_CMCI));
 
-	lapic_reg_write(APIC_REG_SVR, 0x100 | APIC_IRQ_SPURIOUS);
+	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_IRQ_SPURIOUS);
 }
 
 /*
