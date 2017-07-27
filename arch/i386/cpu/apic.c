@@ -754,6 +754,8 @@ void lapic_init(void)
 	install_interrupt_handler(APIC_IRQ_ERROR, lapic_error);
 
 	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_IRQ_SPURIOUS);
+	/* clear any interrupts which may have occurred */
+	lapic_reg_write(APIC_REG_EOI, 0);
 }
 
 /*
@@ -785,7 +787,7 @@ static void apic_unmask(unsigned int irq)
 	if (!ioapic)
 		return;
 
-	ioapic_mask(ioapic, irq - ioapic->irq_base);
+	ioapic_unmask(ioapic, irq - ioapic->irq_base);
 }
 
 static struct pic apic = {
