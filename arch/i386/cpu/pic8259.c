@@ -73,8 +73,14 @@ static void pic8259_remap(uint32_t offset1, uint32_t offset2)
 }
 
 /* pic8259_eoi: send an end-of-interrupt signal to the PIC chips */
-static void pic8259_eoi(unsigned int irq)
+static void pic8259_eoi(unsigned int vec)
 {
+	unsigned int irq;
+
+	if (vec < IRQ_BASE)
+		return;
+
+	irq = vec - IRQ_BASE;
 	if (irq >= PIC_IRQ_COUNT)
 		outb(PIC_SLAVE_CMD, PIC_EOI);
 

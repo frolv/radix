@@ -763,9 +763,9 @@ void lapic_init(void)
  * Send an end of interrupt signal to the local APIC by writing
  * to its EOI register.
  */
-static void apic_eoi(unsigned int irq)
+static void apic_eoi(unsigned int vec)
 {
-	lapic_reg_write(APIC_REG_EOI, irq);
+	lapic_reg_write(APIC_REG_EOI, vec & 0);
 }
 
 static void apic_mask(unsigned int irq)
