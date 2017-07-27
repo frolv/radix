@@ -91,7 +91,7 @@ enum {
 static void add_cache(unsigned char level, unsigned char type,
                       unsigned long size, unsigned long line_size,
                       unsigned long assoc);
-static void read_cache_info(void);
+static int read_cache_info(void);
 static void extended_processor_info(void);
 
 void read_cpu_info(void)
@@ -112,9 +112,7 @@ void read_cpu_info(void)
 	cpu_features = ((uint64_t)cpu_info[2] << 32) | cpu_info[3];
 
 	memset(&cache_info, 0, sizeof cache_info);
-	if (cpuid_max >= 2) {
-		read_cache_info();
-	} else {
+	if (cpuid_max < 2 || read_cache_info() != 0) {
 		/*
 		 * If cache information cannot be read, assume
 		 * default values from Intel Pentium P5.
@@ -168,7 +166,7 @@ static void read_cpuid4(void);
  * read_cache_info:
  * Parse CPU cache and TLB information from cpuid 0x2.
  */
-static void read_cache_info(void)
+static int read_cache_info(void)
 {
 	long buf[4];
 	int nreads, i;
@@ -179,9 +177,12 @@ static void read_cache_info(void)
 
 	do {
 		cpuid(2, buf[0], buf[1], buf[2], buf[3]);
-		/* low byte of eax indicate number of times to call cpuid */
-		if (!nreads)
+		/* low byte of eax indicates number of times to call cpuid */
+		if (!nreads) {
 			nreads = descriptor[0];
+			if (!nreads)
+				return 1;
+		}
 
 		for (i = 1; i < 16; ++i) {
 			switch (descriptor[i]) {
@@ -747,6 +748,8 @@ static void read_cache_info(void)
 	for (i = 0; (cache_info.caches[i].id & 0xF) != 1; ++i)
 		;
 	cache_info.line_size = cache_info.caches[i].line_size;
+
+	return 0;
 }
 
 static __always_inline unsigned long to_assoc(unsigned long n)
