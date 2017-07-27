@@ -211,10 +211,10 @@ struct ioapic *ioapic_from_id(unsigned int id)
 }
 
 /*
- * ioapic_from_irq:
+ * ioapic_from_src_irq:
  * Return the I/O APIC that controls the given IRQ number.
  */
-struct ioapic *ioapic_from_irq(unsigned int irq)
+struct ioapic *ioapic_from_src_irq(unsigned int irq)
 {
 	size_t i;
 
@@ -225,6 +225,36 @@ struct ioapic *ioapic_from_irq(unsigned int irq)
 	}
 
 	return NULL;
+}
+
+static struct ioapic *__ioapic_pin_from_set_irq(unsigned int irq,
+                                                unsigned int *pin)
+{
+	struct ioapic *ioapic;
+	size_t i, j;
+
+	for (i = 0; i < ioapics_available; ++i) {
+		ioapic = &ioapic_list[i];
+		for (j = 0; j < ioapic->irq_count; ++j) {
+			if (ioapic->pins[j].irq != irq)
+				continue;
+
+			if (pin)
+				*pin = j;
+			return ioapic;
+		}
+	}
+
+	return NULL;
+}
+
+/*
+ * ioapic_from_set_irq:
+ * Return the I/O APIC which has the specified IRQ set on one of its pins.
+ */
+struct ioapic *ioapic_from_set_irq(unsigned int irq)
+{
+	return __ioapic_pin_from_set_irq(irq, NULL);
 }
 
 struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
@@ -771,23 +801,25 @@ static void apic_eoi(unsigned int vec)
 static void apic_mask(unsigned int irq)
 {
 	struct ioapic *ioapic;
+	unsigned int pin;
 
-	ioapic = ioapic_from_irq(irq);
+	ioapic = __ioapic_pin_from_set_irq(irq, &pin);
 	if (!ioapic)
 		return;
 
-	ioapic_mask(ioapic, irq - ioapic->irq_base);
+	ioapic_mask(ioapic, pin);
 }
 
 static void apic_unmask(unsigned int irq)
 {
 	struct ioapic *ioapic;
+	unsigned int pin;
 
-	ioapic = ioapic_from_irq(irq);
+	ioapic = __ioapic_pin_from_set_irq(irq, &pin);
 	if (!ioapic)
 		return;
 
-	ioapic_unmask(ioapic, irq - ioapic->irq_base);
+	ioapic_unmask(ioapic, pin);
 }
 
 static struct pic apic = {

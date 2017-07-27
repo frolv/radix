@@ -53,7 +53,7 @@ static void __madt_override(struct acpi_madt_interrupt_override *s)
 	unsigned int polarity, trigger;
 	int pin;
 
-	ioapic = ioapic_from_irq(s->irq_source);
+	ioapic = ioapic_from_src_irq(s->irq_source);
 	if (!ioapic) {
 		klog(KLOG_ERROR, ACPI
 		     "ignoring ISA IRQ override for invalid irq %d",
@@ -81,7 +81,7 @@ static void __madt_nmi(struct acpi_madt_nmi_source *s)
 	unsigned int polarity, trigger;
 	int pin;
 
-	ioapic = ioapic_from_irq(s->global_irq);
+	ioapic = ioapic_from_src_irq(s->global_irq);
 	if (!ioapic) {
 		klog(KLOG_ERROR, ACPI "ignoring NMI for invalid irq %d",
 		     s->global_irq);

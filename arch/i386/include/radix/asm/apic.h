@@ -105,7 +105,8 @@ int bsp_apic_init(void);
 
 struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base);
 struct ioapic *ioapic_from_id(unsigned int id);
-struct ioapic *ioapic_from_irq(unsigned int irq);
+struct ioapic *ioapic_from_src_irq(unsigned int irq);
+struct ioapic *ioapic_from_set_irq(unsigned int irq);
 
 int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin);
 int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin);

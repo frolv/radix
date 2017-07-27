@@ -103,7 +103,7 @@ static void __mp_io_interrupt(struct mp_table_io_interrupt *s)
 			     s->dest_intin);
 			return;
 		}
-		ioapic = ioapic_from_irq(0);
+		ioapic = ioapic_from_src_irq(0);
 	} else {
 		ioapic = ioapic_from_id(s->dest_ioapic);
 	}
