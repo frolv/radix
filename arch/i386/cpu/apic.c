@@ -40,6 +40,8 @@
 
 #include "isr.h"
 
+#define APIC "APIC: "
+
 #ifdef CONFIG_MAX_IOAPICS
 #define MAX_IOAPICS CONFIG_MAX_IOAPICS
 #else
@@ -130,6 +132,15 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_DFR_MODEL_FLAT             0xF0000000
 #define APIC_DFR_MODEL_CLUSTER          0x00000000
 #define APIC_SVR_ENABLE                 (1 << 8)
+
+#define APIC_ESR_SEND_CHECKSUM          (1 << 0)
+#define APIC_ESR_RECV_CHECKSUM          (1 << 1)
+#define APIC_ESR_SEND_ACCEPT            (1 << 2)
+#define APIC_ESR_RECV_ACCEPT            (1 << 3)
+#define APIC_ESR_REDIRECTABLE_IPI       (1 << 4)
+#define APIC_ESR_SEND_ILLEGAL_VECTOR    (1 << 5)
+#define APIC_ESR_RECV_ILLEGAL_VECTOR    (1 << 6)
+#define APIC_ESR_ILLEGAL_REGISTER       (1 << 7)
 
 #define APIC_LVT_DELMODE_SHIFT          8
 #define APIC_LVT_DELIVERY_STATUS        (1 << 12)
@@ -657,6 +668,35 @@ static uint8_t lapic_logid_cluster(int cpu_number)
 	return (cluster << 4) | id;
 }
 
+/* lapic_error: handle a local APIC error interrupt */
+static void lapic_error(struct regs *regs)
+{
+	uint32_t esr;
+
+	/* clear existing errors and update ESR */
+	lapic_reg_write(APIC_REG_ESR, 0);
+	esr = lapic_reg_read(APIC_REG_ESR);
+
+	if (esr & APIC_ESR_SEND_CHECKSUM)
+		klog(KLOG_ERROR, APIC "checksum error in sent message");
+	if (esr & APIC_ESR_RECV_CHECKSUM)
+		klog(KLOG_ERROR, APIC "checksum error in received message");
+	if (esr & APIC_ESR_SEND_ACCEPT)
+		klog(KLOG_ERROR, APIC "sent message not accepted");
+	if (esr & APIC_ESR_RECV_ACCEPT)
+		klog(KLOG_ERROR, APIC "received message not accepted");
+	if (esr & APIC_ESR_REDIRECTABLE_IPI)
+		klog(KLOG_ERROR, APIC "lowest priority IPIs not supported");
+	if (esr & APIC_ESR_SEND_ILLEGAL_VECTOR)
+		klog(KLOG_ERROR, APIC "tried to send illegal interrupt vector");
+	if (esr & APIC_ESR_RECV_ILLEGAL_VECTOR)
+		klog(KLOG_ERROR, APIC "received illegal interrupt vector");
+	if (esr & APIC_ESR_ILLEGAL_REGISTER)
+		klog(KLOG_ERROR, APIC "illegal register access");
+
+	(void)regs;
+}
+
 /*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
@@ -710,6 +750,8 @@ void lapic_init(void)
 	                lapic_lvt_entry(lapic, APIC_LVT_THERMAL));
 	lapic_reg_write(APIC_REG_LVT_CMCI,
 	                lapic_lvt_entry(lapic, APIC_LVT_CMCI));
+
+	install_interrupt_handler(APIC_IRQ_ERROR, lapic_error);
 
 	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_IRQ_SPURIOUS);
 }
