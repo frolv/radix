@@ -16,6 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#include <radix/assembler.h>
+
 .section .data
 idtr:
 	.word 0 # size
@@ -24,13 +26,11 @@ idtr:
 .section .text
 .align 4
 
-.global idt_load
-.type idt_load, @function
-
-idt_load:
+BEGIN_FUNC(idt_load)
 	movl 4(%esp), %eax
 	movl %eax, idtr + 2
 	movw 8(%esp), %ax
 	movw %ax, idtr
 	lidt idtr
 	ret
+END_FUNC(idt_load)

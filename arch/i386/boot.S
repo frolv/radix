@@ -16,6 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#include <radix/assembler.h>
+
 # Constants for multiboot header.
 .set ALIGN,	1 << 0
 .set MEMINFO,	1 << 1
@@ -40,6 +42,7 @@ stack_bottom:
 stack_top:
 
 .set KERNEL_VIRTUAL_BASE, 0xC0000000
+#define PHYS(x) x - KERNEL_VIRTUAL_BASE
 
 .section .bss, "aw", @nobits
 .align 0x1000
@@ -51,11 +54,9 @@ kernel_pgtbl:
 	.fill 0x400, 4, 0x0
 
 .section .text
-.global _start
-.type _start, @function
-_start:
-	# Physical address of the kernel's page table.
-	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %edi
+BEGIN_FUNC(_start)
+	# Populate the kernel page table.
+	movl $(PHYS(kernel_pgtbl)), %edi
 	xorl %esi, %esi
 	movl $0x400, %ecx
 
@@ -65,13 +66,13 @@ _start:
 	orl $0x00000103, %edx
 
 	# Clear writeable bit for read-only sections.
-	cmpl $(__text_start - KERNEL_VIRTUAL_BASE), %esi
-	jl do_move
-	cmpl $(__rodata_end - KERNEL_VIRTUAL_BASE), %esi
-	jge do_move
+	cmpl $(PHYS(__text_start)), %esi
+	jl .Ldo_move
+	cmpl $(PHYS(__rodata_end)), %esi
+	jge .Ldo_move
 	andl $0xFFFFFFFD, %edx
 
-do_move:
+.Ldo_move:
 	movl %edx, (%edi)
 
 	# Advance to the next page.
@@ -85,25 +86,25 @@ do_move:
 	# identity mapping the kernel. This is done because
 	# enabling paging does not change the address of the
 	# next instruction, which continues to be physical.
-	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %ecx
+	movl $(PHYS(kernel_pgtbl)), %ecx
 	orl $0x00000103, %ecx
-	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE
+	movl %ecx, PHYS(pgdir)
 
 	# Map the page table to page directory entry 0x300
 	# (virtual addresses 0xC0000000 to 0xC03FFFFF),
 	# mapping the kernel in the higher half.
-	movl $(kernel_pgtbl - KERNEL_VIRTUAL_BASE), %ecx
+	movl $(PHYS(kernel_pgtbl)), %ecx
 	orl $0x00000103, %ecx
-	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE + 0x300 * 4
+	movl %ecx, PHYS(pgdir) + 0x300 * 4
 
 	# Map the final entry in the page directory to
 	# the page directory itself.
-	movl $(pgdir - KERNEL_VIRTUAL_BASE), %ecx
+	movl $(PHYS(pgdir)), %ecx
 	orl $0x00000103, %ecx
-	movl %ecx, pgdir - KERNEL_VIRTUAL_BASE + 0x3FF * 4
+	movl %ecx, PHYS(pgdir) + 0x3FF * 4
 
 	# Load the physical address of the page directory into cr3.
-	movl $(pgdir - KERNEL_VIRTUAL_BASE), %ecx
+	movl $(PHYS(pgdir)), %ecx
 	movl %ecx, %cr3
 
 	# Enable paging and the write protect bit,
@@ -134,7 +135,6 @@ higher_half_start:
 
 	call vgatext_register
 
-kernel_start:
 	# ebx contains the physical address of the multiboot_info
 	# structure. Covert this to its equivalent virtual address.
 	addl $KERNEL_VIRTUAL_BASE, %ebx
@@ -147,6 +147,4 @@ kernel_start:
 	cli
 1:	hlt
 	jmp 1b
-
-# set the size of _start symbol to the current location '.' minus its start
-.size _start, . - _start
+END_FUNC(_start)

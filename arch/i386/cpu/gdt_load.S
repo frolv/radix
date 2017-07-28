@@ -16,6 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#include <radix/assembler.h>
+
 .section .data
 gdtr:
 	.word 0 # size
@@ -24,20 +26,17 @@ gdtr:
 .section .text
 .align 4
 
-.global gdt_load
-.type gdt_load, @function
-
-gdt_load:
+BEGIN_FUNC(gdt_load)
 	movl 4(%esp), %eax
 	movl %eax, gdtr + 2
 	movw 8(%esp), %ax
 	movw %ax, gdtr
 	lgdt gdtr
 
-	jmp $0x08, $.flush_segments
+	jmp $0x08, $.Lflush_segments
 
 # reload data segment registers
-.flush_segments:
+.Lflush_segments:
 	movw $0x10, %ax
 	movw %ax, %ds
 	movw %ax, %es
@@ -47,3 +46,4 @@ gdt_load:
 	movw $0x38, %ax
 	movw %ax, %gs
 	ret
+END_FUNC(gdt_load)
