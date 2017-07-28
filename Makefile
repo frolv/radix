@@ -24,8 +24,8 @@ CFLAGS ?= -O2
 LDFLAGS ?=
 LIBS ?=
 
-CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra
-LDFLAGS := $(LDFLAGS)
+CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra -D__KERNEL__
+ASFLAGS := $(ASFLAGS) -D__ASSEMBLY__
 LIBS := $(LIBS) -nostdlib -lgcc
 
 #
@@ -49,7 +49,7 @@ include $(ARCHDIR)/config.mk
 include $(LIBDIR)/config.mk
 include $(DRIVERDIR)/config.mk
 
-CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS) -include $(CONFIG_H)
+CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS)
 LDFLAGS := $(LDFLAGS) $(KERNEL_ARCH_LDFLAGS)
 LIBS := $(LIBS) $(KERNEL_ARCH_LIBS)
 
@@ -58,7 +58,7 @@ KERNEL_OBJS += $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*/*.c))
 KERNEL_OBJS += $(KERNEL_ARCH_OBJS)
 
 _INCLUDE := $(shell realpath $(INCLUDEDIRS))
-INCLUDE := $(patsubst %,-I%,$(_INCLUDE))
+INCLUDE := $(patsubst %,-I%,$(_INCLUDE)) -include $(CONFIG_H)
 
 .SUFFIXES: .o .c .S
 
@@ -130,7 +130,7 @@ drivers: $(DRIVER_OBJS)
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE)
 
 .S.o:
-	$(AS) $< -o $@ $(ASFLAGS)
+	$(CC) -c $< -o $@ $(ASFLAGS) $(INCLUDE)
 
 ISODIR := iso
 ISONAME := $(PROJECT_NAME)-$(HOSTARCH).iso
