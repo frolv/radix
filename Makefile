@@ -117,7 +117,7 @@ $(KERNEL_NAME): $(CONFIG_H) $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) \
 		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
 
 $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
-	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
+	OBJ=`$(CC) -print-file-name=$(@F)` && cp "$$OBJ" $@
 
 .PHONY: libk
 libk: $(LIBK_OBJS)
