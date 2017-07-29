@@ -1,5 +1,5 @@
 /*
- * include/radix/assembler.h
+ * arch/i386/include/radix/asm/assembler.h
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,23 +16,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_ASSEMBLER_H
-#define RADIX_ASSEMBLER_H
+#ifndef ARCH_I386_RADIX_ASSEMBLER_H
+#define ARCH_I386_RADIX_ASSEMBLER_H
 
 #ifdef __ASSEMBLY__
 
-#define ASM_NL ;
+#define __PERCPU_SECTION .percpu_data
+#define __PERCPU_SEGMENT %fs
 
-#define BEGIN_FUNC(name)                \
-	.global name ASM_NL             \
-	.type name, @function ASM_NL    \
-	name:
+#define DEFINE_PER_CPU(var)                     \
+	.section __PERCPU_SECTION ASM_NL        \
+	.global var ASM_NL                      \
+	var:
 
-#define END_FUNC(name)                  \
-	.size name, . - name
-
-#include <radix/asm/assembler.h>
+#define THIS_CPU_VAR(var) __PERCPU_SEGMENT:var
 
 #endif /* __ASSEMBLY__ */
 
-#endif /* RADIX_ASSEMBLER_H */
+#endif /* ARCH_I386_RADIX_ASSEMBLER_H */
