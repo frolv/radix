@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
@@ -76,7 +77,7 @@ static void do_kernel_pf(addr_t fault_addr, int error)
 	vmm_add_area_pages(area, p);
 }
 
-void page_fault_handler(struct regs *regs, int error)
+void page_fault_handler(__unused struct regs *regs, int error)
 {
 	addr_t fault_addr;
 
