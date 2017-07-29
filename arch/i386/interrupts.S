@@ -27,9 +27,7 @@
 # TODO: when APs come online, they should reset this to zero
 DEFINE_PER_CPU(unhandled_exceptions)
 	.long 0
-
-.section .text
-.align 4
+DEFINE_PER_CPU_END()
 
 # function for unimplemented exception handlers
 exception_unhandled:

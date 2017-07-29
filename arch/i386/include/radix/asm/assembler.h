@@ -29,6 +29,10 @@
 	.global var ASM_NL                      \
 	var:
 
+#define DEFINE_PER_CPU_END()                    \
+	.section .text ASM_NL                   \
+	.align 4
+
 #define THIS_CPU_VAR(var) __PERCPU_SEGMENT:var
 
 #endif /* __ASSEMBLY__ */
