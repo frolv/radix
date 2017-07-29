@@ -16,6 +16,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#include <radix/assembler.h>
+
 .section .text
 .align 4
 
@@ -33,40 +35,6 @@ isr_\i:
 	push $\i
 	jmp isr_common
 .endm
-
-# cpu exceptions
-ISR_NOERR 0
-ISR_NOERR 1
-ISR_NOERR 2
-ISR_NOERR 3
-ISR_NOERR 4
-ISR_NOERR 5
-ISR_NOERR 6
-ISR_NOERR 7
-ISR_ERR   8
-ISR_NOERR 9
-ISR_ERR   10
-ISR_ERR   11
-ISR_ERR   12
-ISR_ERR   13
-ISR_ERR   14
-ISR_NOERR 15
-ISR_NOERR 16
-ISR_ERR   17
-ISR_NOERR 18
-ISR_NOERR 19
-ISR_NOERR 20
-ISR_NOERR 21
-ISR_NOERR 22
-ISR_NOERR 23
-ISR_NOERR 24
-ISR_NOERR 25
-ISR_NOERR 26
-ISR_NOERR 27
-ISR_NOERR 28
-ISR_NOERR 29
-ISR_ERR   30
-ISR_NOERR 31
 
 # ISA IRQs
 .irp n,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47
@@ -118,7 +86,6 @@ ISR_NOERR 128
 .irp n,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
 	ISR_NOERR \n
 .endr
-
 
 .align 16
 isr_common:

@@ -76,7 +76,7 @@ static void do_kernel_pf(addr_t fault_addr, int error)
 	vmm_add_area_pages(area, p);
 }
 
-static void page_fault(struct regs *r, int error)
+void page_fault_handler(struct regs *regs, int error)
 {
 	addr_t fault_addr;
 
@@ -86,11 +86,4 @@ static void page_fault(struct regs *r, int error)
 	} else {
 		do_kernel_pf(fault_addr, error);
 	}
-
-	(void)r;
-}
-
-void arch_prepare_pf(void)
-{
-	install_exception_handler(X86_EXCEPTION_PF, page_fault);
 }

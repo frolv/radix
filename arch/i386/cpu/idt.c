@@ -20,22 +20,12 @@
 #include <radix/kernel.h>
 #include <radix/percpu.h>
 
+#include "exceptions.h"
 #include "idt.h"
 #include "isr.h"
 #include "pic8259.h"
 
 static uint64_t idt[IDT_ENTRIES];
-
-static void (*early_isr_fn[])(void) = {
-	early_isr_0, early_isr_1, early_isr_2, early_isr_3,
-	early_isr_4, early_isr_5, early_isr_6, early_isr_7,
-	early_isr_8, early_isr_9, early_isr_10, early_isr_11,
-	early_isr_12, early_isr_13, early_isr_14, early_isr_15,
-	early_isr_16, early_isr_17, early_isr_18, early_isr_19,
-	early_isr_20, early_isr_21, early_isr_22, early_isr_23,
-	early_isr_24, early_isr_25, early_isr_26, early_isr_27,
-	early_isr_28, early_isr_29, early_isr_30, early_isr_31
-};
 
 extern void idt_load(void *base, size_t s);
 
@@ -59,22 +49,38 @@ static uint64_t idt_pack(uintptr_t intfn, uint16_t sel, uint8_t flags)
 }
 
 /* idt_set: load a single entry into the IDT */
-void idt_set(size_t intno, uintptr_t intfn, uint16_t sel, uint8_t flags)
+void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags)
 {
-	idt[intno] = idt_pack(intfn, sel, flags);
+	idt[intno] = idt_pack((uintptr_t)intfn, sel, flags);
 }
 
 /*
  * idt_init_early:
- * Load an interrupt descriptor table containing interrupt handler
- * stubs for use during early boot sequence.
+ * Load an interrupt descriptor table containing interrupt handlers
+ * for CPU exceptions.
  */
 void idt_init_early(void)
 {
-	size_t i;
-
-	for (i = 0; i < ARRAY_SIZE(early_isr_fn); ++i)
-		idt[i] = idt_pack((uintptr_t)early_isr_fn[i], 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_DE, div_error, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_DB, debug, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_BP, breakpoint, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_OF, overflow, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_BR, bound_range, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_UD, invalid_opcode, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_NM, device_not_available, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_DF, double_fault, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_CP, coprocessor_segment, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_TS, invalid_tss, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_NP, segment_not_present, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_SS, stack_segment, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_GP, general_protection_fault, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_PF, page_fault, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_MF, x87_floating_point, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_AC, alignment_check, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_MC, machine_check, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_XM, simd_floating_point, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_VE, virtualization_exception, 0x08, 0x8E);
+	idt_set(X86_EXCEPTION_SX, security_exception, 0x08, 0x8E);
 
 	pic8259_init();
 	pic8259_disable();

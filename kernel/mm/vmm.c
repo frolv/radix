@@ -286,8 +286,6 @@ void vmm_init(void)
 
 	list_add(&vmm_kernel.block_list, &first->global_list);
 	vmm_tree_insert(&vmm_kernel, first);
-
-	arch_prepare_pf();
 }
 
 /*

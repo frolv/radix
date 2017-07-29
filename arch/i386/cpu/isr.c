@@ -31,10 +31,6 @@
 struct pic *system_pic = NULL;
 
 static void (*isr_vectors[])(void) = {
-	isr_0, isr_1, isr_2, isr_3, isr_4, isr_5, isr_6, isr_7,
-	isr_8, isr_9, isr_10, isr_11, isr_12, isr_13, isr_14, isr_15,
-	isr_16, isr_17, isr_18, isr_19, isr_20, isr_21, isr_22, isr_23,
-	isr_24, isr_25, isr_26, isr_27, isr_28, isr_29, isr_30, isr_31,
 	isr_32, isr_33, isr_34, isr_35, isr_36, isr_37, isr_38, isr_39,
 	isr_40, isr_41, isr_42, isr_43, isr_44, isr_45, isr_46, isr_47,
 	isr_48, isr_49, isr_50, isr_51, isr_52, isr_53, isr_54, isr_55,
@@ -67,9 +63,6 @@ static void (*isr_vectors[])(void) = {
 
 extern void isr_table_setup(void);
 
-/* cpu exception handler functions */
-static void (*exception_handlers[NUM_EXCEPTIONS])(struct regs *, int);
-
 /* hardware interrupt handler functions */
 static void (*irq_handlers[NUM_ISR_VECTORS])(struct regs *);
 
@@ -78,28 +71,8 @@ void load_interrupt_routines(void)
 	size_t i;
 
 	/* add exception routines */
-	for (i = 0; i < NUM_ISR_VECTORS; ++i)
-		idt_set(i, (uintptr_t)isr_vectors[i], 0x08, 0x8E);
-}
-
-/* install_exception_handler: set a function to handle exception `intno` */
-int install_exception_handler(uint32_t intno, void (*hnd)(struct regs *, int))
-{
-	if (intno >= IRQ_BASE)
-		return EINVAL;
-
-	exception_handlers[intno] = hnd;
-	return 0;
-}
-
-/* uninstall_exception_handler: set a function to handle exception `intno` */
-int uninstall_exception_handler(uint32_t intno)
-{
-	if (intno >= IRQ_BASE)
-		return EINVAL;
-
-	exception_handlers[intno] = NULL;
-	return 0;
+	for (i = 0; i < ARRAY_SIZE(isr_vectors); ++i)
+		idt_set(i + IRQ_BASE, isr_vectors[i], 0x08, 0x8E);
 }
 
 /* install_interrupt_handler: set a function to handle IRQ `intno` */
@@ -151,41 +124,6 @@ void interrupt_enable(void)
 	}
 }
 
-static const char *exceptions[] = {
-	"Division by zero",                     /* 0x00 */
-	"Debug",                                /* 0x01 */
-	"Non-maskable interrupt",               /* 0x02 */
-	"Breakpoint",                           /* 0x03 */
-	"Overflow",                             /* 0x04 */
-	"Out of bounds",                        /* 0x05 */
-	"Invalid opcode",                       /* 0x06 */
-	"Device not available",                 /* 0x07 */
-	"Double fault",                         /* 0x08 */
-	"Coprocessor segment overrun",          /* 0x09 */
-	"Invalid TSS",                          /* 0x0A */
-	"Segment not present",                  /* 0x0B */
-	"Stack fault",                          /* 0x0C */
-	"General protection fault",             /* 0x0D */
-	"Page fault",                           /* 0x0E */
-	"Unknown exception",                    /* 0x0F */
-	"x87 floating-point exception",         /* 0x10 */
-	"Alignment check",                      /* 0x11 */
-	"Machine check",                        /* 0x12 */
-	"SIMD floating-point exception",        /* 0x13 */
-	"Virtualization exception",             /* 0x14 */
-	"Unknown exception",                    /* 0x15 */
-	"Unknown exception",                    /* 0x16 */
-	"Unknown exception",                    /* 0x17 */
-	"Unknown exception",                    /* 0x18 */
-	"Unknown exception",                    /* 0x19 */
-	"Unknown exception",                    /* 0x1A */
-	"Unknown exception",                    /* 0x1B */
-	"Unknown exception",                    /* 0x1C */
-	"Unknown exception",                    /* 0x1D */
-	"Security exception",                   /* 0x1E */
-	"Unknown exception"                     /* 0x1F */
-};
-
 /* TODO: with multiprocessing, this needs to exist per CPU */
 static int interrupt = 0;
 
@@ -201,17 +139,9 @@ void interrupt_handler(struct interrupt_regs ir)
 	interrupt = 1;
 	save_registers(&ir, &r);
 
-	if (ir.intno < IRQ_BASE) {
-		if (exception_handlers[ir.intno])
-			exception_handlers[ir.intno](&r, ir.errno);
-		else
-			panic("unhandled CPU exception 0x%02X `%s'\n",
-			      ir.intno, exceptions[ir.intno]);
-	} else {
-		/* TODO: send EOI if necessary */
-		if (irq_handlers[ir.intno])
-			irq_handlers[ir.intno](&r);
-	}
+	/* TODO: send EOI if necessary */
+	if (irq_handlers[ir.intno])
+		irq_handlers[ir.intno](&r);
 
 	load_registers(&ir, &r);
 	interrupt = 0;

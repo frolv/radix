@@ -62,6 +62,4 @@ void vfree(void *ptr);
 struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr);
 void vmm_add_area_pages(struct vmm_area *area, struct page *p);
 
-void arch_prepare_pf(void);
-
 #endif /* RADIX_VMM_H */

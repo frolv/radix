@@ -26,11 +26,14 @@
 #define ISA_IRQ_COUNT           16
 #define IRQ_BASE                0x20
 
+#define VECTOR_TO_IRQ(vec)      ((vec) - IRQ_BASE)
+#define IRQ_TO_VECTOR(irq)      ((irq) + IRQ_BASE)
+
 #define __ARCH_TIMER_IRQ        0x0
 #define __ARCH_KBD_IRQ          0x1
 
-#define __ARCH_TIMER_VECTOR     (__ARCH_TIMER_IRQ + IRQ_BASE)
-#define __ARCH_KBD_VECTOR       (__ARCH_KBD_IRQ + IRQ_BASE)
+#define __ARCH_TIMER_VECTOR     IRQ_TO_VECTOR(__ARCH_TIMER_IRQ)
+#define __ARCH_KBD_VECTOR       IRQ_TO_VECTOR(__ARCH_KBD_IRQ)
 #define __ARCH_SYSCALL_VECTOR   0x80
 
 #define __arch_irq_init         idt_init
@@ -41,15 +44,17 @@
 #define __arch_irq_install      install_interrupt_handler
 #define __arch_irq_uninstall    uninstall_interrupt_handler
 
+#define EXCEPTION_VECTOR_COUNT  32
+
 #define X86_EXCEPTION_DE        0x00
 #define X86_EXCEPTION_DB        0x01
-#define X86_NMI                 0x02
 #define X86_EXCEPTION_BP        0x03
 #define X86_EXCEPTION_OF        0x04
 #define X86_EXCEPTION_BR        0x05
 #define X86_EXCEPTION_UD        0x06
 #define X86_EXCEPTION_NM        0x07
 #define X86_EXCEPTION_DF        0x08
+#define X86_EXCEPTION_CP        0x09
 #define X86_EXCEPTION_TS        0x0A
 #define X86_EXCEPTION_NP        0x0B
 #define X86_EXCEPTION_SS        0x0C
