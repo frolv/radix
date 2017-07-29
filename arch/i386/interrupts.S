@@ -134,8 +134,7 @@ exception_common:
 	pushl %ebp
 
 	# push the original value of esp
-	movl %esp, %eax
-	addl $60, %eax
+	leal 60(%esp), %eax
 	pushl %eax
 
 	pushl %esi
@@ -170,8 +169,7 @@ exception_common:
 	popl %edx
 	popl %ecx
 	popl %eax
-	pop %gs
-	addl $4, %esp
+	addl $8, %esp
 	pop %es
 	pop %ds
 	addl $4, %esp
