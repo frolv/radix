@@ -37,7 +37,9 @@ exception_unhandled:
 	ret
 
 BEGIN_FUNC(div_error)
-	UNHANDLED_EXCEPTION
+	pushl $0
+	pushl $div_error_handler
+	jmp exception_common
 END_FUNC(div_error)
 
 BEGIN_FUNC(debug)
