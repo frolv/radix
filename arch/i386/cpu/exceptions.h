@@ -19,6 +19,10 @@
 #ifndef ARCH_I386_EXCEPTIONS_H
 #define ARCH_I386_EXCEPTIONS_H
 
+#include <radix/percpu.h>
+
+DECLARE_PER_CPU(int, unhandled_exceptions);
+
 void div_error(void);
 void debug(void);
 void breakpoint(void);
