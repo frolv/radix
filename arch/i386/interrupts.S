@@ -30,6 +30,10 @@ DEFINE_PER_CPU(unhandled_exceptions)
 	.long 0
 DEFINE_PER_CPU_END()
 
+DEFINE_PER_CPU(interrupt_depth)
+	.long 0
+DEFINE_PER_CPU_END()
+
 # function for unimplemented exception handlers
 exception_unhandled:
 	incl THIS_CPU_VAR(unhandled_exceptions)
@@ -176,6 +180,7 @@ END_FUNC(security_exception)
 # store GPRs, call exception handler function, and restore context
 exception_common:
 	BUILD_STRUCT_REGS 8
+	incl THIS_CPU_VAR(interrupt_depth)
 	# exception error code in eax, handler function in ecx,
 	# base of struct regs in edx
 	movl 68(%esp), %eax
@@ -186,6 +191,7 @@ exception_common:
 	cld
 	call *%ecx
 	addl $8, %esp
+	decl THIS_CPU_VAR(interrupt_depth)
 	POP_STRUCT_REGS
 	addl $8, %esp
 	iret
@@ -205,12 +211,14 @@ END_FUNC(irq_fn)
 
 interrupt_common:
 	BUILD_STRUCT_REGS 4
+	incl THIS_CPU_VAR(interrupt_depth)
 	movl 64(%esp), %eax
 	movl %esp, %edx
 	pushl %eax
 	pushl %edx
 	call interrupt_handler
 	addl $8, %esp
+	decl THIS_CPU_VAR(interrupt_depth)
 	POP_STRUCT_REGS
 	addl $4, %esp
 	iret

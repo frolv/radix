@@ -80,9 +80,12 @@ int uninstall_exception_handler(uint32_t intno);
 int install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
 int uninstall_interrupt_handler(uint32_t intno);
 
-#include <radix/compiler.h>
 #include <radix/asm/cpu_defs.h>
+#include <radix/compiler.h>
+#include <radix/percpu.h>
 #include <radix/types.h>
+
+DECLARE_PER_CPU(int, interrupt_depth);
 
 static __always_inline int interrupts_active(void)
 {

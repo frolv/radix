@@ -52,21 +52,15 @@ int uninstall_interrupt_handler(uint32_t intno)
 	return 0;
 }
 
-DEFINE_PER_CPU(int, interrupt_depth) = 0;
-
 /*
  * interrupt_handler:
  * Common interrupt handler. Calls handler function for specified interrupt.
  */
 void interrupt_handler(struct regs *regs, int intno)
 {
-	this_cpu_inc(interrupt_depth);
-
 	system_pic->eoi(intno);
 	if (irq_handlers[intno])
 		irq_handlers[intno](regs);
-
-	this_cpu_dec(interrupt_depth);
 }
 
 int in_interrupt(void)
