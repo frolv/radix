@@ -38,6 +38,8 @@
 
 #include <rlibc/string.h>
 
+#include "idt.h"
+
 #define APIC "APIC: "
 
 #ifdef CONFIG_MAX_IOAPICS
@@ -698,8 +700,8 @@ static uint8_t lapic_logid_cluster(int cpu_number)
 	return (cluster << 4) | id;
 }
 
-/* lapic_error: handle a local APIC error interrupt */
-static void lapic_error(struct regs *regs)
+/* lapic_error_handler: handle a local APIC error interrupt */
+void lapic_error_handler(void)
 {
 	uint32_t esr;
 
@@ -723,8 +725,11 @@ static void lapic_error(struct regs *regs)
 		klog(KLOG_ERROR, APIC "received illegal interrupt vector");
 	if (esr & APIC_ESR_ILLEGAL_REGISTER)
 		klog(KLOG_ERROR, APIC "illegal register access");
+}
 
-	(void)regs;
+static void lapic_interrupt_setup(void)
+{
+	idt_set(APIC_VEC_ERROR, lapic_error, 0x08, 0x8E);
 }
 
 /*
@@ -781,6 +786,7 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_LVT_CMCI,
 	                lapic_lvt_entry(lapic, APIC_LVT_CMCI));
 
+	lapic_interrupt_setup();
 	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
 	/* clear any interrupts which may have occurred */
 	lapic_reg_write(APIC_REG_EOI, 0);

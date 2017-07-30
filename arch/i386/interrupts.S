@@ -196,8 +196,8 @@ END_FUNC(security_exception)
 
 # store GPRs, call exception handler function, and restore context
 exception_common:
-	BUILD_STRUCT_REGS 8
 	incl THIS_CPU_VAR(interrupt_depth)
+	BUILD_STRUCT_REGS 8
 	# exception error code in eax, handler function in ecx,
 	# base of struct regs in edx
 	movl 68(%esp), %eax
@@ -208,9 +208,9 @@ exception_common:
 	cld
 	call *%ecx
 	addl $8, %esp
-	decl THIS_CPU_VAR(interrupt_depth)
 	POP_STRUCT_REGS
 	addl $8, %esp
+	decl THIS_CPU_VAR(interrupt_depth)
 	iret
 
 # Generate an array of interrupt entry point functions,
@@ -227,8 +227,8 @@ vector = IRQ_BASE
 END_FUNC(irq_fn)
 
 interrupt_common:
-	BUILD_STRUCT_REGS 4
 	incl THIS_CPU_VAR(interrupt_depth)
+	BUILD_STRUCT_REGS 4
 	movl 64(%esp), %eax
 	movl %esp, %edx
 	pushl %eax
@@ -236,7 +236,26 @@ interrupt_common:
 	cld
 	call interrupt_handler
 	addl $8, %esp
-	decl THIS_CPU_VAR(interrupt_depth)
 	POP_STRUCT_REGS
 	addl $4, %esp
+	decl THIS_CPU_VAR(interrupt_depth)
+	iret
+
+
+# special interrupt vectors
+
+BEGIN_FUNC(lapic_error)
+	pushl lapic_error_handler
+	jmp irq_noargs_common
+END_FUNC(lapic_error)
+
+irq_noargs_common:
+	incl THIS_CPU_VAR(interrupt_depth)
+	BUILD_STRUCT_REGS 4
+	movl 64(%esp), %eax
+	cld
+	call *%eax
+	POP_STRUCT_REGS
+	addl $4, %esp
+	decl THIS_CPU_VAR(interrupt_depth)
 	iret
