@@ -64,6 +64,10 @@ do {                                                                    \
 /* Interrupt-safe per-CPU variable operations. */
 #define this_cpu_read(var)       __percpu_by_size_ret(this_cpu_read, var)
 #define this_cpu_write(var, val) __percpu_by_size(this_cpu_write, var, val)
+#define this_cpu_add(var, val)   __percpu_by_size(this_cpu_add, var, val)
+#define this_cpu_inc(var)        this_cpu_add(var, 1)
+#define this_cpu_sub(var, val)   __percpu_by_size(this_cpu_sub, var, val)
+#define this_cpu_dec(var)        this_cpu_sub(var, 1)
 
 
 /*
@@ -72,6 +76,10 @@ do {                                                                    \
  */
 #define raw_cpu_read(var)        __percpu_by_size_ret(raw_cpu_read, var)
 #define raw_cpu_write(var, val)  __percpu_by_size(raw_cpu_write, var, val)
+#define raw_cpu_add(var, val)    __percpu_by_size(raw_cpu_add, var, val)
+#define raw_cpu_inc(var)         raw_cpu_add(var, 1)
+#define raw_cpu_sub(var, val)    __percpu_by_size(raw_cpu_sub, var, val)
+#define raw_cpu_dec(var)         raw_cpu_sub(var, 1)
 
 
 #include <radix/cpumask.h>
@@ -128,6 +136,19 @@ do {                                            \
 	irq_enable();                           \
 })
 
+#define this_cpu_add_generic(var, val)          \
+({                                              \
+	irq_disable();                          \
+	raw_cpu_op_generic(var, val, +=);       \
+	irq_enable();                           \
+})
+
+#define this_cpu_sub_generic(var, val)          \
+({                                              \
+	irq_disable();                          \
+	raw_cpu_op_generic(var, val, -=);       \
+	irq_enable();                           \
+})
 
 #ifndef this_cpu_read_1
 #define this_cpu_read_1(var) this_cpu_read_generic(var)
@@ -153,6 +174,32 @@ do {                                            \
 #endif
 #ifndef this_cpu_write_8
 #define this_cpu_write_8(var, val) this_cpu_write_generic(var, val)
+#endif
+
+#ifndef this_cpu_add_1
+#define this_cpu_add_1(var, val) this_cpu_add_generic(var, val)
+#endif
+#ifndef this_cpu_add_2
+#define this_cpu_add_2(var, val) this_cpu_add_generic(var, val)
+#endif
+#ifndef this_cpu_add_4
+#define this_cpu_add_4(var, val) this_cpu_add_generic(var, val)
+#endif
+#ifndef this_cpu_add_8
+#define this_cpu_add_8(var, val) this_cpu_add_generic(var, val)
+#endif
+
+#ifndef this_cpu_sub_1
+#define this_cpu_sub_1(var, val) this_cpu_sub_generic(var, val)
+#endif
+#ifndef this_cpu_sub_2
+#define this_cpu_sub_2(var, val) this_cpu_sub_generic(var, val)
+#endif
+#ifndef this_cpu_sub_4
+#define this_cpu_sub_4(var, val) this_cpu_sub_generic(var, val)
+#endif
+#ifndef this_cpu_sub_8
+#define this_cpu_sub_8(var, val) this_cpu_sub_generic(var, val)
 #endif
 
 

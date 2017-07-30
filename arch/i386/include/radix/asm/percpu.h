@@ -38,14 +38,30 @@
 #define this_cpu_write_2(var, val)      __percpu_to_op("movw", var, val)
 #define this_cpu_write_4(var, val)      __percpu_to_op("movl", var, val)
 
+#define this_cpu_add_1(var, val)        __percpu_to_op("addb", var, val)
+#define this_cpu_add_2(var, val)        __percpu_to_op("addw", var, val)
+#define this_cpu_add_4(var, val)        __percpu_to_op("addl", var, val)
 
-#define raw_cpu_read_1(var)            __percpu_from_op("movb", var)
-#define raw_cpu_read_2(var)            __percpu_from_op("movw", var)
-#define raw_cpu_read_4(var)            __percpu_from_op("movl", var)
+#define this_cpu_sub_1(var, val)        __percpu_to_op("subb", var, val)
+#define this_cpu_sub_2(var, val)        __percpu_to_op("subw", var, val)
+#define this_cpu_sub_4(var, val)        __percpu_to_op("subl", var, val)
 
-#define raw_cpu_write_1(var, val)      __percpu_to_op("movb", var, val)
-#define raw_cpu_write_2(var, val)      __percpu_to_op("movw", var, val)
-#define raw_cpu_write_4(var, val)      __percpu_to_op("movl", var, val)
+
+#define raw_cpu_read_1(var)             __percpu_from_op("movb", var)
+#define raw_cpu_read_2(var)             __percpu_from_op("movw", var)
+#define raw_cpu_read_4(var)             __percpu_from_op("movl", var)
+
+#define raw_cpu_write_1(var, val)       __percpu_to_op("movb", var, val)
+#define raw_cpu_write_2(var, val)       __percpu_to_op("movw", var, val)
+#define raw_cpu_write_4(var, val)       __percpu_to_op("movl", var, val)
+
+#define raw_cpu_add_1(var, val)         __percpu_to_op("addb", var, val)
+#define raw_cpu_add_2(var, val)         __percpu_to_op("addw", var, val)
+#define raw_cpu_add_4(var, val)         __percpu_to_op("addl", var, val)
+
+#define raw_cpu_sub_1(var, val)         __percpu_to_op("subb", var, val)
+#define raw_cpu_sub_2(var, val)         __percpu_to_op("subw", var, val)
+#define raw_cpu_sub_4(var, val)         __percpu_to_op("subl", var, val)
 
 
 #define __percpu_from_op(op, var)               \
