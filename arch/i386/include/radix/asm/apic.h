@@ -22,14 +22,14 @@
 #include <radix/mm_types.h>
 #include <radix/types.h>
 
-#define APIC_IRQ_NMI            0xE0
-#define APIC_IRQ_SMI            0xE1
-#define APIC_IRQ_EXTINT         0xE2
-#define APIC_IRQ_ERROR          0xE3
-#define APIC_IRQ_THERMAL        0xE4
-#define APIC_IRQ_CMCI           0xE5
-#define APIC_IRQ_TIMER          0xF0
-#define APIC_IRQ_SPURIOUS       0xFF
+#define APIC_VEC_NMI            0xE0
+#define APIC_VEC_SMI            0xE1
+#define APIC_VEC_EXTINT         0xE2
+#define APIC_VEC_ERROR          0xE3
+#define APIC_VEC_THERMAL        0xE4
+#define APIC_VEC_CMCI           0xE5
+#define APIC_VEC_TIMER          0xF0
+#define APIC_VEC_SPURIOUS       0xFF
 
 extern addr_t lapic_phys_base;
 extern addr_t lapic_virt_base;

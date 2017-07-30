@@ -38,8 +38,6 @@
 
 #include <rlibc/string.h>
 
-#include "isr.h"
-
 #define APIC "APIC: "
 
 #ifdef CONFIG_MAX_IOAPICS
@@ -167,15 +165,15 @@ static struct lapic_lvt lapic_lvt_default[] = {
 	/* LINT1: NMI */
 	{ 0, APIC_INT_MODE_NMI | __ET | __AH },
 	/* timer */
-	{ APIC_IRQ_TIMER, APIC_INT_MODE_FIXED | __ET | __AH | __MASK },
+	{ APIC_VEC_TIMER, APIC_INT_MODE_FIXED | __ET | __AH | __MASK },
 	/* error */
-	{ APIC_IRQ_ERROR, APIC_INT_MODE_FIXED | __ET | __AH },
+	{ APIC_VEC_ERROR, APIC_INT_MODE_FIXED | __ET | __AH },
 	/* PMC */
 	{ 0, APIC_INT_MODE_NMI | __ET | __AH | __MASK },
 	/* thermal */
-	{ APIC_IRQ_THERMAL, APIC_INT_MODE_FIXED | __ET | __AH | __MASK },
+	{ APIC_VEC_THERMAL, APIC_INT_MODE_FIXED | __ET | __AH | __MASK },
 	/* CMCI */
-	{ APIC_IRQ_CMCI, APIC_INT_MODE_FIXED | __ET | __AH | __MASK }
+	{ APIC_VEC_CMCI, APIC_INT_MODE_FIXED | __ET | __AH | __MASK }
 };
 
 static struct lapic lapic_list[MAX_CPUS];
@@ -328,19 +326,19 @@ static int __ioapic_set_special(struct ioapic *ioapic,
 
 int ioapic_set_nmi(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, APIC_IRQ_NMI,
+	return __ioapic_set_special(ioapic, pin, APIC_VEC_NMI,
 	                            APIC_INT_MODE_NMI);
 }
 
 int ioapic_set_smi(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, APIC_IRQ_SMI,
+	return __ioapic_set_special(ioapic, pin, APIC_VEC_SMI,
 	                            APIC_INT_MODE_SMI);
 }
 
 int ioapic_set_extint(struct ioapic *ioapic, unsigned int pin)
 {
-	return __ioapic_set_special(ioapic, pin, APIC_IRQ_EXTINT,
+	return __ioapic_set_special(ioapic, pin, APIC_VEC_EXTINT,
 	                            APIC_INT_MODE_EXTINT);
 }
 
@@ -355,7 +353,7 @@ int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type)
 
 int ioapic_set_irq(struct ioapic *ioapic, unsigned int pin, int irq)
 {
-	if (pin >= ioapic->irq_count || irq > NUM_ISR_VECTORS - IRQ_BASE)
+	if (pin >= ioapic->irq_count || irq > NUM_INTERRUPT_VECTORS - IRQ_BASE)
 		return EINVAL;
 
 	ioapic->pins[pin].irq = irq;
@@ -781,9 +779,9 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_LVT_CMCI,
 	                lapic_lvt_entry(lapic, APIC_LVT_CMCI));
 
-	install_interrupt_handler(APIC_IRQ_ERROR, lapic_error);
+	install_interrupt_handler(APIC_VEC_ERROR, lapic_error);
 
-	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_IRQ_SPURIOUS);
+	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
 	/* clear any interrupts which may have occurred */
 	lapic_reg_write(APIC_REG_EOI, 0);
 }
