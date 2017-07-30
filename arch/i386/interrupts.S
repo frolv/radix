@@ -216,6 +216,7 @@ interrupt_common:
 	movl %esp, %edx
 	pushl %eax
 	pushl %edx
+	cld
 	call interrupt_handler
 	addl $8, %esp
 	decl THIS_CPU_VAR(interrupt_depth)
