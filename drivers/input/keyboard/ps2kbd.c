@@ -1,5 +1,5 @@
 /*
- * drivers/input/keyboard/kbd.c
+ * drivers/input/keyboard/ps2kbd.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,21 +16,28 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/asm/regs.h>
+#include <radix/compiler.h>
 #include <radix/io.h>
 #include <radix/irq.h>
+#include <radix/klog.h>
 
-void kbd_handler(struct regs *r)
+#define PS2_KEYBOARD_IRQ 1
+
+static int kbdev;
+
+void kbd_handler(__unused void *device)
 {
 	uint8_t c;
 
 	c = inb(0x60);
 
 	(void)c;
-	(void)r;
 }
 
 void kbd_install(void)
 {
-	irq_install(1, kbd_handler);
+	if (request_fixed_irq(PS2_KEYBOARD_IRQ, &kbdev, kbd_handler) != 0) {
+		klog(KLOG_ERROR, "failed to map PS2 keyboard to IRQ 1");
+		return;
+	}
 }

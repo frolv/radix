@@ -60,5 +60,4 @@ void pit_init(void)
 	const int freq = 1000;
 
 	pit_start(pit_divisor(freq));
-	irq_install(TIMER_IRQ, pit_irq0);
 }

@@ -20,11 +20,11 @@
 #define ARCH_I386_RADIX_PIC_H
 
 struct pic {
-	char name[16];
-	int irq_count;
-	void (*eoi)(unsigned int);
-	void (*mask)(unsigned int);
-	void (*unmask)(unsigned int);
+	char            name[16];
+	unsigned int    irq_count;
+	void            (*eoi)(unsigned int);
+	void            (*mask)(unsigned int);
+	void            (*unmask)(unsigned int);
 };
 
 extern struct pic *system_pic;

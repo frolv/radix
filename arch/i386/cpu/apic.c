@@ -781,8 +781,6 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_LVT_CMCI,
 	                lapic_lvt_entry(lapic, APIC_LVT_CMCI));
 
-	install_interrupt_handler(APIC_VEC_ERROR, lapic_error);
-
 	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
 	/* clear any interrupts which may have occurred */
 	lapic_reg_write(APIC_REG_EOI, 0);

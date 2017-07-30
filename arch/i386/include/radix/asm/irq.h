@@ -36,7 +36,7 @@
 #define __ARCH_KBD_VECTOR       IRQ_TO_VECTOR(__ARCH_KBD_IRQ)
 #define __ARCH_SYSCALL_VECTOR   0x80
 
-#define __arch_irq_init         idt_init
+#define __arch_irq_init         interrupt_init
 #define __arch_in_irq           in_interrupt
 #define __arch_irq_active       interrupts_active
 #define __arch_irq_disable()    asm volatile("cli")
@@ -70,20 +70,13 @@
 
 #ifdef __KERNEL__
 
-#include <radix/asm/regs.h>
-
-void idt_init(void);
-int in_interrupt(void);
-
-int install_exception_handler(uint32_t intno, void (*hnd)(struct regs *, int));
-int uninstall_exception_handler(uint32_t intno);
-int install_interrupt_handler(uint32_t intno, void (*hnd)(struct regs *));
-int uninstall_interrupt_handler(uint32_t intno);
-
 #include <radix/asm/cpu_defs.h>
 #include <radix/compiler.h>
 #include <radix/percpu.h>
 #include <radix/types.h>
+
+void interrupt_init(void);
+int in_interrupt(void);
 
 DECLARE_PER_CPU(int, interrupt_depth);
 
@@ -97,6 +90,11 @@ static __always_inline int interrupts_active(void)
 
 	return flags & EFLAGS_IF;
 }
+
+int __arch_request_irq(struct irq_descriptor *desc);
+int __arch_request_fixed_irq(unsigned int irq, void *device,
+                             irq_handler_t handler);
+void __arch_release_irq(unsigned int irq, void *device);
 
 #endif /* __KERNEL__ */
 
