@@ -39,12 +39,13 @@
 #define __arch_irq_init         idt_init
 #define __arch_in_irq           in_interrupt
 #define __arch_irq_active       interrupts_active
-#define __arch_irq_disable()    interrupt_disable()
-#define __arch_irq_enable()     interrupt_enable()
+#define __arch_irq_disable()    asm volatile("cli")
+#define __arch_irq_enable()     asm volatile("sti")
 #define __arch_irq_install      install_interrupt_handler
 #define __arch_irq_uninstall    uninstall_interrupt_handler
 
-#define EXCEPTION_VECTOR_COUNT  32
+#define NUM_INTERRUPT_VECTORS   256
+#define NUM_EXCEPTION_VECTORS   32
 
 #define X86_EXCEPTION_DE        0x00
 #define X86_EXCEPTION_DB        0x01
@@ -67,12 +68,12 @@
 #define X86_EXCEPTION_VE        0x14
 #define X86_EXCEPTION_SX        0x1E
 
+#ifdef __KERNEL__
+
 #include <radix/asm/regs.h>
 
 void idt_init(void);
 int in_interrupt(void);
-void interrupt_disable(void);
-void interrupt_enable(void);
 
 int install_exception_handler(uint32_t intno, void (*hnd)(struct regs *, int));
 int uninstall_exception_handler(uint32_t intno);
@@ -93,5 +94,7 @@ static __always_inline int interrupts_active(void)
 
 	return flags & EFLAGS_IF;
 }
+
+#endif /* __KERNEL__ */
 
 #endif /* ARCH_I386_RADIX_IRQ_H */

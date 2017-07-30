@@ -17,6 +17,7 @@
 #
 
 #include <radix/assembler.h>
+#include <radix/irq.h>
 
 .macro UNHANDLED_EXCEPTION
 	call exception_unhandled
@@ -117,11 +118,14 @@ BEGIN_FUNC(security_exception)
 	UNHANDLED_EXCEPTION
 END_FUNC(security_exception)
 
-# store GPRs, call exception handler function, and restore context
-exception_common:
-	# create a struct regs starting here
+# Build a struct regs from an interrupt context.
+# `pushed_bytes` is the number of bytes already pushed
+# onto the stack since the interrupt.
+.macro BUILD_STRUCT_REGS pushed_bytes
+	# space for eflags and eip
 	subl $8, %esp
 	push %ss
+	# space for cs
 	subl $4, %esp
 	push %ds
 	push %es
@@ -132,24 +136,46 @@ exception_common:
 	pushl %edx
 	pushl %ebx
 	pushl %ebp
-
-	# push the original value of esp
-	leal 60(%esp), %eax
+	# original esp
+	leal (52 + \pushed_bytes)(%esp), %eax
 	pushl %eax
-
 	pushl %esi
 	pushl %edi
-
 	# saved eflags
-	movl 80(%esp), %eax
+	movl (72 + \pushed_bytes)(%esp), %eax
 	movl %eax, 60(%esp)
 	# saved cs
-	movl 76(%esp), %eax
+	movl (68 + \pushed_bytes)(%esp), %eax
 	movl %eax, 48(%esp)
 	# saved eip
-	movl 72(%esp), %eax
+	movl (64 + \pushed_bytes)(%esp), %eax
 	movl %eax, 56(%esp)
+.endm
 
+.macro POP_STRUCT_REGS
+	popl %edi
+	popl %esi
+	# skip original esp
+	addl $4, %esp
+	popl %ebp
+	popl %ebx
+	popl %edx
+	popl %ecx
+	popl %eax
+	# skip fs and gs
+	addl $8, %esp
+	pop %es
+	pop %ds
+	# skip cs
+	addl $4, %esp
+	pop %ss
+	# skip eip and eflags
+	addl $8, %esp
+.endm
+
+# store GPRs, call exception handler function, and restore context
+exception_common:
+	BUILD_STRUCT_REGS 8
 	# exception error code in eax, handler function in ecx,
 	# base of struct regs in edx
 	movl 68(%esp), %eax
@@ -160,20 +186,31 @@ exception_common:
 	cld
 	call *%ecx
 	addl $8, %esp
-
-	popl %edi
-	popl %esi
-	addl $4, %esp
-	popl %ebp
-	popl %ebx
-	popl %edx
-	popl %ecx
-	popl %eax
+	POP_STRUCT_REGS
 	addl $8, %esp
-	pop %es
-	pop %ds
-	addl $4, %esp
-	pop %ss
-	addl $16, %esp
+	iret
 
+# Generate an array of interrupt entry point functions,
+# with each entry 8 bytes long.
+.align 8
+BEGIN_FUNC(irq_fn)
+vector = IRQ_BASE
+.rept (NUM_INTERRUPT_VECTORS - NUM_EXCEPTION_VECTORS)
+	push $(vector)
+	jmp interrupt_common
+	.align 8
+	vector = vector + 1
+.endr
+END_FUNC(irq_fn)
+
+interrupt_common:
+	BUILD_STRUCT_REGS 4
+	movl 64(%esp), %eax
+	movl %esp, %edx
+	pushl %eax
+	pushl %edx
+	call interrupt_handler
+	addl $8, %esp
+	POP_STRUCT_REGS
+	addl $4, %esp
 	iret

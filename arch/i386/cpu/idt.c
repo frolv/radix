@@ -22,17 +22,12 @@
 
 #include "exceptions.h"
 #include "idt.h"
-#include "isr.h"
 #include "pic8259.h"
 
 static uint64_t idt[IDT_ENTRIES];
 
+extern uint64_t irq_fn[NUM_INTERRUPT_VECTORS - NUM_EXCEPTION_VECTORS];
 extern void idt_load(void *base, size_t s);
-
-void idt_init(void)
-{
-	load_interrupt_routines();
-}
 
 static uint64_t idt_pack(uintptr_t intfn, uint16_t sel, uint8_t flags)
 {
@@ -54,6 +49,11 @@ void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags)
 	idt[intno] = idt_pack((uintptr_t)intfn, sel, flags);
 }
 
+void idt_init(void)
+{
+	/* TODO? */
+}
+
 /*
  * idt_init_early:
  * Load an interrupt descriptor table containing interrupt handlers
@@ -61,6 +61,8 @@ void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags)
  */
 void idt_init_early(void)
 {
+	size_t i;
+
 	idt_set(X86_EXCEPTION_DE, div_error, 0x08, 0x8E);
 	idt_set(X86_EXCEPTION_DB, debug, 0x08, 0x8E);
 	idt_set(X86_EXCEPTION_BP, breakpoint, 0x08, 0x8E);
@@ -81,6 +83,9 @@ void idt_init_early(void)
 	idt_set(X86_EXCEPTION_XM, simd_floating_point, 0x08, 0x8E);
 	idt_set(X86_EXCEPTION_VE, virtualization_exception, 0x08, 0x8E);
 	idt_set(X86_EXCEPTION_SX, security_exception, 0x08, 0x8E);
+
+	for (i = 0; i < ARRAY_SIZE(irq_fn); ++i)
+		idt[i + IRQ_BASE] = idt_pack((uintptr_t)&irq_fn[i], 0x08, 0x8E);
 
 	pic8259_init();
 	pic8259_disable();
