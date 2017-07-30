@@ -183,6 +183,7 @@ static spinlock_t cpus_online_lock = SPINLOCK_INIT;
 
 DEFINE_PER_CPU(struct lapic *, local_apic);
 
+static struct pic apic;
 
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
 {
@@ -276,6 +277,7 @@ struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base)
 	irq_count = ioapic_reg_read(ioapic, IOAPIC_IOAPICVER);
 	irq_count = ((irq_count >> 16) & 0xFF) + 1;
 	ioapic->irq_count = irq_count;
+	apic.irq_count += irq_count;
 
 	ioapic->pins = kmalloc(irq_count * sizeof *ioapic->pins);
 	if (!ioapic->pins)
@@ -821,10 +823,11 @@ static void apic_unmask(unsigned int irq)
 }
 
 static struct pic apic = {
-	.name   = "APIC",
-	.eoi    = apic_eoi,
-	.mask   = apic_mask,
-	.unmask = apic_unmask
+	.name           = "APIC",
+	.irq_count      = 0,
+	.eoi            = apic_eoi,
+	.mask           = apic_mask,
+	.unmask         = apic_unmask
 };
 
 int bsp_apic_init(void)

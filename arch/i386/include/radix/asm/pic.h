@@ -21,6 +21,7 @@
 
 struct pic {
 	char name[16];
+	int irq_count;
 	void (*eoi)(unsigned int);
 	void (*mask)(unsigned int);
 	void (*unmask)(unsigned int);

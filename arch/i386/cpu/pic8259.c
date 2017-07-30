@@ -114,10 +114,11 @@ static void pic8259_unmask(unsigned int irq)
 }
 
 static struct pic pic8259 = {
-	.name   = "8259PIC",
-	.eoi    = pic8259_eoi,
-	.mask   = pic8259_mask,
-	.unmask = pic8259_unmask
+	.name           = "8259PIC",
+	.irq_count      = ISA_IRQ_COUNT,
+	.eoi            = pic8259_eoi,
+	.mask           = pic8259_mask,
+	.unmask         = pic8259_unmask
 };
 
 void pic8259_init(void)
