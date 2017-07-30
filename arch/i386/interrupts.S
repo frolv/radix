@@ -122,6 +122,23 @@ BEGIN_FUNC(security_exception)
 	UNHANDLED_EXCEPTION
 END_FUNC(security_exception)
 
+#define REGS_DI(base)           (base)
+#define REGS_SI(base)          4(base)
+#define REGS_SP(base)          8(base)
+#define REGS_BP(base)         12(base)
+#define REGS_BX(base)         16(base)
+#define REGS_DX(base)         20(base)
+#define REGS_CX(base)         24(base)
+#define REGS_AX(base)         28(base)
+#define REGS_GS(base)         32(base)
+#define REGS_FS(base)         36(base)
+#define REGS_ES(base)         40(base)
+#define REGS_DS(base)         44(base)
+#define REGS_CS(base)         48(base)
+#define REGS_SS(base)         52(base)
+#define REGS_IP(base)         56(base)
+#define REGS_FLAGS(base)      60(base)
+
 # Build a struct regs from an interrupt context.
 # `pushed_bytes` is the number of bytes already pushed
 # onto the stack since the interrupt.
@@ -147,13 +164,13 @@ END_FUNC(security_exception)
 	pushl %edi
 	# saved eflags
 	movl (72 + \pushed_bytes)(%esp), %eax
-	movl %eax, 60(%esp)
+	movl %eax, REGS_FLAGS(%esp)
 	# saved cs
 	movl (68 + \pushed_bytes)(%esp), %eax
-	movl %eax, 48(%esp)
+	movl %eax, REGS_CS(%esp)
 	# saved eip
 	movl (64 + \pushed_bytes)(%esp), %eax
-	movl %eax, 56(%esp)
+	movl %eax, REGS_IP(%esp)
 .endm
 
 .macro POP_STRUCT_REGS
