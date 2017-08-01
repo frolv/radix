@@ -849,6 +849,28 @@ static void extended_processor_info(void)
 	}
 }
 
+DEFINE_PER_CPU(int, processor_id);
+
+void bsp_init_early(void)
+{
+	gdt_init_early();
+	idt_init_early();
+	percpu_init_early();
+	read_cpu_info();
+
+	this_cpu_write(processor_id, 0);
+	if (cpu_supports(CPUID_PGE))
+		cpu_modify_cr4(0, CR4_PGE);
+}
+
+void bsp_init(void)
+{
+	if (bsp_apic_init() != 0) {
+		klog(KLOG_WARNING, "bsp_init: "
+		     "could not initialize APIC, falling back to 8259 PIC");
+	}
+}
+
 /*
  * Nothing but silly printing functions below.
  * Turn around now.
@@ -1000,27 +1022,4 @@ char *i386_cache_str(void)
 	}
 
 	return cache_info_buf;
-}
-
-DEFINE_PER_CPU(int, processor_id);
-
-void bsp_init_early(void)
-{
-	gdt_init_early();
-	idt_init_early();
-	percpu_init_early();
-	read_cpu_info();
-
-	this_cpu_write(processor_id, 0);
-	if (cpu_supports(CPUID_PGE))
-		cpu_modify_cr4(0, CR4_PGE);
-}
-
-void i386_bsp_init(void)
-{
-	if (bsp_apic_init() != 0) {
-		klog(KLOG_WARNING, "bsp_init: "
-		     "could not initialize APIC, falling back to 8259 PIC");
-		return;
-	}
 }

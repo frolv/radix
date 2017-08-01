@@ -17,6 +17,7 @@
  */
 
 #include <acpi/acpi.h>
+#include <radix/cpu.h>
 
 /*
  * arch_main_setup:
@@ -25,4 +26,5 @@
 void arch_main_setup(void)
 {
 	acpi_init();
+	bsp_init();
 }

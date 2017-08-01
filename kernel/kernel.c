@@ -41,7 +41,6 @@ int kmain(struct multiboot_info *mbt)
 	vmm_init();
 
 	arch_main_setup();
-	bsp_init();
 	irq_init();
 	percpu_area_setup();
 

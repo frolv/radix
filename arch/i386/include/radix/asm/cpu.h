@@ -82,9 +82,7 @@ int cpu_supports(uint64_t features);
 #define __arch_cache_line_size()        i386_cache_line_size()
 #define __arch_cache_str()              i386_cache_str()
 
-#define __arch_bsp_init()               i386_bsp_init()
-
-void i386_bsp_init(void);
+void bsp_init(void);
 
 unsigned long i386_cache_line_size(void);
 char *i386_cache_str(void);
