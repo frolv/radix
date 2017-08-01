@@ -89,4 +89,27 @@ struct acpi_fadt {
 	struct acpi_generic_address sleep_status_reg;
 };
 
+#define ACPI_FADT_WBINVD                        (1 << 0)
+#define ACPI_FADT_WBINVD_FLUSH                  (1 << 1)
+#define ACPI_FADT_PROC_C1                       (1 << 2)
+#define ACPI_FADT_P_LVL2_UP                     (1 << 3)
+#define ACPI_FADT_PWR_BUTTON                    (1 << 4)
+#define ACPI_FADT_SLP_BUTTON                    (1 << 5)
+#define ACPI_FADT_FIX_RTC                       (1 << 6)
+#define ACPI_FADT_RTC_S4                        (1 << 7)
+#define ACPI_FADT_TMR_VAL_EXT                   (1 << 8)
+#define ACPI_FADT_DCK_CAP                       (1 << 9)
+#define ACPI_FADT_RESET_REG_SUP                 (1 << 10)
+#define ACPI_FADT_SEALED_CASE                   (1 << 11)
+#define ACPI_FADT_HEADLESS                      (1 << 12)
+#define ACPI_FADT_CPU_SW_SLP                    (1 << 13)
+#define ACPI_FADT_PCI_EXP_WAK                   (1 << 14)
+#define ACPI_FADT_USE_PLATFORM_CLOCK            (1 << 15)
+#define ACPI_FADT_S4_RTC_STS_VALID              (1 << 16)
+#define ACPI_FADT_REMOTE_POWER_ON_CAPABLE       (1 << 17)
+#define ACPI_FADT_FORCE_APIC_CLUSTER_MODE       (1 << 18)
+#define ACPI_FADT_FORCE_APIC_PHYSDEST_MODE      (1 << 19)
+#define ACPI_FADT_HW_REDUCED_ACPI               (1 << 20)
+#define ACPI_FADT_LOW_POWER_S0_IDL_CAPABLE      (1 << 21)
+
 #endif /* ACPI_TABLES_FADT_H */
