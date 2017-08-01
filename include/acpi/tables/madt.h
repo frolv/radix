@@ -20,6 +20,7 @@
 #define ACPI_TABLES_MADT_H
 
 #include <acpi/tables/sdt.h>
+#include <radix/types.h>
 
 enum {
 	ACPI_MADT_LOCAL_APIC            = 0,
