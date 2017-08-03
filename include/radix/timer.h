@@ -27,8 +27,8 @@ struct timer {
 	uint32_t        mult;
 	uint32_t        shift;
 	unsigned long   frequency;
-	int             (*start)(void);
-	int             (*stop)(void);
+	void            (*start)(void);
+	void            (*stop)(void);
 	int             (*enable)(void);
 	int             (*disable)(void);
 	unsigned long   flags;
@@ -39,6 +39,8 @@ struct timer {
 
 #define TIMER_ENABLED   (1 << 0)
 #define TIMER_RUNNING   (1 << 1)
+
+extern struct timer *system_timer;
 
 void timer_register(struct timer *timer);
 
