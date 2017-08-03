@@ -850,6 +850,9 @@ static void extended_processor_info(void)
 }
 
 DEFINE_PER_CPU(int, processor_id);
+DEFINE_PER_CPU(void *, cpu_stack);
+
+extern unsigned char bsp_stack_top;
 
 void bsp_init_early(void)
 {
@@ -859,6 +862,7 @@ void bsp_init_early(void)
 	read_cpu_info();
 
 	this_cpu_write(processor_id, 0);
+	this_cpu_write(cpu_stack, &bsp_stack_top);
 	if (cpu_supports(CPUID_PGE))
 		cpu_modify_cr4(0, CR4_PGE);
 }

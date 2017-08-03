@@ -36,10 +36,11 @@
 # skipping ahead 16 KiB and creating a symbol at the top. The stack
 # must be 16-byte aligned on x86.
 .section .bootstrap_stack, "aw", @nobits
-.align 16
-stack_bottom:
+.align 0x1000
+bsp_stack_bottom:
 .skip 0x4000
-stack_top:
+.global bsp_stack_top
+bsp_stack_top:
 
 .set KERNEL_VIRTUAL_BASE, 0xC0000000
 #define PHYS(x) x - KERNEL_VIRTUAL_BASE
@@ -123,7 +124,7 @@ higher_half_start:
 	invlpg (0)
 
 	# Set stack pointer to point to the top of the stack.
-	movl $stack_top, %esp
+	movl $bsp_stack_top, %esp
 	cld
 
 	# Call global constructors.
