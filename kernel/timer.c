@@ -45,6 +45,14 @@ static void timer_list_add(struct timer *timer)
 
 static void update_system_timer(struct timer *timer)
 {
+	if (!(timer->flags & TIMER_ENABLED)) {
+		if (timer->enable() != 0) {
+			klog(KLOG_WARNING, TIMER "failed to enable timer %s",
+			     timer->name);
+			return;
+		}
+	}
+
 	if (system_timer) {
 		if (system_timer->flags & TIMER_RUNNING)
 			system_timer->stop();
@@ -52,8 +60,6 @@ static void update_system_timer(struct timer *timer)
 			system_timer->disable();
 	}
 
-	if (!(timer->flags & TIMER_ENABLED))
-		timer->enable();
 	if (!(timer->flags & TIMER_RUNNING))
 		timer->start();
 
@@ -68,6 +74,12 @@ static void update_system_timer(struct timer *timer)
  */
 void timer_register(struct timer *timer)
 {
+	if (timer->rating < 1 || timer->rating > 100) {
+		klog(KLOG_ERROR, TIMER "invalid rating provided for timer %s",
+		     timer->name);
+		return;
+	}
+
 	if (!system_timer) {
 		list_add(&system_timer_list, &timer->timer_list);
 		update_system_timer(timer);
