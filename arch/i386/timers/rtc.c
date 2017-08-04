@@ -23,8 +23,8 @@
 
 /*
  * The real-time clock (RTC) is the lowest common denominator timer for the
- * x86 architecture. We emulate a counter through RTC interrupts, running at
- * a frequency of 2048Hz. This provides a measly 488us resolution timer.
+ * x86 architecture. A counter is emulated through RTC interrupts, running
+ * at a frequency of 2048Hz. This provides a measly 488us resolution timer.
  * Although the RTC is capable of running at higher frequencies, it requires
  * two legacy ISA port accesses within its IRQ handler, each costing
  * approximately 1us. At a frequency of 2048Hz, this wastes 4ms per second.
@@ -63,6 +63,18 @@ static void rtc_tick_handler(__unused void *device)
 	inb(RTC_PORT_WIN);
 }
 
+static uint8_t __rtc_reg_read(int reg)
+{
+	outb(RTC_PORT_REG, reg);
+	return inb(RTC_PORT_WIN);
+}
+
+static void __rtc_reg_write(int reg, uint8_t val)
+{
+	outb(RTC_PORT_REG, reg);
+	outb(RTC_PORT_WIN, val);
+}
+
 /*
  * __rtc_modify_reg:
  * Modify the value of the specified RTC register by clearing and setting
@@ -73,12 +85,10 @@ static void __rtc_modify_reg(int reg, unsigned int clear, unsigned int set)
 	int val;
 
 	irq_disable();
-	outb(RTC_PORT_REG, reg);
-	val = inb(RTC_PORT_WIN);
+	val = __rtc_reg_read(reg);
 	val &= ~clear;
 	val |= set;
-	outb(RTC_PORT_REG, reg);
-	outb(RTC_PORT_WIN, val);
+	__rtc_reg_write(reg, val);
 	irq_enable();
 }
 
