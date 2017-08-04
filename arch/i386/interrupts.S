@@ -219,7 +219,7 @@ exception_common:
 BEGIN_FUNC(irq_fn)
 vector = IRQ_BASE
 .rept (NUM_INTERRUPT_VECTORS - NUM_EXCEPTION_VECTORS)
-	push $(vector)
+	push $(vector - 0x80)
 	jmp interrupt_common
 	.align 8
 	vector = vector + 1
@@ -228,6 +228,7 @@ END_FUNC(irq_fn)
 
 interrupt_common:
 	incl THIS_CPU_VAR(interrupt_depth)
+	addl $0x80, (%esp)
 	BUILD_STRUCT_REGS 4
 	movl 64(%esp), %eax
 	movl %esp, %edx
