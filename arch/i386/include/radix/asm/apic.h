@@ -83,6 +83,7 @@ struct lapic {
 	uint32_t                id;
 	uint8_t                 timer_mode;
 	uint8_t                 timer_div;
+	uint16_t                lvt_count;
 	struct lapic_lvt	lvts[APIC_LVT_MAX + 1];
 };
 

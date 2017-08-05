@@ -128,6 +128,7 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_REG_TIMER_COUNT            0x39
 #define APIC_REG_TIMER_DIVIDE           0x3E
 
+#define APIC_APICVER_LVT_SHIFT          16
 #define APIC_LDR_ID_SHIFT               24
 #define APIC_DFR_MODEL_FLAT             0xF0000000
 #define APIC_DFR_MODEL_CLUSTER          0x00000000
@@ -561,6 +562,7 @@ struct lapic *lapic_add(unsigned int id)
 	lapic->id = id;
 	lapic->timer_mode = LAPIC_TIMER_ONESHOT;
 	lapic->timer_div = 1;
+	lapic->lvt_count = 4;
 	memcpy(&lapic->lvts, &lapic_lvt_default, sizeof lapic->lvts);
 
 	return lapic;
@@ -740,7 +742,7 @@ void lapic_init(void)
 {
 	struct lapic *lapic;
 	int cpu_number;
-	uint32_t logical_id;
+	uint32_t logical_id, ver;
 
 	spin_lock(&cpus_online_lock);
 	cpu_number = cpus_online++;
@@ -771,6 +773,9 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
 
 	/* program LVT entires */
+	ver = lapic_reg_read(APIC_REG_APICVER);
+	lapic->lvt_count = (ver >> APIC_APICVER_LVT_SHIFT & 0xFF) + 1;
+
 	lapic_reg_write(APIC_REG_LVT_LINT0,
 	                lapic_lvt_entry(lapic, APIC_LVT_LINT0));
 	lapic_reg_write(APIC_REG_LVT_LINT1,
@@ -779,12 +784,15 @@ void lapic_init(void)
 	                lapic_lvt_entry(lapic, APIC_LVT_TIMER));
 	lapic_reg_write(APIC_REG_LVT_ERROR,
 	                lapic_lvt_entry(lapic, APIC_LVT_ERROR));
-	lapic_reg_write(APIC_REG_LVT_PMC,
-	                lapic_lvt_entry(lapic, APIC_LVT_PMC));
-	lapic_reg_write(APIC_REG_LVT_THERMAL,
-	                lapic_lvt_entry(lapic, APIC_LVT_THERMAL));
-	lapic_reg_write(APIC_REG_LVT_CMCI,
-	                lapic_lvt_entry(lapic, APIC_LVT_CMCI));
+	if (lapic->lvt_count > 4)
+		lapic_reg_write(APIC_REG_LVT_PMC,
+				lapic_lvt_entry(lapic, APIC_LVT_PMC));
+	if (lapic->lvt_count > 5)
+		lapic_reg_write(APIC_REG_LVT_THERMAL,
+				lapic_lvt_entry(lapic, APIC_LVT_THERMAL));
+	if (lapic->lvt_count > 6)
+		lapic_reg_write(APIC_REG_LVT_CMCI,
+				lapic_lvt_entry(lapic, APIC_LVT_CMCI));
 
 	lapic_interrupt_setup();
 	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
