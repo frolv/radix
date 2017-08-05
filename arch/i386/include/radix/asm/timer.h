@@ -1,5 +1,5 @@
 /*
- * arch/i386/setup.c
+ * arch/i386/include/radix/asm/timer.h
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,21 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <acpi/acpi.h>
-#include <radix/cpu.h>
-#include <radix/timer.h>
+#ifndef ARCH_I386_RADIX_TIMER_H
+#define ARCH_I386_RADIX_TIMER_H
 
-/*
- * arch_main_setup:
- * Initialize x86-specific features and data structures.
- */
-void arch_main_setup(void)
-{
-	acpi_init();
-	bsp_init();
+void pit_register(void);
+void rtc_register(void);
 
-	/* If there is no APIC, the PIT must be used as a scheduling timer. */
-	if (cpu_supports(CPUID_APIC))
-		pit_register();
-	rtc_register();
-}
+#endif /* ARCH_I386_RADIX_TIMER_H */

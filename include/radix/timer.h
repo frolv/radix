@@ -19,6 +19,7 @@
 #ifndef RADIX_TIMER_H
 #define RADIX_TIMER_H
 
+#include <radix/asm/timer.h>
 #include <radix/list.h>
 #include <radix/types.h>
 
