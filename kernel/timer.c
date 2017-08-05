@@ -17,6 +17,7 @@
  */
 
 #include <radix/klog.h>
+#include <radix/time.h>
 #include <radix/timer.h>
 
 #define TIMER "TIMER: "
@@ -25,6 +26,14 @@
 static struct list system_timer_list = LIST_INIT(system_timer_list);
 
 struct timer *system_timer = NULL;
+
+static uint64_t time_ns_timer(void)
+{
+	uint64_t ticks;
+
+	ticks = system_timer->read();
+	return (ticks * system_timer->mult) >> system_timer->shift;
+}
 
 /*
  * timer_list_add:
@@ -83,6 +92,7 @@ void timer_register(struct timer *timer)
 	if (!system_timer) {
 		list_add(&system_timer_list, &timer->timer_list);
 		update_system_timer(timer);
+		time_ns = time_ns_timer;
 	} else {
 		timer_list_add(timer);
 		if (timer->rating > system_timer->rating)

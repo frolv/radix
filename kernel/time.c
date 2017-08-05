@@ -1,5 +1,5 @@
 /*
- * include/radix/time.h
+ * kernel/time.c
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,13 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_TIME_H
-#define RADIX_TIME_H
+#include <radix/time.h>
 
-#include <radix/types.h>
+static uint64_t time_ns_null(void)
+{
+	return 0;
+}
 
-#define NSEC_PER_SEC 1000000000ULL
-
-extern uint64_t (*time_ns)(void);
-
-#endif /* RADIX_TIME_H */
+uint64_t (*time_ns)(void) = time_ns_null;
