@@ -166,7 +166,7 @@ static int vklog(int level, const char *format, va_list ap)
 	entry = next_entry;
 	next_entry = klog_next_entry(next_entry);
 
-	entry->timestamp = 0;
+	entry->timestamp = time_ns();
 	entry->msg_len = len;
 	entry->level = level;
 	entry->flags = 0;
