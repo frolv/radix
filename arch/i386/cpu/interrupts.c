@@ -17,7 +17,6 @@
  */
 
 #include <radix/asm/apic.h>
-#include <radix/asm/pic.h>
 #include <radix/asm/regs.h>
 
 #include <radix/cpu.h>
@@ -182,7 +181,6 @@ int __arch_request_fixed_irq(unsigned int irq, void *device,
 	desc->device = device;
 	desc->next = NULL;
 
-	system_pic->unmask(irq);
 	return 0;
 }
 

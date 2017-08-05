@@ -118,12 +118,14 @@ static void rtc_start(void)
 {
 	__rtc_modify_reg(RTC_REG_B, 0, RTC_ENABLE);
 	rtc.flags |= TIMER_RUNNING;
+	unmask_irq(RTC_IRQ);
 }
 
 static void rtc_stop(void)
 {
 	__rtc_modify_reg(RTC_REG_B, RTC_ENABLE, 0);
 	rtc.flags &= ~TIMER_RUNNING;
+	mask_irq(RTC_IRQ);
 }
 
 static struct timer rtc = {

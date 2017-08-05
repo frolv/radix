@@ -40,6 +40,9 @@ __must_check int request_fixed_irq(unsigned int irq, void *device,
                                    irq_handler_t handler);
 void release_irq(unsigned int irq, void *device);
 
+#define mask_irq(irq)   __arch_mask_irq(irq)
+#define unmask_irq(irq) __arch_unmask_irq(irq)
+
 #endif /* __KERNEL__ */
 
 #include <radix/asm/irq.h>

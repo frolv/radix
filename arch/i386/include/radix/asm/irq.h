@@ -71,6 +71,7 @@
 #ifdef __KERNEL__
 
 #include <radix/asm/cpu_defs.h>
+#include <radix/asm/pic.h>
 #include <radix/compiler.h>
 #include <radix/percpu.h>
 #include <radix/types.h>
@@ -95,6 +96,16 @@ int __arch_request_irq(struct irq_descriptor *desc);
 int __arch_request_fixed_irq(unsigned int irq, void *device,
                              irq_handler_t handler);
 void __arch_release_irq(unsigned int irq, void *device);
+
+static __always_inline void __arch_mask_irq(unsigned int irq)
+{
+	system_pic->mask(irq);
+}
+
+static __always_inline void __arch_unmask_irq(unsigned int irq)
+{
+	system_pic->unmask(irq);
+}
 
 #endif /* __KERNEL__ */
 

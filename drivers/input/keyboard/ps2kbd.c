@@ -40,4 +40,5 @@ void kbd_install(void)
 		klog(KLOG_ERROR, "failed to map PS2 keyboard to IRQ 1");
 		return;
 	}
+	unmask_irq(PS2_KEYBOARD_IRQ);
 }
