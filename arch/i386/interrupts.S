@@ -246,7 +246,7 @@ interrupt_common:
 # special interrupt vectors
 
 BEGIN_FUNC(lapic_error)
-	pushl lapic_error_handler
+	pushl $lapic_error_handler
 	jmp irq_noargs_common
 END_FUNC(lapic_error)
 
