@@ -51,6 +51,7 @@
 
 static uint32_t acpi_pm_port;
 static uint32_t acpi_pm_max_ticks;
+static uint32_t acpi_pm_prev_ticks = 0;
 static uint64_t acpi_pm_total_ticks = 0;
 
 static spinlock_t acpi_pm_lock = SPINLOCK_INIT;
@@ -61,21 +62,21 @@ static spinlock_t acpi_pm_lock = SPINLOCK_INIT;
  */
 static uint64_t acpi_pm_read(void)
 {
-	static uint32_t prev_ticks = 0;
 	uint32_t ticks;
 	int diff;
 
 	spin_lock(&acpi_pm_lock);
 	ticks = inl(acpi_pm_port);
-	diff = ticks - prev_ticks;
+	diff = ticks - acpi_pm_prev_ticks;
 
 	/* If diff < 0, i.e. prev_ticks > ticks, the counter has overflowed. */
 	if (diff < 0)
-		acpi_pm_total_ticks += (acpi_pm_max_ticks - prev_ticks) + ticks;
+		acpi_pm_total_ticks += (acpi_pm_max_ticks - acpi_pm_prev_ticks)
+		                       + ticks;
 	else
 		acpi_pm_total_ticks += diff;
 
-	prev_ticks = ticks;
+	acpi_pm_prev_ticks = ticks;
 	spin_unlock(&acpi_pm_lock);
 
 	return acpi_pm_total_ticks;
@@ -95,12 +96,10 @@ static void acpi_pm_update(void)
  */
 static int acpi_pm_enable(void)
 {
-	acpi_pm_read();
+	acpi_pm_prev_ticks = inl(acpi_pm_port);
 
 	/* TODO: replace this when we get a proper event framework */
-	pit_setup_periodic_irq(4, acpi_pm_update);
-
-	return 0;
+	return pit_setup_periodic_irq(4, acpi_pm_update);
 }
 
 static int acpi_pm_disable(void)
