@@ -137,6 +137,9 @@ void acpi_pm_register(void)
 		return;
 
 	acpi_pm_port = fadt->pm_tmr_blk;
+	if (!acpi_pm_port)
+		return;
+
 	acpi_pm_max_ticks =
 		(fadt->flags & ACPI_FADT_TMR_VAL_EXT) ? 0xFFFFFFFF : 0x00FFFFFF;
 
