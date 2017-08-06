@@ -19,18 +19,11 @@
 #ifndef ACPI_TABLES_FADT_H
 #define ACPI_TABLES_FADT_H
 
+#include <acpi/tables/gas.h>
 #include <acpi/tables/sdt.h>
 #include <radix/types.h>
 
 #define ACPI_FADT_SIGNATURE "FACP"
-
-struct acpi_generic_address {
-	uint8_t         address_space;
-	uint8_t         bit_width;
-	uint8_t         bit_offset;
-	uint8_t         access_size;
-	uint64_t        address;
-};
 
 struct acpi_fadt {
 	struct acpi_sdt_header header;
