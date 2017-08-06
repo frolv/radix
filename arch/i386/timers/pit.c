@@ -45,7 +45,8 @@
 
 #define PIT_IRQ                 0
 #define PIT_OSC_FREQ            1193182
-#define PIT_COUNTER_FREQ        2048
+#define PIT_COUNTER_FREQ        2048000
+#define PIT_IRQ_FREQ            2048
 
 #define PIT_TICK_DELTA          1001
 #define PIT_MULT                15625
@@ -91,7 +92,7 @@ static int pit_enable(void)
 {
 	uint16_t divisor;
 
-	divisor = PIT_OSC_FREQ / PIT_COUNTER_FREQ;
+	divisor = PIT_OSC_FREQ / PIT_IRQ_FREQ;
 	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
 	                       PIT_ACCESS_MODE_LO_HI |
 	                       PIT_MODE_SQUARE);
