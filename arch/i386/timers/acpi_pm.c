@@ -25,9 +25,9 @@
 /* TODO: remove this include */
 #include <radix/cpu.h>
 
-#define ACPI_PM_FREQUENCY 3579545
-#define ACPI_PM_MULT      2343484437
-#define ACPI_PM_SHIFT     23
+#define ACPI_PM_FREQUENCY       3579545
+#define ACPI_PM_MULT            2288559
+#define ACPI_PM_SHIFT           13
 
 /*
  * The ACPI power management timer is a counter provided by the ACPI BIOS which
