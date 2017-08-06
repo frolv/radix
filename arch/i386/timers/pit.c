@@ -143,3 +143,37 @@ void pit_register(void)
 {
 	timer_register(&pit);
 }
+
+/* TODO: remove everything below */
+static void (*periodic_action)(void) = NULL;
+
+static void pit_irq_handler(__unused void *device)
+{
+	periodic_action();
+}
+
+int pit_setup_periodic_irq(int hz, void (*action)(void))
+{
+	uint16_t divisor;
+
+	divisor = PIT_OSC_FREQ / hz;
+	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
+	                       PIT_ACCESS_MODE_LO_HI |
+	                       PIT_MODE_SQUARE);
+	outb(PIT_CHANNEL_0_PORT, divisor & 0xFF);
+	outb(PIT_CHANNEL_0_PORT, (divisor >> 8) & 0xFF);
+
+	if (request_fixed_irq(PIT_IRQ, &pit, pit_irq_handler) != 0)
+		return 1;
+
+	periodic_action = action;
+	unmask_irq(PIT_IRQ);
+
+	return 0;
+}
+
+void pit_stop_periodic_irq(void)
+{
+	periodic_action = NULL;
+	release_irq(PIT_IRQ, &pit);
+}

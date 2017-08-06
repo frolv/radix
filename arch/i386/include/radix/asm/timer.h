@@ -19,7 +19,12 @@
 #ifndef ARCH_I386_RADIX_TIMER_H
 #define ARCH_I386_RADIX_TIMER_H
 
+void acpi_pm_register(void);
 void pit_register(void);
 void rtc_register(void);
+
+/* TODO: remove these once we get a proper event framework */
+int pit_setup_periodic_irq(int hz, void (*action)(void));
+void pit_stop_periodic_irq(void);
 
 #endif /* ARCH_I386_RADIX_TIMER_H */
