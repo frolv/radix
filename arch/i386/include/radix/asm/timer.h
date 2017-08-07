@@ -22,6 +22,7 @@
 void acpi_pm_register(void);
 void pit_register(void);
 void rtc_register(void);
+void hpet_register(void);
 
 /* TODO: remove these once we get a proper event framework */
 int pit_setup_periodic_irq(int hz, void (*action)(void));
