@@ -28,6 +28,8 @@ struct timer {
 	uint32_t        mult;
 	uint32_t        shift;
 	unsigned long   frequency;
+	uint64_t        max_ticks;
+	uint64_t        max_ns;
 	void            (*start)(void);
 	void            (*stop)(void);
 	int             (*enable)(void);

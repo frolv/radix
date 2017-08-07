@@ -50,11 +50,12 @@
  */
 
 static uint32_t acpi_pm_port;
-static uint32_t acpi_pm_max_ticks;
 static uint32_t acpi_pm_prev_ticks = 0;
 static uint64_t acpi_pm_total_ticks = 0;
 
 static spinlock_t acpi_pm_lock = SPINLOCK_INIT;
+
+static struct timer acpi_pm;
 
 /*
  * acpi_pm_read:
@@ -71,7 +72,7 @@ static uint64_t acpi_pm_read(void)
 
 	/* If diff < 0, i.e. prev_ticks > ticks, the counter has overflowed. */
 	if (diff < 0)
-		acpi_pm_total_ticks += (acpi_pm_max_ticks - acpi_pm_prev_ticks)
+		acpi_pm_total_ticks += (acpi_pm.max_ticks - acpi_pm_prev_ticks)
 		                       + ticks;
 	else
 		acpi_pm_total_ticks += diff;
@@ -139,7 +140,7 @@ void acpi_pm_register(void)
 	if (!acpi_pm_port)
 		return;
 
-	acpi_pm_max_ticks =
+	acpi_pm.max_ticks =
 		(fadt->flags & ACPI_FADT_TMR_VAL_EXT) ? 0xFFFFFFFF : 0x00FFFFFF;
 
 	timer_register(&acpi_pm);
