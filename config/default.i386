@@ -5,21 +5,24 @@
 
 
 #
-# rconfig i386
-# arch/i386/rconfig
-#
-
-# section Interrupts
-CONFIG_MAX_IOAPICS=8
-
-
-#
 # rconfig radix
 # rconfig
 #
 
 # section Debugging
 CONFIG_DEBUG=false
+
+
+#
+# rconfig i386
+# arch/i386/rconfig
+#
+
+# section Memory
+CONFIG_PAE=true
+
+# section Interrupts
+CONFIG_MAX_IOAPICS=8
 
 
 #

@@ -1,5 +1,12 @@
 configfile i386
 
+section Memory
+
+config PAE
+	type bool
+	default true
+	desc "Enable physical address extension (PAE)"
+
 section Interrupts
 
 config MAX_IOAPICS
