@@ -23,42 +23,10 @@
 #error <radix/asm/page.h> cannot be included directly
 #endif
 
-#define PTRS_PER_PGDIR          0x400
-#define PTRS_PER_PGTBL          0x400
-#define PGDIR_SIZE              (PTRS_PER_PGDIR * sizeof (void *))
-#define PGTBL_SIZE              (PTRS_PER_PGTBL * sizeof (void *))
-
-#define PGDIR_SHIFT             22
-#define PAGE_SHIFT              12
-#define PAGE_SIZE               (1UL << PAGE_SHIFT)
-#define PAGE_MASK               (~(PAGE_SIZE - 1))
-
-#define PGDIR_INDEX(x)          ((x) >> PGDIR_SHIFT)
-#define PGTBL_INDEX(x)          (((x) >> PAGE_SHIFT) & 0x3FF)
-
-#define _PAGE_BIT_PRESENT       0
-#define _PAGE_BIT_RW            1
-#define _PAGE_BIT_USER          2
-#define _PAGE_BIT_PWT           3
-#define _PAGE_BIT_PCD           4
-#define _PAGE_BIT_ACCESSED      5
-#define _PAGE_BIT_DIRTY         6
-#define _PAGE_BIT_PAT           7
-#define _PAGE_BIT_GLOBAL        8
-
-#define PAGE_PRESENT    (((pteval_t)1) << _PAGE_BIT_PRESENT)
-#define PAGE_RW         (((pteval_t)1) << _PAGE_BIT_RW)
-#define PAGE_USER       (((pteval_t)1) << _PAGE_BIT_USER)
-#define PAGE_PWT        (((pteval_t)1) << _PAGE_BIT_PWT)
-#define PAGE_PCD        (((pteval_t)1) << _PAGE_BIT_PCD)
-#define PAGE_ACCESSED   (((pteval_t)1) << _PAGE_BIT_ACCESSED)
-#define PAGE_DIRTY      (((pteval_t)1) << _PAGE_BIT_DIRTY)
-#define PAGE_PAT        (((pteval_t)1) << _PAGE_BIT_PAT)
-#define PAGE_GLOBAL     (((pteval_t)1) << _PAGE_BIT_GLOBAL)
-
 #include <radix/compiler.h>
 #include <radix/asm/mm_types.h>
 #include <radix/asm/mm_limits.h>
+#include <radix/asm/page_defs.h>
 
 #define PDE(x) ((x).pde)
 #define PTE(x) ((x).pte)
