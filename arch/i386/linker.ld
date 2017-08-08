@@ -19,6 +19,7 @@ SECTIONS {
 		*(.text)
 		*(.init)
 		*(.fini)
+		. = ALIGN(4K);
 		__text_end = .;
 	} :text
 
@@ -27,6 +28,7 @@ SECTIONS {
 		__rodata_start = .;
 		*(.rodata)
 		*(SORT(.rodata.*))
+		. = ALIGN(4K);
 		__rodata_end = .;
 	} :readonly
 
