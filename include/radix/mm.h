@@ -30,14 +30,15 @@
 #define KERNEL_VIRTUAL_BASE     __ARCH_KERNEL_VIRT_BASE
 #define KERNEL_SIZE             0x00400000
 #define RESERVED_VIRT_BASE      __ARCH_RESERVED_VIRT_BASE
-#define RESERVED_SIZE           (PGDIR_BASE - RESERVED_VIRT_BASE)
+#define RESERVED_SIZE           (PAGING_BASE - RESERVED_VIRT_BASE)
 #define MEM_LIMIT               __ARCH_MEM_LIMIT
 
 /*
- * The final entry in the page directory is mapped to the page directory itself.
+ * Recursive mapping is used for paging structures, so they occupy the top part
+ * of the virtual address space.
  */
-#define PGDIR_BASE              __ARCH_PGDIR_BASE
-#define PGDIR_VADDR             __ARCH_PGDIR_VADDR
+#define PAGING_BASE             __ARCH_PAGING_BASE
+#define PAGING_VADDR            __ARCH_PAGING_VADDR
 
 /* Page map starts at 16 MiB in physical memory, directly after the DMA zone. */
 #define __PAGE_MAP_PHYS_BASE    0x01000000
@@ -54,8 +55,8 @@ void buddy_init(struct multiboot_info *mbt);
  * The maximum amount of pages that can be allocated
  * at a time is 2^{PA_MAX_ORDER}.
  */
-#define PA_ORDERS    10U
-#define PA_MAX_ORDER (PA_ORDERS - 1U)
+#define PA_ORDERS       10U
+#define PA_MAX_ORDER    (PA_ORDERS - 1U)
 
 /* Low level page allocation flags */
 #define __PA_ZONE_REG   (1 << 1)        /* allocate from kernel zone */
@@ -82,7 +83,7 @@ static __always_inline struct page *alloc_page(unsigned int flags)
 }
 
 #define virt_to_phys(x) __arch_pa((addr_t)(x))
-#define phys_to_virt(x) __arch_va((addr_t)(x))
+#define phys_to_virt(x) __arch_va((paddr_t)(x))
 
 extern struct page *page_map;
 
@@ -99,12 +100,12 @@ static __always_inline size_t page_to_pfn(struct page *p)
 }
 
 /* Find the physical address represented by a struct page. */
-static __always_inline addr_t page_to_phys(struct page *p)
+static __always_inline paddr_t page_to_phys(struct page *p)
 {
-	return page_to_pfn(p) << PAGE_SHIFT;
+	return (paddr_t)page_to_pfn(p) << PAGE_SHIFT;
 }
 
-static __always_inline struct page *phys_to_page(addr_t phys)
+static __always_inline struct page *phys_to_page(paddr_t phys)
 {
 	return page_map + (phys >> PAGE_SHIFT);
 }
