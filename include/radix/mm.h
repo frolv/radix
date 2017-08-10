@@ -83,7 +83,7 @@ static __always_inline struct page *alloc_page(unsigned int flags)
 }
 
 #define virt_to_phys(x) __arch_pa((addr_t)(x))
-#define phys_to_virt(x) __arch_va((paddr_t)(x))
+#define phys_to_virt(x) __arch_va((addr_t)(x))
 
 extern struct page *page_map;
 
