@@ -32,7 +32,7 @@
 #define PGTBL_SIZE              (PTRS_PER_PGTBL * sizeof (pte_t))
 
 #define PAGE_SHIFT              12
-#define PAGE_SIZE               (1UL << PAGE_SHIFT)
+#define PAGE_SIZE               (1U << PAGE_SHIFT)
 #define PAGE_MASK               (~(PAGE_SIZE - 1))
 
 #ifdef CONFIG_PAE
