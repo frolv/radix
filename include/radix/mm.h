@@ -143,9 +143,8 @@ enum cache_policy {
 #define map_pages_user(virt, phys, prot, cp, n) \
 	__arch_map_pages(virt, phys, prot, cp, 1, n)
 
-#define unmap_page(virt)                __arch_unmap_page(virt)
-#define unmap_page_clean(virt)          __arch_unmap_page_clean(virt)
 #define unmap_pages(virt, n)            __arch_unmap_pages(virt, n)
+#define unmap_page(virt)                __arch_unmap_pages(virt, 1)
 
 #define set_cache_policy(virt, type)    __arch_set_cache_policy(virt, type)
 

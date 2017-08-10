@@ -21,31 +21,276 @@
 #include <radix/mm.h>
 #include <rlibc/string.h>
 
-#define get_page_table(x) (pte_t *)(PGDIR_BASE + ((x) * PAGE_SIZE))
-
-/* The page directory of a legacy 2-level x86 paging setup. */
-pde_t * const pgdir = (pde_t *)PGDIR_VADDR;
-
-addr_t i386_virt_to_phys(addr_t addr)
+static int ___map_page(pde_t *pgdir, pte_t *pgtbl, size_t pdi, size_t pti,
+                       addr_t virt, paddr_t phys, pteval_t flags)
 {
-	size_t pdi, pti;
-	pte_t *pgtbl;
-
-	pdi = PGDIR_INDEX(addr);
-	pti = PGTBL_INDEX(addr);
+	struct page *new;
 
 	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
-		pgtbl = get_page_table(pdi);
+		/* page is already mapped */
 		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
-			return (PTE(pgtbl[pti]) & PAGE_MASK) + (addr & 0xFFF);
+			return EBUSY;
+	} else {
+		/* allocate a new page table */
+		new = alloc_page(PA_PAGETABLE);
+		if (IS_ERR(new))
+			return ERR_VAL(new);
+
+		pgdir[pdi] = make_pde(page_to_phys(new)
+		                      | PAGE_GLOBAL | PAGE_RW | PAGE_PRESENT);
+		tlb_flush_page_lazy((addr_t)pgtbl);
+		memset(pgtbl, 0, PGTBL_SIZE);
+	}
+	pgtbl[pti] = make_pte(phys | flags | PAGE_PRESENT);
+	tlb_flush_page_lazy(virt);
+
+	return 0;
+}
+
+/*
+ * __unmap_pages:
+ * Unmap `n` pages starting at address `virt` from the specified page table,
+ * which has index `pdi` in the given page directory.
+ */
+int __unmap_pages(pde_t *pgdir, size_t pdi, pte_t *pgtbl, addr_t virt, size_t n)
+{
+	size_t initial_pti, curr_pti;
+	paddr_t phys;
+	int unmapped;
+
+	initial_pti = PGTBL_INDEX(virt);
+	/* check if any previous pages in the current table are mapped */
+	for (curr_pti = 0; curr_pti < initial_pti; ++curr_pti) {
+		if (PTE(pgtbl[curr_pti]) & PAGE_PRESENT)
+			break;
+	}
+	if (curr_pti == initial_pti)
+		initial_pti = 0;
+	else
+		curr_pti = initial_pti;
+
+	unmapped = 0;
+	while (n) {
+		pgtbl[curr_pti] = make_pte(0);
+		tlb_flush_page_lazy(virt);
+
+		--n;
+		++unmapped;
+		virt += PAGE_SIZE;
+		if (++curr_pti == PTRS_PER_PGTBL) {
+			if (initial_pti == 0) {
+				/* all pages in the table are unmapped */
+				phys = PDE(pgdir[pdi]) & PAGE_MASK;
+				free_pages(phys_to_page(phys));
+				pgdir[pdi] = make_pde(0);
+				tlb_flush_page_lazy((addr_t)pgtbl);
+			}
+			break;
+		}
+	}
+
+	return unmapped;
+}
+
+#ifdef CONFIG_PAE
+#define pgdir_base(n)           (addr_t)(0xFF800000 + (n) * MIB(2))
+#define get_page_table(ind, n)  (pte_t *)(pgdir_base(ind) + (n) * PAGE_SIZE)
+#define get_page_dir(pdpti)     (pde_t *)(0xFFFFC000 + (pdpti) * PAGE_SIZE)
+
+static __always_inline void get_paging_indices(addr_t virt, size_t *pdpti,
+                                               size_t *pdi, size_t *pti)
+{
+	*pdpti = PDPT_INDEX(virt);
+	*pdi = PGDIR_INDEX(virt);
+	*pti = PGTBL_INDEX(virt);
+}
+
+/*
+ * pgtbl_entry:
+ * Return a pointer to the page table entry representing the specified address.
+ */
+static pte_t *pgtbl_entry(addr_t virt)
+{
+	size_t pdpti, pdi, pti;
+	pde_t *pgdir;
+	pte_t *pgtbl;
+
+	get_paging_indices(virt, &pdpti, &pdi, &pti);
+	pgdir = get_page_dir(pdpti);
+
+	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
+		pgtbl = get_page_table(pdpti, pdi);
+		return pgtbl + pti;
+	}
+
+	return NULL;
+}
+
+void i386_set_pde(addr_t virt, pde_t pde)
+{
+	pde_t *pgdir = get_page_dir(PDPT_INDEX(virt));
+	pgdir[PGDIR_INDEX(virt)] = pde;
+}
+
+static int __map_page(addr_t virt, paddr_t phys, pteval_t flags)
+{
+	size_t pdpti, pdi, pti;
+	pde_t *pgdir;
+	pte_t *pgtbl;
+
+	/* addresses must be page-aligned */
+	if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
+		return EINVAL;
+
+	get_paging_indices(virt, &pdpti, &pdi, &pti);
+	pgdir = get_page_dir(pdpti);
+	pgtbl = get_page_table(pdpti, pdi);
+	return ___map_page(pgdir, pgtbl, pdi, pti, virt, phys, flags);
+}
+
+/*
+ * i386_unmap_pages:
+ * Unmap `n` pages, starting from address `virt`.
+ */
+int i386_unmap_pages(addr_t virt, size_t n)
+{
+	pde_t *pgdir;
+	pte_t *pgtbl;
+	size_t pdpti, pdi;
+	int unmapped;
+
+	if (!ALIGNED(virt, PAGE_SIZE))
+		return EINVAL;
+
+	pdpti = PDPT_INDEX(virt);
+	pdi = PGDIR_INDEX(virt);
+	pgdir = get_page_dir(pdpti);
+
+	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+		return EINVAL;
+
+	pgtbl = get_page_table(pdpti, pdi);
+	while (n) {
+		unmapped = __unmap_pages(pgdir, pdi, pgtbl, virt, n);
+		n -= unmapped;
+		virt += unmapped * PAGE_SIZE;
+
+		/* advance to the next page directory */
+		if (++pdi == PTRS_PER_PGDIR) {
+			if (++pdpti == PTRS_PER_PDPT)
+				break;
+			pgdir = get_page_dir(pdpti);
+			pdi = 0;
+		}
+		if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+			break;
+		pgtbl = get_page_table(pdpti, pdi);
 	}
 
 	return 0;
 }
 
+#else
+
+#define get_page_table(n) (pte_t *)(PAGING_BASE + ((n) * PAGE_SIZE))
+
+/* The page directory of a legacy 2-level x86 paging setup. */
+pde_t * const pgdir = (pde_t *)PAGING_VADDR;
+
+static __always_inline void get_paging_indices(addr_t virt,
+                                               size_t *pdi,
+                                               size_t *pti)
+{
+	*pdi = PGDIR_INDEX(virt);
+	*pti = PGTBL_INDEX(virt);
+}
+
+/*
+ * pgtbl_entry:
+ * Return a pointer to the page table entry representing the specified address.
+ */
+static pte_t *pgtbl_entry(addr_t virt)
+{
+	size_t pdi, pti;
+	pte_t *pgtbl;
+
+	get_paging_indices(virt, &pdi, &pti);
+	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
+		pgtbl = get_page_table(pdi);
+		return pgtbl + pti;
+	}
+
+	return NULL;
+}
+
 void i386_set_pde(addr_t virt, pde_t pde)
 {
 	pgdir[PGDIR_INDEX(virt)] = pde;
+}
+
+static int __map_page(addr_t virt, paddr_t phys, pteval_t flags)
+{
+	size_t pdi, pti;
+	pte_t *pgtbl;
+
+	/* addresses must be page-aligned */
+	if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
+		return EINVAL;
+
+	get_paging_indices(virt, &pdi, &pti);
+	pgtbl = get_page_table(pdi);
+	return ___map_page(pgdir, pgtbl, pdi, pti, virt, phys, flags);
+}
+
+/*
+ * i386_unmap_pages:
+ * Unmap `n` pages, starting from address `virt`.
+ */
+int i386_unmap_pages(addr_t virt, size_t n)
+{
+	pte_t *pgtbl;
+	size_t pdi;
+	int unmapped;
+
+	if (!ALIGNED(virt, PAGE_SIZE))
+		return EINVAL;
+
+	pdi = PGDIR_INDEX(virt);
+	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+		return EINVAL;
+
+	pgtbl = get_page_table(pdi);
+	while (n) {
+		unmapped = __unmap_pages(pgdir, pdi, pgtbl, virt, n);
+		n -= unmapped;
+		virt += unmapped * PAGE_SIZE;
+
+		if (++pdi == PTRS_PER_PGDIR)
+			break;
+		if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+			break;
+		pgtbl = get_page_table(pdi);
+	}
+
+	return 0;
+}
+
+#endif /* CONFIG_PAE */
+
+/*
+ * i386_virt_to_phys:
+ * Return the physical address to which the specified virtual address
+ * is mapped.
+ */
+paddr_t i386_virt_to_phys(addr_t addr)
+{
+	pte_t *pte;
+
+	pte = pgtbl_entry(addr);
+	if (!pte || !(PTE(*pte) & PAGE_PRESENT))
+		return ~0;
+
+	return (PTE(*pte) & PAGE_MASK) + (addr & ~PAGE_MASK);
 }
 
 /*
@@ -54,17 +299,63 @@ void i386_set_pde(addr_t virt, pde_t pde)
  */
 int i386_addr_mapped(addr_t virt)
 {
-	size_t pdi, pti;
-	pte_t *pgtbl;
+	pte_t *pte;
 
-	pdi = PGDIR_INDEX(virt);
-	pti = PGTBL_INDEX(virt);
-	pgtbl = get_page_table(pdi);
+	pte = pgtbl_entry(virt);
+	return pte ? PTE(*pte) & PAGE_PRESENT : 0;
+}
 
-	if (PDE(pgdir[pdi]) & PAGE_PRESENT)
-		return PTE(pgtbl[pti]) & PAGE_PRESENT;
-	else
-		return 0;
+static int mp_args_to_flags(pteval_t *flags, int prot, int cp);
+
+/*
+ * i386_map_page_kernel:
+ * Map a page with base virtual address `virt` to physical address `phys`
+ * for kernel use.
+ */
+int i386_map_page_kernel(addr_t virt, paddr_t phys, int prot, int cp)
+{
+	pteval_t flags;
+	int err;
+
+	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
+		return err;
+
+	return __map_page(virt, phys, flags | PAGE_GLOBAL);
+}
+
+/*
+ * i386_map_page_user:
+ * Map a page with base virtual address `virt` to physical address `phys`
+ * for userspace.
+ */
+int i386_map_page_user(addr_t virt, paddr_t phys, int prot, int cp)
+{
+	pteval_t flags;
+	int err;
+
+	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
+		return err;
+
+	return __map_page(virt, phys, flags | PAGE_USER);
+}
+
+int i386_map_pages(addr_t virt, paddr_t phys, int prot,
+                   int cp, int user, size_t n)
+{
+	pteval_t flags;
+	int err;
+
+	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
+		return err;
+
+	flags |= user ? PAGE_USER : PAGE_GLOBAL;
+
+	for (; n; --n, virt += PAGE_SIZE, phys += PAGE_SIZE) {
+		if ((err = __map_page(virt, phys, flags)) != 0)
+			return err;
+	}
+
+	return 0;
 }
 
 /*
@@ -72,7 +363,7 @@ int i386_addr_mapped(addr_t virt)
  * Convert a cache policy to x86 page flags.
  * `flags` must already be initialized.
  */
-static int cp_to_flags(unsigned long *flags, int cp)
+static int cp_to_flags(pteval_t *flags, int cp)
 {
 	switch (cp) {
 	case PAGE_CP_DEFAULT:
@@ -106,7 +397,7 @@ static int cp_to_flags(unsigned long *flags, int cp)
 	return 0;
 }
 
-static int mp_args_to_flags(unsigned long *flags, int prot, int cp)
+static int mp_args_to_flags(pteval_t *flags, int prot, int cp)
 {
 	*flags = 0;
 
@@ -118,223 +409,18 @@ static int mp_args_to_flags(unsigned long *flags, int prot, int cp)
 	return cp_to_flags(flags, cp);
 }
 
-static int __map_page(addr_t virt, addr_t phys, unsigned long flags)
-{
-	size_t pdi, pti;
-	pte_t *pgtbl;
-	struct page *new;
-
-	/* addresses must be page-aligned */
-	if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
-		return EINVAL;
-
-	pdi = PGDIR_INDEX(virt);
-	pti = PGTBL_INDEX(virt);
-	pgtbl = get_page_table(pdi);
-
-	if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
-		/* page is already mapped */
-		if (PTE(pgtbl[pti]) & PAGE_PRESENT)
-			return EEXIST;
-	} else {
-		/* allocate a new page table */
-		new = alloc_page(PA_PAGETABLE);
-		if (IS_ERR(new))
-			return ERR_VAL(new);
-
-		pgdir[pdi] = make_pde(page_to_phys(new)
-		                      | PAGE_GLOBAL | PAGE_RW | PAGE_PRESENT);
-		tlb_flush_page_lazy((addr_t)pgtbl);
-		memset(pgtbl, 0, PGTBL_SIZE);
-	}
-	pgtbl[pti] = make_pte(phys | flags | PAGE_PRESENT);
-	tlb_flush_page_lazy(virt);
-
-	return 0;
-}
-
-/*
- * i386_map_page_kernel:
- * Map a page with base virtual address `virt` to physical address `phys`
- * for kernel use.
- */
-int i386_map_page_kernel(addr_t virt, addr_t phys, int prot, int cp)
-{
-	unsigned long flags;
-	int err;
-
-	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
-		return err;
-
-	return __map_page(virt, phys, flags | PAGE_GLOBAL);
-}
-
-/*
- * i386_map_page_user:
- * Map a page with base virtual address `virt` to physical address `phys`
- * for userspace.
- */
-int i386_map_page_user(addr_t virt, addr_t phys, int prot, int cp)
-{
-	unsigned long flags;
-	int err;
-
-	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
-		return err;
-
-	return __map_page(virt, phys, flags | PAGE_USER);
-}
-
-int i386_map_pages(addr_t virt, addr_t phys, int prot,
-                   int cp, int user, size_t n)
-{
-	unsigned long flags;
-	int err;
-
-	if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
-		return err;
-
-	flags |= user ? PAGE_USER : PAGE_GLOBAL;
-
-	for (; n; --n, virt += PAGE_SIZE, phys += PAGE_SIZE) {
-		if ((err = __map_page(virt, phys, flags)) != 0)
-			return err;
-	}
-
-	return 0;
-}
-
-static int __unmap(addr_t virt, int freetable);
-
-/* i386_unmap_page: unmap the page with base address `virt` */
-int i386_unmap_page(addr_t virt)
-{
-	return __unmap(virt, 0);
-}
-
-/*
- * unmap_page_clean:
- * Unmap the page with base address `virt`. If the rest of its
- * page table is empty, unmap and free the page table too.
- */
-int i386_unmap_page_clean(addr_t virt)
-{
-	return __unmap(virt, 1);
-}
-
-static int __unmap(addr_t virt, int freetable)
-{
-	size_t pdi, pti, i;
-	pte_t *pgtbl;
-	addr_t phys;
-
-	if (!ALIGNED(virt, PAGE_SIZE))
-		return EINVAL;
-
-	pdi = PGDIR_INDEX(virt);
-	pti = PGTBL_INDEX(virt);
-
-	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
-		return EINVAL;
-
-	pgtbl = get_page_table(pdi);
-	if (!(PTE(pgtbl[pti]) & PAGE_PRESENT))
-		return EINVAL;
-
-	pgtbl[pti] = make_pte(0);
-	tlb_flush_page_lazy(virt);
-
-	if (freetable) {
-		/* check if any other pages exist in the table */
-		for (i = 0; i < PTRS_PER_PGTBL; ++i) {
-			if (PTE(pgtbl[i]) & PAGE_PRESENT)
-				break;
-		}
-		if (i == PTRS_PER_PGTBL) {
-			phys = PDE(pgdir[pdi]) & PAGE_MASK;
-			free_pages(phys_to_page(phys));
-			pgdir[pdi] = make_pde(0);
-			tlb_flush_page_lazy((addr_t)pgtbl);
-		}
-	}
-
-	return 0;
-}
-
-/*
- * i386_unmap_pages:
- * Unmap `n` pages, starting from address `virt`.
- */
-int i386_unmap_pages(addr_t virt, size_t n)
-{
-	size_t pdi, initial_pti, curr_pti;
-	pte_t *pgtbl;
-	addr_t phys;
-
-	if (!ALIGNED(virt, PAGE_SIZE))
-		return EINVAL;
-
-	pdi = PGDIR_INDEX(virt);
-	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
-		return EINVAL;
-
-	initial_pti = PGTBL_INDEX(virt);
-	pgtbl = get_page_table(pdi);
-
-	/* check if any previous pages in the current table are mapped */
-	for (curr_pti = 0; curr_pti < initial_pti; ++curr_pti) {
-		if (PTE(pgtbl[curr_pti]) & PAGE_PRESENT)
-			break;
-	}
-	if (curr_pti == initial_pti)
-		initial_pti = 0;
-	else
-		curr_pti = initial_pti;
-
-	while (n) {
-		pgtbl[curr_pti] = make_pte(0);
-		tlb_flush_page_lazy(virt);
-
-		--n;
-		virt += PAGE_SIZE;
-		if (++curr_pti == PTRS_PER_PGTBL) {
-			if (initial_pti == 0) {
-				/* all pages in the table are unmapped */
-				phys = PDE(pgdir[pdi]) & PAGE_MASK;
-				free_pages(phys_to_page(phys));
-				pgdir[pdi] = make_pde(0);
-				tlb_flush_page_lazy((addr_t)pgtbl);
-			}
-			if (++pdi == PTRS_PER_PGDIR)
-				break;
-			curr_pti = initial_pti = 0;
-		}
-	}
-
-	return 0;
-}
-
 /*
  * i386_set_cache_policy:
  * Set the CPU caching policy for a single virtual page.
  */
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 {
-	size_t pdi, pti;
-	pte_t *pgtbl;
-	unsigned long pte;
+	pte_t *pte;
+	pteval_t pteval;
 	int err;
 
-	pdi = PGDIR_INDEX(virt);
-	pti = PGTBL_INDEX(virt);
-
-	if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
-		return EINVAL;
-
-	pgtbl = get_page_table(pdi);
-	pte = PTE(pgtbl[pti]);
-
-	if (!(pte & PAGE_PRESENT))
+	pte = pgtbl_entry(virt);
+	if (!pte || !(PTE(*pte) & PAGE_PRESENT))
 		return EINVAL;
 
 	/* WC and WP cache policies are only available through PAT. */
@@ -343,10 +429,11 @@ int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 	     policy == PAGE_CP_WRITE_PROTECTED))
 		policy = PAGE_CP_WRITE_BACK;
 
-	if ((err = cp_to_flags(&pte, policy)) != 0)
+	pteval = PTE(*pte);
+	if ((err = cp_to_flags(&pteval, policy)) != 0)
 		return err;
 
-	pgtbl[pti] = make_pte(pte);
+	*pte = make_pte(pteval);
 	tlb_flush_page_lazy(virt);
 
 	return 0;

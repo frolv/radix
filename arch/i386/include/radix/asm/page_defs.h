@@ -20,6 +20,7 @@
 #define ARCH_I386_RADIX_PAGE_DEFS_H
 
 #ifdef CONFIG_PAE
+#define PTRS_PER_PDPT           0x004
 #define PTRS_PER_PGDIR          0x200
 #define PTRS_PER_PGTBL          0x200
 #else

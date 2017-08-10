@@ -195,7 +195,7 @@ static void rsdt_setup(addr_t rsdt_addr)
 	if ((checksum & 0xFF) != 0) {
 		BOOT_FAIL_MSG("Invalid ACPI RSDT checksum\n");
 		if (unmap)
-			unmap_page_clean(acpi_virt_base);
+			unmap_page(acpi_virt_base);
 		return;
 	}
 
@@ -235,7 +235,7 @@ static void xsdt_setup(addr_t xsdt_addr)
 	if ((checksum & 0xFF) != 0) {
 		BOOT_FAIL_MSG("Invalid ACPI XSDT checksum\n");
 		if (unmap)
-			unmap_page_clean(acpi_virt_base);
+			unmap_page(acpi_virt_base);
 		return;
 	}
 
