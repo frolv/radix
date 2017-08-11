@@ -31,7 +31,7 @@
 #define APIC_VEC_CMCI           0xE5
 #define APIC_VEC_SPURIOUS       0xFF
 
-extern addr_t lapic_phys_base;
+extern paddr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
 extern unsigned int ioapics_available;
 

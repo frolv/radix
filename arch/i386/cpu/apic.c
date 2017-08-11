@@ -155,7 +155,7 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_MAX_CLUSTER_CPUS           60
 
 /* Local APIC base addresses */
-addr_t lapic_phys_base;
+paddr_t lapic_phys_base;
 addr_t lapic_virt_base;
 
 #define __ET    APIC_INT_EDGE_TRIGGER
@@ -524,9 +524,18 @@ static void ioapic_program_all(void)
 		ioapic_program(&ioapic_list[i]);
 }
 
-static void lapic_enable(addr_t base)
+static void lapic_enable(paddr_t base)
 {
-	wrmsr(IA32_APIC_BASE, (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE, 0);
+	int eax, edx;
+
+	eax = (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE;
+#ifdef CONFIG_PAE
+	edx = (base >> 32) & 0x0F;
+#else
+	edx = 0;
+#endif
+
+	wrmsr(IA32_APIC_BASE, eax, edx);
 }
 
 static __always_inline uint32_t lapic_reg_read(uint16_t reg)
