@@ -388,7 +388,7 @@ static int next_phys_region(struct multiboot_info *mbt,
 	 */
 	orig_base = b;
 	b = ALIGN(b, PAGE_SIZE);
-	l = (l - (b - orig_base)) & PAGE_MASK;
+	l = (l - (b - orig_base)) & ~((uint64_t)PAGE_SIZE - 1);
 
 	*base = b;
 	*len = l;
