@@ -28,15 +28,6 @@
 #include "gdt.h"
 #include "idt.h"
 
-static long cpuid_max;
-
-/* CPU vendor string */
-static char vendor_id[16];
-
-/* cpuid 0x1 information */
-static unsigned long cpu_info[4];
-static uint64_t cpu_features;
-
 struct cpu_cache {
 	/* id[0..3]: level; id[4..7]: type */
 	unsigned char   id;
@@ -47,7 +38,7 @@ struct cpu_cache {
 
 #define MAX_CACHES 10
 
-static struct cache_info {
+struct cache_info {
 	struct cpu_cache        caches[MAX_CACHES];
 	unsigned int            ncaches;
 	unsigned long           line_size;
@@ -62,7 +53,7 @@ static struct cache_info {
 	unsigned long           tlbd_page_size;
 	unsigned long           tlbd_entries;
 	unsigned long           tlbd_assoc;
-} cache_info;
+};
 
 enum {
 	CACHE_ASSOC_FULL = 1,
@@ -82,6 +73,21 @@ enum {
 	CACHE_TYPE_UNIFIED
 };
 
+struct cpu_info {
+	long                    cpuid_max;
+	char                    vendor_id[16];
+	unsigned long           cpuid_1[4];
+	uint64_t                cpu_features;
+	struct cache_info       cache_info;
+};
+
+static DEFINE_PER_CPU(struct cpu_info, cpu_info);
+
+/* CPU features shared across all active CPUs */
+static uint64_t cpu_shared_features;
+/* BSP's cache line size; used globally across all CPUs */
+static int cache_line_size;
+
 #define PAGE_SIZE_4K     (1 << 0)
 #define PAGE_SIZE_2M     (1 << 1)
 #define PAGE_SIZE_4M     (1 << 2)
@@ -94,24 +100,41 @@ static void add_cache(unsigned char level, unsigned char type,
 static int read_cache_info(void);
 static void extended_processor_info(void);
 
+/*
+ * read_cpu_info:
+ * Use cpuid to determine information about the current processor.
+ */
 void read_cpu_info(void)
 {
-	long vendor[4];
+	uint64_t cpu_features;
+	unsigned long cpuid_max;
+	unsigned long *cpu_buf;
+	unsigned long buf[4];
 
 	if (!cpuid_supported()) {
-		vendor_id[0] = '\0';
-		cpuid_max = 0;
+		this_cpu_write(cpu_info.vendor_id[0], '\0');
+		this_cpu_write(cpu_info.cpuid_max, 0);
+		cache_line_size = 32;
 		return;
 	}
 
-	cpuid(0, cpuid_max, vendor[0], vendor[2], vendor[1]);
-	vendor[3] = 0;
-	memcpy(vendor_id, vendor, sizeof vendor_id);
+	cpu_buf = (unsigned long *)this_cpu_ptr(&cpu_info.vendor_id);
+	cpuid(0, cpuid_max, buf[0], buf[2], buf[1]);
+	buf[3] = 0;
+	memcpy(cpu_buf, buf, sizeof buf);
 
-	cpuid(1, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
-	cpu_features = ((uint64_t)cpu_info[2] << 32) | cpu_info[3];
+	/* store CPUID 1 information */
+	cpu_buf = (unsigned long *)this_cpu_ptr(&cpu_info.cpuid_1);
+	cpuid(1, cpu_buf[0], cpu_buf[1], cpu_buf[2], cpu_buf[3]);
+	cpu_features = ((uint64_t)cpu_buf[2] << 32) | cpu_buf[3];
+	this_cpu_write(cpu_info.cpuid_max, cpuid_max);
+	this_cpu_write(cpu_info.cpu_features, cpu_features);
 
-	memset(&cache_info, 0, sizeof cache_info);
+	if (!cpu_shared_features)
+		cpu_shared_features = cpu_features;
+	else
+		cpu_shared_features &= cpu_features;
+
 	if (cpuid_max < 2 || read_cache_info() != 0) {
 		/*
 		 * If cache information cannot be read, assume
@@ -122,14 +145,16 @@ void read_cpu_info(void)
 			  KIB(8), 32, CACHE_ASSOC_4WAY);
 		add_cache(2, CACHE_TYPE_UNIFIED,
 			  KIB(256), 32, CACHE_ASSOC_4WAY);
-		cache_info.line_size = 32;
+		this_cpu_write(cpu_info.cache_info.line_size, 32);
+		if (!cache_line_size)
+			cache_line_size = 32;
 
-		cache_info.tlbi_page_size = PAGE_SIZE_4K;
-		cache_info.tlbi_entries = 32;
-		cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
-		cache_info.tlbd_page_size = PAGE_SIZE_4K;
-		cache_info.tlbd_entries = 64;
-		cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
+		this_cpu_write(cpu_info.cache_info.tlbi_page_size, PAGE_SIZE_4K);
+		this_cpu_write(cpu_info.cache_info.tlbi_entries, 32);
+		this_cpu_write(cpu_info.cache_info.tlbi_assoc, CACHE_ASSOC_4WAY);
+		this_cpu_write(cpu_info.cache_info.tlbd_page_size, PAGE_SIZE_4K);
+		this_cpu_write(cpu_info.cache_info.tlbd_entries, 64);
+		this_cpu_write(cpu_info.cache_info.tlbd_assoc, CACHE_ASSOC_4WAY);
 	}
 
 	cpu_cache_str();
@@ -138,29 +163,577 @@ void read_cpu_info(void)
 
 unsigned long i386_cache_line_size(void)
 {
-	return cache_info.line_size;
+	return cache_line_size;
 }
 
 int cpu_supports(uint64_t features)
 {
-	return !!(cpu_features & features);
+	return !!(cpu_shared_features & features);
 }
 
 static void add_cache(unsigned char level, unsigned char type,
                       unsigned long size, unsigned long line_size,
                       unsigned long assoc)
 {
-	if (cache_info.ncaches == MAX_CACHES)
+	int ncaches;
+
+	ncaches = this_cpu_read(cpu_info.cache_info.ncaches);
+	if (ncaches == MAX_CACHES)
 		return;
 
-	cache_info.caches[cache_info.ncaches].id = level | (type << 4);
-	cache_info.caches[cache_info.ncaches].associativity = assoc;
-	cache_info.caches[cache_info.ncaches].line_size = line_size;
-	cache_info.caches[cache_info.ncaches].size = size;
-	cache_info.ncaches++;
+	this_cpu_write(cpu_info.cache_info.caches[ncaches].id,
+	               level | (type << 4));
+	this_cpu_write(cpu_info.cache_info.caches[ncaches].associativity,
+	               assoc);
+	this_cpu_write(cpu_info.cache_info.caches[ncaches].line_size,
+	               line_size);
+	this_cpu_write(cpu_info.cache_info.caches[ncaches].size, size);
+	this_cpu_write(cpu_info.cache_info.ncaches, ncaches + 1);
 }
 
 static void read_cpuid4(void);
+
+static void set_cache_line_size(void)
+{
+	int line_size, i;
+	unsigned int id;
+
+	/* set overall line size to line size of L1 cache */
+	i = 0;
+	while (1) {
+		id = this_cpu_read(cpu_info.cache_info.caches[i].id);
+		if ((id & 0xF) == 1)
+			break;
+		++i;
+	}
+
+	line_size = this_cpu_read(cpu_info.cache_info.caches[i].line_size);
+	this_cpu_write(cpu_info.cache_info.line_size, line_size);
+	if (!cache_line_size)
+		cache_line_size = line_size;
+}
+
+static void set_tlb_info(int which, unsigned long page_size,
+                         unsigned long entries, unsigned long assoc)
+{
+	if (which == CACHE_TYPE_INSTRUCTION) {
+		this_cpu_write(cpu_info.cache_info.tlbi_page_size, page_size);
+		this_cpu_write(cpu_info.cache_info.tlbi_entries, entries);
+		this_cpu_write(cpu_info.cache_info.tlbi_assoc, assoc);
+	} else {
+		this_cpu_write(cpu_info.cache_info.tlbd_page_size, page_size);
+		this_cpu_write(cpu_info.cache_info.tlbd_entries, entries);
+		this_cpu_write(cpu_info.cache_info.tlbd_assoc, assoc);
+	}
+}
+
+static void process_cpuid2_descriptor(int desc)
+{
+	switch (desc) {
+	case 0x00:
+		/* null descriptor */
+		break;
+	case 0x01:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x02:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4M,
+		             2, CACHE_ASSOC_FULL);
+		break;
+	case 0x03:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x04:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4M,
+		             8, CACHE_ASSOC_4WAY);
+		break;
+	case 0x05:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4M,
+		             32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x06:
+		add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(8),
+		          32, CACHE_ASSOC_2WAY);
+		break;
+	case 0x08:
+		add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x09:
+		add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(32),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x0A:
+		add_cache(1, CACHE_TYPE_DATA, KIB(8),
+		          32, CACHE_ASSOC_2WAY);
+		break;
+	case 0x0B:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4M,
+		             4, CACHE_ASSOC_4WAY);
+		break;
+	case 0x0C:
+		add_cache(1, CACHE_TYPE_DATA, KIB(16),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x0D:
+		add_cache(1, CACHE_TYPE_DATA, KIB(16),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x0E:
+		add_cache(1, CACHE_TYPE_DATA, KIB(24),
+		          64, CACHE_ASSOC_6WAY);
+		break;
+	case 0x10:
+		add_cache(1, CACHE_TYPE_DATA, KIB(16),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x15:
+		add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x1A:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(96),
+		          64, CACHE_ASSOC_6WAY);
+		break;
+	case 0x1D:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
+		          64, CACHE_ASSOC_2WAY);
+		break;
+	case 0x21:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x22:
+		add_cache(3, CACHE_TYPE_UNIFIED, KIB(512),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x23:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x24:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
+		          64, CACHE_ASSOC_16WAY);
+		break;
+	case 0x25:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x29:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x2C:
+		add_cache(1, CACHE_TYPE_DATA, KIB(32),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x30:
+		add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(32),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x39:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x3A:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(192),
+		          64, CACHE_ASSOC_6WAY);
+		break;
+	case 0x3B:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
+		          64, CACHE_ASSOC_2WAY);
+		break;
+	case 0x3C:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x3D:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(384),
+		          64, CACHE_ASSOC_6WAY);
+		break;
+	case 0x3E:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x41:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x42:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x43:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x44:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x45:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
+		          32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x46:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x47:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x48:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(3),
+		          64, CACHE_ASSOC_12WAY);
+		break;
+	case 0x49:
+		/* TODO: L3 on P4, L2 on Core 2 */
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
+		          64, CACHE_ASSOC_16WAY);
+		break;
+	case 0x4A:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(6),
+		          64, CACHE_ASSOC_12WAY);
+		break;
+	case 0x4B:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
+		          64, CACHE_ASSOC_16WAY);
+		break;
+	case 0x4C:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(12),
+		          64, CACHE_ASSOC_12WAY);
+		break;
+	case 0x4D:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(16),
+		          64, CACHE_ASSOC_16WAY);
+		break;
+	case 0x4E:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(6),
+		          64, CACHE_ASSOC_24WAY);
+		break;
+	case 0x4F:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             32, CACHE_ASSOC_FULL);
+		break;
+	case 0x50:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION,
+		             PAGE_SIZE_4K | PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             32, CACHE_ASSOC_FULL);
+		break;
+	case 0x51:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION,
+		             PAGE_SIZE_4K | PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             128, CACHE_ASSOC_FULL);
+		break;
+	case 0x52:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION,
+		             PAGE_SIZE_4K | PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             256, CACHE_ASSOC_FULL);
+		break;
+	case 0x55:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION,
+		             PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             7, CACHE_ASSOC_FULL);
+		break;
+	case 0x56:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4M,
+		             16, CACHE_ASSOC_4WAY);
+		break;
+	case 0x57:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             16, CACHE_ASSOC_4WAY);
+		break;
+	case 0x59:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             16, CACHE_ASSOC_FULL);
+		break;
+	case 0x5A:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x5B:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K | PAGE_SIZE_4M,
+		             64, CACHE_ASSOC_FULL);
+		break;
+	case 0x5C:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K | PAGE_SIZE_4M,
+		             128, CACHE_ASSOC_FULL);
+		break;
+	case 0x5D:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K | PAGE_SIZE_4M,
+		             256, CACHE_ASSOC_FULL);
+		break;
+	case 0x60:
+		add_cache(1, CACHE_TYPE_DATA, KIB(16),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x61:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             48, CACHE_ASSOC_FULL);
+		break;
+	case 0x63:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             32, CACHE_ASSOC_4WAY);
+		break;
+	case 0x64:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             512, CACHE_ASSOC_4WAY);
+		break;
+	case 0x66:
+		add_cache(1, CACHE_TYPE_DATA, KIB(8),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x67:
+		add_cache(1, CACHE_TYPE_DATA, KIB(16),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x68:
+		add_cache(1, CACHE_TYPE_DATA, KIB(32),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x6A:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x6B:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             256, CACHE_ASSOC_8WAY);
+		break;
+	case 0x6C:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             126, CACHE_ASSOC_8WAY);
+		break;
+	case 0x6D:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_1G,
+		             16, CACHE_ASSOC_FULL);
+		break;
+	case 0x76:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION,
+		             PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             8, CACHE_ASSOC_FULL);
+		break;
+	case 0x77:
+		add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x78:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x79:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x7A:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x7B:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x7C:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x7D:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x7E:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
+		          128, CACHE_ASSOC_8WAY);
+		break;
+	case 0x7F:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
+		          64, CACHE_ASSOC_2WAY);
+		break;
+	case 0x80:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x81:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
+		          32, CACHE_ASSOC_8WAY);
+		break;
+	case 0x82:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
+		          32, CACHE_ASSOC_8WAY);
+		break;
+	case 0x83:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
+		          32, CACHE_ASSOC_8WAY);
+		break;
+	case 0x84:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
+		          32, CACHE_ASSOC_8WAY);
+		break;
+	case 0x85:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
+		          32, CACHE_ASSOC_8WAY);
+		break;
+	case 0x86:
+		add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x87:
+		add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0x88:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x89:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x8A:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0x8D:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(3),
+		          128, CACHE_ASSOC_12WAY);
+		break;
+	case 0x90:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION,
+		             PAGE_SIZE_4K | PAGE_SIZE_256M,
+		             64, CACHE_ASSOC_FULL);
+		break;
+	case 0x96:
+		set_tlb_info(CACHE_TYPE_DATA,
+		             PAGE_SIZE_4K | PAGE_SIZE_256M,
+		             32, CACHE_ASSOC_FULL);
+		break;
+	case 0xA0:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             32, CACHE_ASSOC_FULL);
+		break;
+	case 0xB0:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             128, CACHE_ASSOC_4WAY);
+		break;
+	case 0xB1:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4M,
+		             4, CACHE_ASSOC_4WAY);
+		break;
+	case 0xB2:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             64, CACHE_ASSOC_4WAY);
+		break;
+	case 0xB3:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             128, CACHE_ASSOC_4WAY);
+		break;
+	case 0xB4:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             256, CACHE_ASSOC_4WAY);
+		break;
+	case 0xB5:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             64, CACHE_ASSOC_8WAY);
+		break;
+	case 0xB6:
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             128, CACHE_ASSOC_8WAY);
+		break;
+	case 0xBA:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             64, CACHE_ASSOC_4WAY);
+		break;
+	case 0xC0:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K | PAGE_SIZE_4M,
+		             8, CACHE_ASSOC_4WAY);
+		break;
+	case 0xC2:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             16, CACHE_ASSOC_4WAY);
+		break;
+	case 0xC4:
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_2M | PAGE_SIZE_4M,
+		             32, CACHE_ASSOC_4WAY);
+		break;
+	case 0xD0:
+		add_cache(3, CACHE_TYPE_UNIFIED, KIB(512),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0xD1:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0xD2:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
+		          64, CACHE_ASSOC_4WAY);
+		break;
+	case 0xD6:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0xD7:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0xD8:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
+		          64, CACHE_ASSOC_8WAY);
+		break;
+	case 0xDC:
+		add_cache(3, CACHE_TYPE_UNIFIED, KIB(1536),
+		          64, CACHE_ASSOC_12WAY);
+		break;
+	case 0xDD:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(3),
+		          64, CACHE_ASSOC_12WAY);
+		break;
+	case 0xDE:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(6),
+		          64, CACHE_ASSOC_12WAY);
+		break;
+	case 0xE2:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
+		          64, CACHE_ASSOC_16WAY);
+		break;
+	case 0xE3:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
+		          64, CACHE_ASSOC_16WAY);
+		break;
+	case 0xE4:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
+		          64, CACHE_ASSOC_16WAY);
+		break;
+	case 0xEA:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(12),
+		          64, CACHE_ASSOC_24WAY);
+		break;
+	case 0xEB:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(18),
+		          64, CACHE_ASSOC_24WAY);
+		break;
+	case 0xEC:
+		add_cache(3, CACHE_TYPE_UNIFIED, MIB(24),
+		          64, CACHE_ASSOC_24WAY);
+		break;
+	case 0xF0:
+		this_cpu_write(cpu_info.cache_info.prefetching, 64);
+		break;
+	case 0xF1:
+		this_cpu_write(cpu_info.cache_info.prefetching, 128);
+		break;
+	case 0xFF:
+		/*
+		 * Special descriptor indicating to use
+		 * cpuid 0x4 to determine cache information.
+		 */
+		read_cpuid4();
+		break;
+	default:
+		break;
+	}
+}
 
 /*
  * read_cache_info:
@@ -183,572 +756,11 @@ static int read_cache_info(void)
 			if (!nreads)
 				return 1;
 		}
-
-		for (i = 1; i < 16; ++i) {
-			switch (descriptor[i]) {
-			case 0x00:
-				/* null descriptor */
-				break;
-			case 0x01:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K;
-				cache_info.tlbi_entries = 32;
-				cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x02:
-				cache_info.tlbi_page_size = PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 2;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x03:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 64;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x04:
-				cache_info.tlbd_page_size = PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 8;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x05:
-				cache_info.tlbd_page_size = PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 32;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x06:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(8),
-				          32, CACHE_ASSOC_2WAY);
-				break;
-			case 0x08:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x09:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(32),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x0A:
-				add_cache(1, CACHE_TYPE_DATA, KIB(8),
-				          32, CACHE_ASSOC_2WAY);
-				break;
-			case 0x0B:
-				cache_info.tlbi_page_size = PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 4;
-				cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x0C:
-				add_cache(1, CACHE_TYPE_DATA, KIB(16),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x0D:
-				add_cache(1, CACHE_TYPE_DATA, KIB(16),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x0E:
-				add_cache(1, CACHE_TYPE_DATA, KIB(24),
-				          64, CACHE_ASSOC_6WAY);
-				break;
-			case 0x10:
-				add_cache(1, CACHE_TYPE_DATA, KIB(16),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x15:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x1A:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(96),
-				          64, CACHE_ASSOC_6WAY);
-				break;
-			case 0x1D:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
-				          64, CACHE_ASSOC_2WAY);
-				break;
-			case 0x21:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x22:
-				add_cache(3, CACHE_TYPE_UNIFIED, KIB(512),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x23:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x24:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
-				          64, CACHE_ASSOC_16WAY);
-				break;
-			case 0x25:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x29:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x2C:
-				add_cache(1, CACHE_TYPE_DATA, KIB(32),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x30:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(32),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x39:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x3A:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(192),
-				          64, CACHE_ASSOC_6WAY);
-				break;
-			case 0x3B:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
-				          64, CACHE_ASSOC_2WAY);
-				break;
-			case 0x3C:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x3D:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(384),
-				          64, CACHE_ASSOC_6WAY);
-				break;
-			case 0x3E:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x41:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x42:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x43:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x44:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x45:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
-				          32, CACHE_ASSOC_4WAY);
-				break;
-			case 0x46:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x47:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x48:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(3),
-				          64, CACHE_ASSOC_12WAY);
-				break;
-			case 0x49:
-				/* TODO: L3 on P4, L2 on Core 2 */
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
-				          64, CACHE_ASSOC_16WAY);
-				break;
-			case 0x4A:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(6),
-				          64, CACHE_ASSOC_12WAY);
-				break;
-			case 0x4B:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
-				          64, CACHE_ASSOC_16WAY);
-				break;
-			case 0x4C:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(12),
-				          64, CACHE_ASSOC_12WAY);
-				break;
-			case 0x4D:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(16),
-				          64, CACHE_ASSOC_16WAY);
-				break;
-			case 0x4E:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(6),
-				          64, CACHE_ASSOC_24WAY);
-				break;
-			case 0x4F:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K;
-				cache_info.tlbi_entries = 32;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x50:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 64;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x51:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 128;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x52:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 256;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x55:
-				cache_info.tlbi_page_size = PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 7;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x56:
-				cache_info.tlbd_page_size = PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 16;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x57:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 16;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x59:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 16;
-				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x5A:
-				cache_info.tlbd_page_size = PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 32;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x5B:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 64;
-				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x5C:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 128;
-				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x5D:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 256;
-				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x60:
-				add_cache(1, CACHE_TYPE_DATA, KIB(16),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x61:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K;
-				cache_info.tlbi_entries = 48;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x63:
-				cache_info.tlbd_page_size = PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 32;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x64:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 512;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0x66:
-				add_cache(1, CACHE_TYPE_DATA, KIB(8),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x67:
-				add_cache(1, CACHE_TYPE_DATA, KIB(16),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x68:
-				add_cache(1, CACHE_TYPE_DATA, KIB(32),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x6A:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 64;
-				cache_info.tlbd_assoc = CACHE_ASSOC_8WAY;
-				break;
-			case 0x6B:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 256;
-				cache_info.tlbd_assoc = CACHE_ASSOC_8WAY;
-				break;
-			case 0x6C:
-				cache_info.tlbd_page_size = PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 126;
-				cache_info.tlbd_assoc = CACHE_ASSOC_8WAY;
-				break;
-			case 0x6D:
-				cache_info.tlbd_page_size = PAGE_SIZE_1G;
-				cache_info.tlbd_entries = 16;
-				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x76:
-				cache_info.tlbi_page_size = PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 8;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x77:
-				add_cache(1, CACHE_TYPE_INSTRUCTION, KIB(16),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x78:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x79:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x7A:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x7B:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x7C:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x7D:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x7E:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
-				          128, CACHE_ASSOC_8WAY);
-				break;
-			case 0x7F:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
-				          64, CACHE_ASSOC_2WAY);
-				break;
-			case 0x80:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x81:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(128),
-				          32, CACHE_ASSOC_8WAY);
-				break;
-			case 0x82:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(256),
-				          32, CACHE_ASSOC_8WAY);
-				break;
-			case 0x83:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
-				          32, CACHE_ASSOC_8WAY);
-				break;
-			case 0x84:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
-				          32, CACHE_ASSOC_8WAY);
-				break;
-			case 0x85:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(2),
-				          32, CACHE_ASSOC_8WAY);
-				break;
-			case 0x86:
-				add_cache(2, CACHE_TYPE_UNIFIED, KIB(512),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x87:
-				add_cache(2, CACHE_TYPE_UNIFIED, MIB(1),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0x88:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x89:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x8A:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0x8D:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(3),
-				          128, CACHE_ASSOC_12WAY);
-				break;
-			case 0x90:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_256M;
-				cache_info.tlbi_entries = 64;
-				cache_info.tlbi_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0x96:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_256M;
-				cache_info.tlbd_entries = 32;
-				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0xA0:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 32;
-				cache_info.tlbd_assoc = CACHE_ASSOC_FULL;
-				break;
-			case 0xB0:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K;
-				cache_info.tlbi_entries = 128;
-				cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xB1:
-				cache_info.tlbi_page_size = PAGE_SIZE_4M;
-				cache_info.tlbi_entries = 4;
-				cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xB2:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K;
-				cache_info.tlbi_entries = 64;
-				cache_info.tlbi_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xB3:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 128;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xB4:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 256;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xB5:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K;
-				cache_info.tlbi_entries = 64;
-				cache_info.tlbi_assoc = CACHE_ASSOC_8WAY;
-				break;
-			case 0xB6:
-				cache_info.tlbi_page_size = PAGE_SIZE_4K;
-				cache_info.tlbi_entries = 128;
-				cache_info.tlbi_assoc = CACHE_ASSOC_8WAY;
-				break;
-			case 0xBA:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K;
-				cache_info.tlbd_entries = 64;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xC0:
-				cache_info.tlbd_page_size = PAGE_SIZE_4K |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 8;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xC2:
-				cache_info.tlbd_page_size = PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 16;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xC4:
-				cache_info.tlbd_page_size = PAGE_SIZE_2M |
-				                            PAGE_SIZE_4M;
-				cache_info.tlbd_entries = 32;
-				cache_info.tlbd_assoc = CACHE_ASSOC_4WAY;
-				break;
-			case 0xD0:
-				add_cache(3, CACHE_TYPE_UNIFIED, KIB(512),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0xD1:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0xD2:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
-				          64, CACHE_ASSOC_4WAY);
-				break;
-			case 0xD6:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(1),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0xD7:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0xD8:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
-				          64, CACHE_ASSOC_8WAY);
-				break;
-			case 0xDC:
-				add_cache(3, CACHE_TYPE_UNIFIED, KIB(1536),
-				          64, CACHE_ASSOC_12WAY);
-				break;
-			case 0xDD:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(3),
-				          64, CACHE_ASSOC_12WAY);
-				break;
-			case 0xDE:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(6),
-				          64, CACHE_ASSOC_12WAY);
-				break;
-			case 0xE2:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(2),
-				          64, CACHE_ASSOC_16WAY);
-				break;
-			case 0xE3:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(4),
-				          64, CACHE_ASSOC_16WAY);
-				break;
-			case 0xE4:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(8),
-				          64, CACHE_ASSOC_16WAY);
-				break;
-			case 0xEA:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(12),
-				          64, CACHE_ASSOC_24WAY);
-				break;
-			case 0xEB:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(18),
-				          64, CACHE_ASSOC_24WAY);
-				break;
-			case 0xEC:
-				add_cache(3, CACHE_TYPE_UNIFIED, MIB(24),
-				          64, CACHE_ASSOC_24WAY);
-				break;
-			case 0xF0:
-				cache_info.prefetching = 64;
-				break;
-			case 0xF1:
-				cache_info.prefetching = 128;
-				break;
-			case 0xFF:
-				/*
-				 * Special descriptor indicating to use
-				 * cpuid 0x4 to determine cache information.
-				 */
-				read_cpuid4();
-				break;
-			default:
-				break;
-			}
-		}
+		for (i = 1; i < 16; ++i)
+			process_cpuid2_descriptor(descriptor[i]);
 	} while (--nreads);
 
-	/* set overall line size to line size of L1 cache */
-	for (i = 0; (cache_info.caches[i].id & 0xF) != 1; ++i)
-		;
-	cache_info.line_size = cache_info.caches[i].line_size;
-
+	set_cache_line_size();
 	return 0;
 }
 
@@ -908,77 +920,82 @@ static char *assoc_str(int assoc)
 
 static char *print_tlb(char *pos)
 {
+	unsigned long page_size, assoc;
 	int printed = 0;
 
-	if (cache_info.tlbi_page_size) {
+	page_size = this_cpu_read(cpu_info.cache_info.tlbi_page_size);
+	if (page_size) {
 		pos += sprintf(pos, "TLBi:\t\t");
-		if (cache_info.tlbi_page_size & PAGE_SIZE_4K) {
+		if (page_size & PAGE_SIZE_4K) {
 			pos += sprintf(pos, "4K");
 			printed = 1;
 		}
-		if (cache_info.tlbi_page_size & PAGE_SIZE_2M) {
+		if (page_size & PAGE_SIZE_2M) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "2M");
 			printed = 1;
 		}
-		if (cache_info.tlbi_page_size & PAGE_SIZE_4M) {
+		if (page_size & PAGE_SIZE_4M) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "4M");
 			printed = 1;
 		}
-		if (cache_info.tlbi_page_size & PAGE_SIZE_256M) {
+		if (page_size & PAGE_SIZE_256M) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "256M");
 			printed = 1;
 		}
-		if (cache_info.tlbi_page_size & PAGE_SIZE_1G) {
+		if (page_size & PAGE_SIZE_1G) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "1G");
 			printed = 1;
 		}
+		assoc = this_cpu_read(cpu_info.cache_info.tlbi_assoc);
 		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
-		               cache_info.tlbi_entries,
-		               assoc_str(cache_info.tlbi_assoc));
+		               this_cpu_read(cpu_info.cache_info.tlbi_entries),
+		               assoc_str(assoc));
 	}
 
 	printed = 0;
-	if (cache_info.tlbd_page_size) {
+	page_size = this_cpu_read(cpu_info.cache_info.tlbd_page_size);
+	if (page_size) {
 		pos += sprintf(pos, "TLBd:\t\t");
-		if (cache_info.tlbd_page_size & PAGE_SIZE_4K) {
+		if (page_size & PAGE_SIZE_4K) {
 			pos += sprintf(pos, "4K");
 			printed = 1;
 		}
-		if (cache_info.tlbd_page_size & PAGE_SIZE_2M) {
+		if (page_size & PAGE_SIZE_2M) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "2M");
 			printed = 1;
 		}
-		if (cache_info.tlbd_page_size & PAGE_SIZE_4M) {
+		if (page_size & PAGE_SIZE_4M) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "4M");
 			printed = 1;
 		}
-		if (cache_info.tlbd_page_size & PAGE_SIZE_256M) {
+		if (page_size & PAGE_SIZE_256M) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "256M");
 			printed = 1;
 		}
-		if (cache_info.tlbd_page_size & PAGE_SIZE_1G) {
+		if (page_size & PAGE_SIZE_1G) {
 			if (printed)
 				*pos++ = '/';
 			pos += sprintf(pos, "1G");
 			printed = 1;
 		}
+		assoc = this_cpu_read(cpu_info.cache_info.tlbd_assoc);
 		pos += sprintf(pos, " pages, %lu entries, %s associativity\n",
-		               cache_info.tlbd_entries,
-		               assoc_str(cache_info.tlbd_assoc));
+		               this_cpu_read(cpu_info.cache_info.tlbd_entries),
+		               assoc_str(assoc));
 	}
 
 	return pos;
@@ -991,16 +1008,17 @@ static char *print_tlb(char *pos)
 
 static char *print_caches(char *pos)
 {
-	unsigned int i;
+	struct cpu_cache *cache;
+	unsigned int i, ncaches;
 
-	for (i = 0; i < cache_info.ncaches; ++i) {
+	ncaches = this_cpu_read(cpu_info.cache_info.ncaches);
+	for (i = 0; i < ncaches; ++i) {
+		cache = this_cpu_ptr(&cpu_info.cache_info.caches[i]);
 		pos += sprintf(pos, "L%u%c:\t\t%lu KiB, %lu byte lines, "
 		               "%s associativity\n",
-		               cache_info.caches[i].id & 0xF,
-		               assoc_char(cache_info.caches[i].id >> 4),
-		               cache_info.caches[i].size / KIB(1),
-		               cache_info.caches[i].line_size,
-		               assoc_str(cache_info.caches[i].associativity));
+		               cache->id & 0xF, assoc_char(cache->id >> 4),
+		               cache->size / KIB(1), cache->line_size,
+		               assoc_str(cache->associativity));
 	}
 	return pos;
 }
@@ -1012,15 +1030,16 @@ static char *print_caches(char *pos)
 char *i386_cache_str(void)
 {
 	char *pos;
+	int pf;
 
 	if (!cache_info_buf[0]) {
 		pos = cache_info_buf;
 		pos += sprintf(pos, "CPU cache information:\n");
 		pos = print_tlb(pos);
 		pos = print_caches(pos);
-		if (cache_info.prefetching)
-			pos += sprintf(pos, "Prefetch:\t%lu bytes",
-			               cache_info.prefetching);
+		pf = this_cpu_read(cpu_info.cache_info.prefetching);
+		if (pf)
+			pos += sprintf(pos, "Prefetch:\t%lu bytes", pf);
 		if (*--pos == '\n')
 			*pos = '\0';
 	}
