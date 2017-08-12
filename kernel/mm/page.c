@@ -46,7 +46,7 @@ static uint64_t zone_reg_end = 0;
 
 static int next_phys_region(struct multiboot_info *mbt,
                             uint64_t *base, uint64_t *len);
-static void init_region(addr_t base, uint64_t len, unsigned int flags);
+static void init_region(uint64_t base, uint64_t len, unsigned int flags);
 static void buddy_populate(void);
 
 uint64_t totalmem(void)
@@ -85,8 +85,6 @@ void buddy_init(struct multiboot_info *mbt)
 		init_region(base, len, 0);
 		next = base + len;
 	}
-	/* map and invalidate all remaining memory */
-	init_region(next, ALIGN(memsize, PAGE_SIZE) - next, PM_PAGE_INVALID);
 
 	/*
 	 * The regular zone is the memory that is set aside for kernel usage.
@@ -415,10 +413,10 @@ static void check_space(size_t pfn, size_t pages);
  * init_region:
  * Populate struct pages for a region of physical memory starting at base.
  */
-static void init_region(addr_t base, uint64_t len, unsigned int flags)
+static void init_region(uint64_t base, uint64_t len, unsigned int flags)
 {
 	size_t ord, pfn, start, pages;
-	addr_t end;
+	uint64_t end;
 
 	while (len) {
 		pages = len / PAGE_SIZE;
