@@ -87,6 +87,15 @@ kernel_pgtbl:
 #ifdef CONFIG_PAE
 
 paging_init:
+	movl %eax, %edi
+	movl %ebx, %esi
+	movl $1, %eax
+	cpuid
+	testb $0x40, %dl
+	jz .Lno_pae_support
+	movl %esi, %ebx
+	movl %edi, %eax
+
 	# Populate the PDPT with four present page directory entries.
 	movl $(PHYS(kernel_pdpt)), %edi
 	movl $(PHYS(pgdir_0)), %edx
@@ -112,12 +121,12 @@ paging_init:
 	orl $0x00000103, %edx
 
 	cmpl $(PHYS(__text_start)), %esi
-	jl .Ldo_move
+	jl 2f
 	cmpl $(PHYS(__rodata_end)), %esi
-	jge .Ldo_move
+	jge 2f
 	andl $0xFFFFFFFD, %edx
 
-.Ldo_move:
+2:
 	movl %edx, (%edi)
 	# TODO: set NX bit
 	movl $0, 4(%edi)
@@ -172,9 +181,11 @@ paging_init:
 	leal higher_half_start, %ecx
 	jmp *%ecx
 
+.Lno_pae_support:
 #else
-
 paging_init:
+#endif /* CONFIG_PAE */
+
 	# Populate the kernel page table.
 	movl $(PHYS(kernel_pgtbl)), %edi
 	xorl %esi, %esi
@@ -232,10 +243,32 @@ paging_init:
 	orl $0x80010000, %ecx
 	movl %ecx, %cr0
 
+#ifdef CONFIG_PAE
+	leal .Lno_pae_panic, %ecx
+#else
 	# Jump to the higher half addresses.
 	leal higher_half_start, %ecx
+#endif
 	jmp *%ecx
-#endif /* CONFIG_PAE */
+
+.Lno_pae_panic:
+	movl $bsp_stack_top, %esp
+	cld
+	call _init
+	call gdt_init_early
+	call idt_init_early
+	call vgatext_register
+	push $.Lpae_panic_msg
+	call panic
+
+.section .rodata
+.Lpae_panic_msg:
+.ascii "improper kernel configuration for hardware\n"
+.ascii "Kernel was compiled with CONFIG_PAE, but this system does not support PAE.\n"
+.asciz "Please run a non-PAE x86 radix kernel.\n"
+
+.section .text
+.align 4
 
 BEGIN_FUNC(_start)
 	jmp paging_init
