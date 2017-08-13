@@ -99,16 +99,16 @@ paging_init:
 	# Populate the PDPT with four present page directory entries.
 	movl $(PHYS(kernel_pdpt)), %edi
 	movl $(PHYS(pgdir_0)), %edx
-	orl $0x00000003, %edx
+	orl $0x00000001, %edx
 	movl %edx, (%edi)
 	movl $(PHYS(pgdir_1)), %edx
-	orl $0x00000003, %edx
+	orl $0x00000001, %edx
 	movl %edx, 8(%edi)
 	movl $(PHYS(pgdir_2)), %edx
-	orl $0x00000003, %edx
+	orl $0x00000001, %edx
 	movl %edx, 16(%edi)
 	movl $(PHYS(kernel_pgdir)), %edx
-	orl $0x00000003, %edx
+	orl $0x00000001, %edx
 	movl %edx, 24(%edi)
 
 	# Populate the two kernel page tables.
