@@ -19,7 +19,6 @@
 #ifndef RADIX_TYPES_H
 #define RADIX_TYPES_H
 
-#include <stdint.h>
 #include <radix/asm/types.h>
 
 #define NULL ((void *)0UL)
