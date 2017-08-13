@@ -97,6 +97,8 @@ static int cache_line_size;
 static void add_cache(unsigned char level, unsigned char type,
                       unsigned long size, unsigned long line_size,
                       unsigned long assoc);
+static void set_tlb_info(int which, unsigned long page_size,
+                         unsigned long entries, unsigned long assoc);
 static int read_cache_info(void);
 static void extended_processor_info(void);
 
@@ -149,12 +151,10 @@ void read_cpu_info(void)
 		if (!cache_line_size)
 			cache_line_size = 32;
 
-		this_cpu_write(cpu_info.cache_info.tlbi_page_size, PAGE_SIZE_4K);
-		this_cpu_write(cpu_info.cache_info.tlbi_entries, 32);
-		this_cpu_write(cpu_info.cache_info.tlbi_assoc, CACHE_ASSOC_4WAY);
-		this_cpu_write(cpu_info.cache_info.tlbd_page_size, PAGE_SIZE_4K);
-		this_cpu_write(cpu_info.cache_info.tlbd_entries, 64);
-		this_cpu_write(cpu_info.cache_info.tlbd_assoc, CACHE_ASSOC_4WAY);
+		set_tlb_info(CACHE_TYPE_INSTRUCTION, PAGE_SIZE_4K,
+		             32, CACHE_ASSOC_4WAY);
+		set_tlb_info(CACHE_TYPE_DATA, PAGE_SIZE_4K,
+		             64, CACHE_ASSOC_4WAY);
 	}
 
 	cpu_cache_str();
