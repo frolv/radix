@@ -42,6 +42,7 @@ static struct buddy zone_usr;
 static uint64_t memsize = 0;
 static uint64_t memused = 0;
 
+static uint64_t phys_mem_end = 0;
 static uint64_t zone_reg_end = 0;
 
 static int next_phys_region(struct multiboot_info *mbt,
@@ -79,12 +80,16 @@ void buddy_init(struct multiboot_info *mbt)
 		if (base != next)
 			init_region(next, base - next, PM_PAGE_INVALID);
 
-		if (base + len >= MEM_LIMIT - PAGE_SIZE)
+		if (base + len > MEM_LIMIT - PAGE_SIZE) {
+			len = (base + len) - (MEM_LIMIT - PAGE_SIZE);
+			init_region(base, len, 0);
 			break;
+		}
 
 		init_region(base, len, 0);
 		next = base + len;
 	}
+	phys_mem_end = next;
 
 	/*
 	 * The regular zone is the memory that is set aside for kernel usage.
@@ -427,7 +432,8 @@ static void init_region(uint64_t base, uint64_t len, unsigned int flags)
 		if (pages < pow2(ord))
 			--ord;
 
-		end = base + pow2(ord) * PAGE_SIZE;
+		pages = pow2(ord);
+		end = base + pages * PAGE_SIZE;
 
 		/* initialize all pages in the block */
 		start = base >> PAGE_SHIFT;
@@ -509,7 +515,7 @@ static void buddy_populate(void)
 	/* mark the pages in the page_map as reserved */
 	pfn = zone_init(pfn, pfn + npages, NULL, kflags);
 	pfn = zone_init(pfn, zone_reg_end / PAGE_SIZE, &zone_reg, 0);
-	pfn = zone_init(pfn, memsize / PAGE_SIZE, &zone_usr, PM_PAGE_ZONE_USR);
+	pfn = zone_init(pfn, phys_mem_end / PAGE_SIZE, &zone_usr, PM_PAGE_ZONE_USR);
 }
 
 /*
