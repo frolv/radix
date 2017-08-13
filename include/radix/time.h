@@ -22,6 +22,8 @@
 #include <radix/types.h>
 
 #define NSEC_PER_SEC 1000000000ULL
+#define USEC_PER_SEC 1000000ULL
+#define MSEC_PER_SEC 1000ULL
 
 extern uint64_t (*time_ns)(void);
 
