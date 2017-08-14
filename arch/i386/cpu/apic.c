@@ -34,6 +34,8 @@
 #include <radix/slab.h>
 #include <radix/smp.h>
 #include <radix/spinlock.h>
+#include <radix/time.h>
+#include <radix/timer.h>
 #include <radix/vmm.h>
 
 #include <rlibc/string.h>
@@ -187,6 +189,7 @@ static spinlock_t cpus_online_lock = SPINLOCK_INIT;
 DEFINE_PER_CPU(struct lapic *, local_apic);
 
 static struct pic apic;
+static uint64_t lapic_timer_freq;
 
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
 {
@@ -807,6 +810,50 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
 	/* clear any interrupts which may have occurred */
 	lapic_reg_write(APIC_REG_EOI, 0);
+}
+
+static void lapic_pit_calibrate(void)
+{
+}
+
+/*
+ * lapic_timer_calibrate:
+ * Determine the frequency of the local APIC timer using another
+ * timer source as a reference.
+ */
+void lapic_timer_calibrate(void)
+{
+	uint64_t target_ticks, start_ticks, end_ticks;
+	uint32_t timer_start, timer_end;
+
+	if (system_timer->flags & TIMER_EMULATED) {
+		/*
+		 * Emulated x86 timers don't have the precision to calibrate
+		 * the APIC. Instead, the PIT is used directly.
+		 */
+		lapic_pit_calibrate();
+		return;
+	}
+
+	target_ticks = system_timer->frequency / (MSEC_PER_SEC / 4);
+	timer_start = 0xFFFFFFFF;
+
+	start_ticks = system_timer->read();
+	lapic_reg_write(APIC_REG_TIMER_INITIAL, timer_start);
+
+	while ((end_ticks = system_timer->read()) < start_ticks + target_ticks)
+		;
+
+	timer_end = lapic_reg_read(APIC_REG_TIMER_COUNT);
+	lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
+
+	lapic_timer_freq = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
+	/* round frequency to the closest 100 MHz */
+	lapic_timer_freq += (USEC_PER_SEC * 100) / 2;
+	lapic_timer_freq -= lapic_timer_freq % (USEC_PER_SEC * 100);
+
+	klog(KLOG_INFO, APIC "lapic timer frequency %llu MHz",
+	     lapic_timer_freq / USEC_PER_SEC);
 }
 
 /*
