@@ -17,6 +17,8 @@
  */
 
 #include <acpi/acpi.h>
+
+#include <radix/asm/apic.h>
 #include <radix/cpu.h>
 #include <radix/timer.h>
 
@@ -31,8 +33,10 @@ void arch_main_setup(void)
 
 	hpet_register();
 	acpi_pm_register();
-	/* If there is no APIC, the PIT must be used as a scheduling timer. */
-	if (cpu_supports(CPUID_APIC))
-		pit_register();
 	rtc_register();
+	/* If there is no APIC, the PIT must be used as a scheduling timer. */
+	if (cpu_supports(CPUID_APIC)) {
+		pit_register();
+		lapic_timer_calibrate();
+	}
 }

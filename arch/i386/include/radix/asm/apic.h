@@ -132,4 +132,6 @@ int lapic_set_lvt_trigger_mode(uint32_t apic_id, unsigned int pin, int trig);
 
 void lapic_error(void);
 
+void lapic_timer_calibrate(void);
+
 #endif /* ARCH_I386_RADIX_APIC_H */
