@@ -17,7 +17,6 @@
  */
 
 #include <radix/boot.h>
-#include <radix/bootmsg.h>
 #include <radix/cpu.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
