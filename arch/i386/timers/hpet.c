@@ -63,7 +63,7 @@
  * making it an excellent resolution timer.
  */
 
-static addr_t hpet_phys;
+static paddr_t hpet_phys;
 static addr_t hpet_virt;
 
 static int hpet_is_running = 0;
