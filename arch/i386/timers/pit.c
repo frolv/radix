@@ -20,6 +20,7 @@
 #include <radix/io.h>
 #include <radix/irq.h>
 #include <radix/types.h>
+#include <radix/time.h>
 #include <radix/timer.h>
 
 #define PIT_CHANNEL_0_PORT      0x40
@@ -143,6 +144,51 @@ static struct timer pit = {
 void pit_register(void)
 {
 	timer_register(&pit);
+}
+
+static volatile int pit_wait_complete;
+
+static void pit_wait_handler(__unused void *device)
+{
+	pit_wait_complete = 1;
+}
+
+/* pit_wait_setup: configure the PIT for pit_wait use */
+int pit_wait_setup(void)
+{
+	if (request_fixed_irq(PIT_IRQ, &pit, pit_wait_handler) != 0)
+		return 1;
+
+	unmask_irq(PIT_IRQ);
+	return 0;
+}
+
+void pit_wait_finish(void)
+{
+	release_irq(PIT_IRQ, &pit);
+}
+
+/*
+ * pit_wait:
+ * Use the PIT to busy-wait for the specified number of microseconds.
+ */
+void pit_wait(uint32_t us)
+{
+	uint32_t hz;
+	uint16_t div;
+
+	hz = USEC_PER_SEC / us;
+	div = PIT_OSC_FREQ / hz;
+	pit_wait_complete = 0;
+
+	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
+	                       PIT_ACCESS_MODE_LO_HI |
+	                       PIT_MODE_TERMINAL);
+	outb(PIT_CHANNEL_0_PORT, div & 0xFF);
+	outb(PIT_CHANNEL_0_PORT, (div >> 8) & 0xFF);
+
+	while (!pit_wait_complete)
+		;
 }
 
 /* TODO: remove everything below */

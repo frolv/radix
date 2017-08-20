@@ -24,6 +24,10 @@ void pit_register(void);
 void rtc_register(void);
 void hpet_register(void);
 
+int pit_wait_setup(void);
+void pit_wait_finish(void);
+void pit_wait(uint32_t us);
+
 /* TODO: remove these once we get a proper event framework */
 int pit_setup_periodic_irq(int hz, void (*action)(void));
 void pit_stop_periodic_irq(void);
