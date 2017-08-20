@@ -145,6 +145,9 @@ static void update_system_timer(struct timer *timer)
  */
 void timer_register(struct timer *timer)
 {
+	if (!timer)
+		return;
+
 	if (timer->rating < 0 || timer->rating > 100) {
 		klog(KLOG_ERROR, TIMER "invalid rating provided for timer %s",
 		     timer->name);
@@ -178,6 +181,9 @@ struct irq_timer *system_irq_timer(void)
 int set_irq_timer(struct irq_timer *irqt)
 {
 	uint64_t max_ticks;
+
+	if (!irqt)
+		return 1;
 
 	if (!irqt->mult)
 		__calc_mult_shift(&irqt->mult, &irqt->shift, NSEC_PER_SEC,
