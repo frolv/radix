@@ -37,33 +37,38 @@ static uint64_t time_ns_timer(void)
 }
 
 /*
- * timer_calc_mult_shift:
- * Calculate values of mult and shift will can be used to convert the
- * specified timer's ticks to nanoseconds, based on its frequency.
+ * __calc_mult_shift:
+ * Calculate values of mult and shift which can be used to convert
+ * frequency `from` to frequency `to` via `to = (from * mult) >> shift`.
+ *
+ * `secs` is the minimum number of seconds frequency `from` should be
+ * allowed to run such that `from * mult` does not overflow an unsigned
+ * 64-bit integer.
  */
-static void timer_calc_mult_shift(struct timer *timer)
+static void __calc_mult_shift(uint32_t *mult, uint32_t *shift,
+                              uint64_t from, uint64_t to,
+                              unsigned int secs)
 {
-	uint64_t mult, tmp;
-	uint32_t shift, shift_acc;
+	uint64_t mlt, tmp;
+	uint32_t sft, shift_acc;
 
-	/* we want our timers to run for 600s without overflowing */
-	tmp = (600ULL * timer->frequency) >> 32;
+	tmp = ((uint64_t)secs * from) >> 32;
 	shift_acc = 32;
 	while (tmp) {
 		tmp >>= 1;
 		--shift_acc;
 	}
 
-	for (shift = 32; shift > 0; --shift) {
-		mult = NSEC_PER_SEC << shift;
-		mult += timer->frequency / 2;
-		mult /= timer->frequency;
-		if (!(mult >> shift_acc))
+	for (sft = 32; sft > 0; --sft) {
+		mlt = to << sft;
+		mlt += from / 2;
+		mlt /= from;
+		if (!(mlt >> shift_acc))
 			break;
 	}
 
-	timer->mult = mult;
-	timer->shift = shift;
+	*mult = mlt;
+	*shift = sft;
 }
 
 /*
@@ -79,7 +84,8 @@ static void timer_configure(struct timer *timer)
 
 	/* timer did not provide its own mult/shift; must calculate them */
 	if (!timer->mult)
-		timer_calc_mult_shift(timer);
+		__calc_mult_shift(&timer->mult, &timer->shift, timer->frequency,
+		                  NSEC_PER_SEC, 600);
 
 	max_ticks = ~0ULL / timer->mult;
 	if (timer->max_ticks)
