@@ -175,8 +175,8 @@ static void hpet_init(void)
 		hpet.max_ticks = 0xFFFFFFFF;
 	}
 
-	klog(KLOG_INFO, HPET "base %p period %luns (%u MHz) %s-bit",
-	     hpet_phys, period_ns, hpet.frequency / 1000000,
+	klog(KLOG_INFO, HPET "period %luns (%u MHz) %s-bit",
+	     period_ns, hpet.frequency / 1000000,
 	     (hpet_id & HPET_COUNT_SIZE_CAP) ? "64" : "32");
 }
 
