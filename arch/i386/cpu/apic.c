@@ -812,28 +812,31 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_EOI, 0);
 }
 
-static void lapic_pit_calibrate(void)
+static void __lapic_timer_pit_calibrate(void)
 {
+	uint32_t timer_start, timer_end;
+
+	timer_start = 0xFFFFFFFF;
+	lapic_reg_write(APIC_REG_TIMER_INITIAL, timer_start);
+
+	if (pit_wait_setup() != 0)
+		panic("could not calibrate local APIC timer");
+
+	pit_wait(4 * USEC_PER_MSEC);
+	timer_end = lapic_reg_read(APIC_REG_TIMER_COUNT);
+	pit_wait_finish();
+
+	lapic_timer_freq = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
 }
 
 /*
- * lapic_timer_calibrate:
- * Determine the frequency of the local APIC timer using another
- * timer source as a reference.
+ * __lapic_timer_timer_calibrate:
+ * Determine frequency of the local APIC timer using the system timer source.
  */
-void lapic_timer_calibrate(void)
+static void __lapic_timer_timer_calibrate(void)
 {
 	uint64_t target_ticks, start_ticks, end_ticks;
 	uint32_t timer_start, timer_end;
-
-	if (system_timer->flags & TIMER_EMULATED) {
-		/*
-		 * Emulated x86 timers don't have the precision to calibrate
-		 * the APIC. Instead, the PIT is used directly.
-		 */
-		lapic_pit_calibrate();
-		return;
-	}
 
 	target_ticks = system_timer->frequency / (MSEC_PER_SEC / 4);
 	timer_start = 0xFFFFFFFF;
@@ -845,9 +848,27 @@ void lapic_timer_calibrate(void)
 		;
 
 	timer_end = lapic_reg_read(APIC_REG_TIMER_COUNT);
+	lapic_timer_freq = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
+}
+
+/*
+ * lapic_timer_calibrate:
+ * Determine the frequency of the local APIC timer using another
+ * timer source as a reference.
+ */
+void lapic_timer_calibrate(void)
+{
+	if (system_timer->flags & TIMER_EMULATED) {
+		/*
+		 * Emulated x86 timers don't have the precision to calibrate
+		 * the APIC. Instead, the PIT is used directly.
+		 */
+		__lapic_timer_pit_calibrate();
+	} else {
+		__lapic_timer_timer_calibrate();
+	}
 	lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
 
-	lapic_timer_freq = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
 	/* round frequency to the closest 100 MHz */
 	lapic_timer_freq += (USEC_PER_SEC * 100) / 2;
 	lapic_timer_freq -= lapic_timer_freq % (USEC_PER_SEC * 100);
