@@ -27,6 +27,7 @@
 static struct list system_timer_list = LIST_INIT(system_timer_list);
 
 struct timer *system_timer = NULL;
+static struct irq_timer *sys_irq_timer = NULL;
 
 static uint64_t time_ns_timer(void)
 {
@@ -163,4 +164,40 @@ void timer_register(struct timer *timer)
 		if (timer->rating > system_timer->rating)
 			update_system_timer(timer);
 	}
+}
+
+struct irq_timer *system_irq_timer(void)
+{
+	return sys_irq_timer;
+}
+
+/*
+ * set_irq_timer:
+ * Set the specified IRQ timer as the active system IRQ timer.
+ */
+int set_irq_timer(struct irq_timer *irqt)
+{
+	uint64_t max_ticks;
+
+	if (!irqt->mult)
+		__calc_mult_shift(&irqt->mult, &irqt->shift, NSEC_PER_SEC,
+				  irqt->frequency, 60);
+
+	max_ticks = ~0ULL / irqt->mult;
+	if (irqt->max_ticks)
+		irqt->max_ticks = min(irqt->max_ticks, max_ticks);
+	else
+		irqt->max_ticks = max_ticks;
+
+	irqt->max_ns = (irqt->max_ticks << irqt->shift) / irqt->mult;
+
+	if (irqt->enable() != 0)
+		return 1;
+
+	if (sys_irq_timer) {
+		/* TODO: make next event disable current irq_timer */
+	}
+
+	sys_irq_timer = irqt;
+	return 0;
 }

@@ -48,4 +48,21 @@ extern struct timer *system_timer;
 
 void timer_register(struct timer *timer);
 
+
+struct irq_timer {
+	void            (*schedule_irq)(uint64_t);
+	uint32_t        mult;
+	uint32_t        shift;
+	unsigned long   frequency;
+	uint64_t        max_ticks;
+	uint64_t        max_ns;
+	int             (*enable)(void);
+	int             (*disable)(void);
+	unsigned long   flags;
+	const char      *name;
+};
+
+struct irq_timer *system_irq_timer(void);
+int set_irq_timer(struct irq_timer *irqt);
+
 #endif /* RADIX_TIMER_H */
