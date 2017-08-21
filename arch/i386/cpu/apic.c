@@ -170,7 +170,7 @@ static struct lapic_lvt lapic_lvt_default[] = {
 	/* LINT1: NMI */
 	{ 0, APIC_INT_MODE_NMI | __ET | __AH },
 	/* timer */
-	{ APIC_VEC_TIMER, APIC_INT_MODE_FIXED | __ET | __AH | __MASK },
+	{ APIC_VEC_TIMER, APIC_INT_MODE_FIXED | __ET | __AH },
 	/* error */
 	{ APIC_VEC_ERROR, APIC_INT_MODE_FIXED | __ET | __AH },
 	/* PMC */
@@ -189,7 +189,6 @@ static spinlock_t cpus_online_lock = SPINLOCK_INIT;
 DEFINE_PER_CPU(struct lapic *, local_apic);
 
 static struct pic apic;
-static uint64_t lapic_timer_freq;
 
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
 {
@@ -812,6 +811,36 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_EOI, 0);
 }
 
+static struct irq_timer lapic_timer;
+
+static void lapic_timer_schedule_irq(uint64_t ticks)
+{
+	lapic_reg_write(APIC_REG_TIMER_INITIAL, ticks);
+}
+
+static int lapic_timer_enable(void)
+{
+	lapic_timer.flags |= TIMER_ENABLED;
+	return 0;
+}
+
+static int lapic_timer_disable(void)
+{
+	lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
+	idt_set(APIC_VEC_TIMER, NULL, 0, 0);
+	lapic_timer.flags &= ~TIMER_ENABLED;
+	return 0;
+}
+
+static struct irq_timer lapic_timer = {
+	.schedule_irq   = lapic_timer_schedule_irq,
+	.max_ticks      = 0xFFFFFFFF,
+	.flags          = 0,
+	.enable         = lapic_timer_enable,
+	.disable        = lapic_timer_disable,
+	.name           = "lapic_timer"
+};
+
 static void __lapic_timer_pit_calibrate(void)
 {
 	uint32_t timer_start, timer_end;
@@ -826,7 +855,7 @@ static void __lapic_timer_pit_calibrate(void)
 	timer_end = lapic_reg_read(APIC_REG_TIMER_COUNT);
 	pit_wait_finish();
 
-	lapic_timer_freq = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
+	lapic_timer.frequency = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
 }
 
 /*
@@ -848,7 +877,7 @@ static void __lapic_timer_timer_calibrate(void)
 		;
 
 	timer_end = lapic_reg_read(APIC_REG_TIMER_COUNT);
-	lapic_timer_freq = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
+	lapic_timer.frequency = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
 }
 
 /*
@@ -870,11 +899,13 @@ void lapic_timer_calibrate(void)
 	lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
 
 	/* round frequency to the closest 100 MHz */
-	lapic_timer_freq += (USEC_PER_SEC * 100) / 2;
-	lapic_timer_freq -= lapic_timer_freq % (USEC_PER_SEC * 100);
+	lapic_timer.frequency += (USEC_PER_SEC * 100) / 2;
+	lapic_timer.frequency -= lapic_timer.frequency % (USEC_PER_SEC * 100);
 
 	klog(KLOG_INFO, APIC "lapic timer frequency %llu MHz",
-	     lapic_timer_freq / USEC_PER_SEC);
+	     lapic_timer.frequency / USEC_PER_SEC);
+
+	set_irq_timer(&lapic_timer);
 }
 
 /*
