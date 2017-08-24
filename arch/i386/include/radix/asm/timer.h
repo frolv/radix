@@ -24,6 +24,7 @@ void pit_register(void);
 void rtc_register(void);
 void hpet_register(void);
 
+void pit_oneshot_register(void);
 int pit_wait_setup(void);
 void pit_wait_finish(void);
 void pit_wait(uint32_t us);

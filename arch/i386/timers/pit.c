@@ -141,10 +141,66 @@ static struct timer pit = {
 	.timer_list     = LIST_INIT(pit.timer_list)
 };
 
+/* pit_register: register the PIT timer source */
 void pit_register(void)
 {
 	timer_register(&pit);
 }
+
+
+/*
+ * The PIT can also be run in oneshot mode as an IRQ timer for the kernel.
+ * This is only done on very old systems which do not have an APIC, and is
+ * quite inefficient, requiring two legacy IO port writes per IRQ.
+ */
+
+static struct irq_timer pit_oneshot;
+
+static void pit_schedule_irq(uint64_t ticks)
+{
+	outb(PIT_CHANNEL_0_PORT, ticks & 0xFF);
+	outb(PIT_CHANNEL_0_PORT, (ticks >> 8) & 0xFF);
+}
+
+/* pit_oneshot_enable: set the PIT to run in one-shot mode */
+static int pit_oneshot_enable(void)
+{
+	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
+	                       PIT_ACCESS_MODE_LO_HI |
+	                       PIT_MODE_TERMINAL);
+	/* write initial count of 0 */
+	outb(PIT_CHANNEL_0_PORT, 0);
+	outb(PIT_CHANNEL_0_PORT, 0);
+
+	pit_oneshot.flags |= TIMER_ENABLED;
+	return 0;
+}
+
+static int pit_oneshot_disable(void)
+{
+	outb(PIT_CHANNEL_0_PORT, 0);
+	outb(PIT_CHANNEL_0_PORT, 0);
+	pit_oneshot.flags &= ~TIMER_ENABLED;
+	return 0;
+}
+
+static struct irq_timer pit_oneshot = {
+	.schedule_irq   = pit_schedule_irq,
+	.frequency      = PIT_OSC_FREQ,
+	.max_ticks      = 0xFFFF,
+	.flags          = 0,
+	.enable         = pit_oneshot_enable,
+	.disable        = pit_oneshot_disable,
+	.name           = "pit_oneshot"
+};
+
+void pit_oneshot_register(void)
+{
+	set_irq_timer(&pit_oneshot);
+}
+
+
+/* PIT waiting for early boot timing */
 
 static volatile int pit_wait_complete;
 
