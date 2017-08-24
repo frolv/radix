@@ -79,6 +79,12 @@
 static uint64_t pit_ticks = 0;
 static struct timer pit;
 
+static __always_inline void pit_data_port_write(int port, uint16_t val)
+{
+	outb(port, val & 0xFF);
+	outb(port, (val >> 8) & 0xFF);
+}
+
 static uint64_t pit_read(void)
 {
 	return pit_ticks;
@@ -97,8 +103,7 @@ static int pit_enable(void)
 	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
 	                       PIT_ACCESS_MODE_LO_HI |
 	                       PIT_MODE_SQUARE);
-	outb(PIT_CHANNEL_0_PORT, divisor & 0xFF);
-	outb(PIT_CHANNEL_0_PORT, (divisor >> 8) & 0xFF);
+	pit_data_port_write(PIT_CHANNEL_0_PORT, divisor);
 
 	if (request_fixed_irq(PIT_IRQ, &pit, pit_tick_handler) != 0)
 		return 1;
@@ -158,8 +163,7 @@ static struct irq_timer pit_oneshot;
 
 static void pit_schedule_irq(uint64_t ticks)
 {
-	outb(PIT_CHANNEL_0_PORT, ticks & 0xFF);
-	outb(PIT_CHANNEL_0_PORT, (ticks >> 8) & 0xFF);
+	pit_data_port_write(PIT_CHANNEL_0_PORT, ticks);
 }
 
 /* pit_oneshot_enable: set the PIT to run in one-shot mode */
@@ -168,19 +172,20 @@ static int pit_oneshot_enable(void)
 	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
 	                       PIT_ACCESS_MODE_LO_HI |
 	                       PIT_MODE_TERMINAL);
-	/* write initial count of 0 */
-	outb(PIT_CHANNEL_0_PORT, 0);
-	outb(PIT_CHANNEL_0_PORT, 0);
+	pit_data_port_write(PIT_CHANNEL_0_PORT, 0);
 
+	unmask_irq(PIT_IRQ);
 	pit_oneshot.flags |= TIMER_ENABLED;
+
 	return 0;
 }
 
 static int pit_oneshot_disable(void)
 {
-	outb(PIT_CHANNEL_0_PORT, 0);
-	outb(PIT_CHANNEL_0_PORT, 0);
+	mask_irq(PIT_IRQ);
+	pit_data_port_write(PIT_CHANNEL_0_PORT, 0);
 	pit_oneshot.flags &= ~TIMER_ENABLED;
+
 	return 0;
 }
 
@@ -240,8 +245,7 @@ void pit_wait(uint32_t us)
 	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
 	                       PIT_ACCESS_MODE_LO_HI |
 	                       PIT_MODE_TERMINAL);
-	outb(PIT_CHANNEL_0_PORT, div & 0xFF);
-	outb(PIT_CHANNEL_0_PORT, (div >> 8) & 0xFF);
+	pit_data_port_write(PIT_CHANNEL_0_PORT, div);
 
 	while (!pit_wait_complete)
 		;
@@ -263,8 +267,7 @@ int pit_setup_periodic_irq(int hz, void (*action)(void))
 	outb(PIT_COMMAND_PORT, PIT_CHANNEL_0 |
 	                       PIT_ACCESS_MODE_LO_HI |
 	                       PIT_MODE_SQUARE);
-	outb(PIT_CHANNEL_0_PORT, divisor & 0xFF);
-	outb(PIT_CHANNEL_0_PORT, (divisor >> 8) & 0xFF);
+	pit_data_port_write(PIT_CHANNEL_0_PORT, divisor);
 
 	if (request_fixed_irq(PIT_IRQ, &pit, pit_irq_handler) != 0)
 		return 1;
