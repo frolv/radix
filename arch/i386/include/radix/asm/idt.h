@@ -1,5 +1,5 @@
 /*
- * arch/i386/cpu/idt.h
+ * arch/i386/include/radix/asm/idt.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_IDT_H
-#define ARCH_I386_IDT_H
+#ifndef ARCH_I386_RADIX_IDT_H
+#define ARCH_I386_RADIX_IDT_H
 
 #include <radix/types.h>
 
@@ -26,4 +26,4 @@
 void idt_init_early(void);
 void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags);
 
-#endif /* ARCH_I386_IDT_H */
+#endif /* ARCH_I386_RADIX_IDT_H */

@@ -16,12 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/idt.h>
+
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/percpu.h>
 
 #include "exceptions.h"
-#include "idt.h"
 #include "pic8259.h"
 
 static uint64_t idt[IDT_ENTRIES];
