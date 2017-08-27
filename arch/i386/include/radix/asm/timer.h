@@ -19,6 +19,8 @@
 #ifndef ARCH_I386_RADIX_TIMER_H
 #define ARCH_I386_RADIX_TIMER_H
 
+#include <radix/types.h>
+
 void acpi_pm_register(void);
 void pit_register(void);
 void rtc_register(void);
