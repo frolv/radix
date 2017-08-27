@@ -23,52 +23,6 @@
 
 #include "gdt.h"
 
-/* save registers from interrupt into r */
-void save_registers(struct interrupt_regs *ir, struct regs *r)
-{
-	r->di = ir->di;
-	r->si = ir->si;
-	r->sp = ir->sp;
-	r->bp = ir->bp;
-	r->bx = ir->bx;
-	r->dx = ir->dx;
-	r->cx = ir->cx;
-	r->ax = ir->ax;
-
-	r->gs = ir->gs;
-	r->fs = ir->fs;
-	r->es = ir->es;
-	r->ds = ir->ds;
-	r->cs = ir->cs;
-	r->ss = ir->ss;
-
-	r->ip = ir->ip;
-	r->flags = ir->flags;
-}
-
-/* reload registers from r into interrupt form */
-void load_registers(struct interrupt_regs *ir, struct regs *r)
-{
-	ir->di = r->di;
-	ir->si = r->si;
-	ir->sp = r->sp;
-	ir->bp = r->bp;
-	ir->bx = r->bx;
-	ir->dx = r->dx;
-	ir->cx = r->cx;
-	ir->ax = r->ax;
-
-	ir->gs = r->gs;
-	ir->fs = r->fs;
-	ir->es = r->es;
-	ir->ds = r->ds;
-	ir->cs = r->cs;
-	ir->ss = r->ss;
-
-	ir->ip = r->ip;
-	ir->flags = r->flags;
-}
-
 /*
  * Setup stack and registers for a kthread to execute function func
  * with argument arg.
