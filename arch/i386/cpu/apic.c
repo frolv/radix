@@ -20,6 +20,8 @@
 
 #include <radix/asm/acpi.h>
 #include <radix/asm/apic.h>
+#include <radix/asm/event.h>
+#include <radix/asm/idt.h>
 #include <radix/asm/mps.h>
 #include <radix/asm/msr.h>
 #include <radix/asm/pic.h>
@@ -39,8 +41,6 @@
 #include <radix/vmm.h>
 
 #include <rlibc/string.h>
-
-#include "idt.h"
 
 #define APIC "APIC: "
 
@@ -820,6 +820,7 @@ static void lapic_timer_schedule_irq(uint64_t ticks)
 
 static int lapic_timer_enable(void)
 {
+	idt_set(APIC_VEC_TIMER, event_irq, 0x08, 0x8E);
 	lapic_timer.flags |= TIMER_ENABLED;
 	return 0;
 }

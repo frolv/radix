@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/event.h>
+#include <radix/asm/idt.h>
+
 #include <radix/compiler.h>
 #include <radix/io.h>
 #include <radix/irq.h>
@@ -174,6 +177,7 @@ static int pit_oneshot_enable(void)
 	                       PIT_MODE_TERMINAL);
 	pit_data_port_write(PIT_CHANNEL_0_PORT, 0);
 
+	idt_set(IRQ_TO_VECTOR(PIT_IRQ), event_irq, 0x08, 0x8E);
 	unmask_irq(PIT_IRQ);
 	pit_oneshot.flags |= TIMER_ENABLED;
 
@@ -183,6 +187,7 @@ static int pit_oneshot_enable(void)
 static int pit_oneshot_disable(void)
 {
 	mask_irq(PIT_IRQ);
+	idt_set(IRQ_TO_VECTOR(PIT_IRQ), NULL, 0, 0);
 	pit_data_port_write(PIT_CHANNEL_0_PORT, 0);
 	pit_oneshot.flags &= ~TIMER_ENABLED;
 
