@@ -260,3 +260,81 @@ irq_noargs_common:
 	addl $4, %esp
 	decl THIS_CPU_VAR(interrupt_depth)
 	iret
+
+#
+# The interrupt used by radix's event system.
+# Unlike the interrupts above, this may result in a context switch and should
+# allow the values pushed to the stack by the interrupt to be modified from C.
+#
+BEGIN_FUNC(event_irq)
+	incl THIS_CPU_VAR(interrupt_depth)
+
+	# check if the interrupt occurred from user mode
+	testw $0x3, 4(%esp)
+	jnz .Lpush_regs
+
+	# When an interrupt occurs in ring 0, ss and esp are not pushed.
+	# Move the stack down by 8 bytes and manually insert them.
+	movl %eax, -12(%esp)
+	movl (%esp), %eax
+	movl %eax, -8(%esp)
+	movl 4(%esp), %eax
+	movl %eax, -4(%esp)
+	movl 8(%esp), %eax
+	movl %eax, (%esp)
+
+	# Insert ss and esp.
+	movl %esp, %eax
+	addl $12, %eax
+	movl %eax, 4(%esp)
+	movl %ss, %eax
+	movl %eax, 8(%esp)
+	movl -12(%esp), %eax
+	subl $8, %esp
+
+.Lpush_regs:
+	BUILD_STRUCT_REGS 0
+	pushl %esp
+	call event_handler
+	addl $4, %esp
+	POP_STRUCT_REGS
+
+	testw $0x3, 4(%esp)
+	jnz .Lfinish_irq
+
+	# When returning from a ring 0 interrupt, the new ss and esp need to be
+	# loaded and the stack restored to a valid iret state. This is done by
+	# copying the stored eip, cs and eflags onto the new stack and then
+	# switching over to it.
+	movl %eax, -4(%esp)
+	movl %ebx, -8(%esp)
+	movl %edx, -12(%esp)
+
+	# Load the new stack and copy values over.
+	movl 12(%esp), %ebx
+	subl $12, %ebx
+	movw 16(%esp), %dx
+	movl -4(%esp), %eax
+	movl %eax, -12(%ebx)
+	movl -8(%esp), %eax
+	movl %eax, -16(%ebx)
+	movl -12(%esp), %eax
+	movl %eax, -20(%ebx)
+	movl 8(%esp), %eax
+	movl %eax, 8(%ebx)
+	movl 4(%esp), %eax
+	movl %eax, 4(%ebx)
+	movl (%esp), %eax
+	movl %eax, (%ebx)
+
+	# Switch to the new stack.
+	mov %dx, %ss
+	movl %ebx, %esp
+	movl -12(%esp), %eax
+	movl -16(%esp), %ebx
+	movl -20(%esp), %edx
+
+.Lfinish_irq:
+	decl THIS_CPU_VAR(interrupt_depth)
+	iret
+END_FUNC(event_irq)
