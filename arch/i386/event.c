@@ -19,7 +19,22 @@
 #include <radix/asm/pic.h>
 #include <radix/asm/regs.h>
 
+/*
+ * update_intctx:
+ * Copy the necessary values from the specified interrupt context's
+ * registers struct to their positions on the stack.
+ */
+static void update_intctx(struct interrupt_context *intctx)
+{
+	intctx->ip = intctx->regs.ip;
+	intctx->cs = intctx->regs.cs;
+	intctx->flags = intctx->regs.flags;
+	intctx->sp = intctx->regs.sp;
+	intctx->ss = intctx->regs.ss;
+}
+
 void event_handler(struct interrupt_context *intctx)
 {
 	system_pic->eoi(0);
+	update_intctx(intctx);
 }
