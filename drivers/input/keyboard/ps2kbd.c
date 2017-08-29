@@ -37,7 +37,8 @@ void kbd_handler(__unused void *device)
 void kbd_install(void)
 {
 	if (request_fixed_irq(PS2_KEYBOARD_IRQ, &kbdev, kbd_handler) != 0) {
-		klog(KLOG_ERROR, "failed to map PS2 keyboard to IRQ 1");
+		klog(KLOG_ERROR, "failed to map PS/2 keyboard to IRQ %d",
+		     PS2_KEYBOARD_IRQ);
 		return;
 	}
 	unmask_irq(PS2_KEYBOARD_IRQ);
