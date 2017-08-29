@@ -42,6 +42,15 @@ void percpu_init_early(void)
 }
 
 /*
+ * percpu_init:
+ * Initialize all necessary per-CPU variables for each CPU.
+ */
+void percpu_init(void)
+{
+	arch_percpu_init();
+}
+
+/*
  * percpu_area_setup:
  * Allocate memory for per-CPU areas for all CPUs and copy
  * the contents of the per-CPU section into each.
@@ -73,7 +82,8 @@ void percpu_area_setup(void)
 		percpu_base += percpu_size;
 	}
 
-	arch_percpu_init();
+	/* initialize per-CPU variables for the BSP */
+	percpu_init();
 
 	/*
 	 * TODO: we no longer need the original per-CPU area, so we can add

@@ -22,6 +22,7 @@
 #include <radix/asm/percpu.h>
 
 void percpu_init_early(void);
+void percpu_init(void);
 void percpu_area_setup(void);
 
 #endif /* RADIX_PERCPU_H */
