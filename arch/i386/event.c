@@ -33,7 +33,7 @@ static void update_intctx(struct interrupt_context *intctx)
 	intctx->ss = intctx->regs.ss;
 }
 
-void event_handler(struct interrupt_context *intctx)
+void arch_event_handler(struct interrupt_context *intctx)
 {
 	system_pic->eoi(0);
 	update_intctx(intctx);

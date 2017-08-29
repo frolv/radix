@@ -296,7 +296,7 @@ BEGIN_FUNC(event_irq)
 	BUILD_STRUCT_REGS 0
 	pushl %esp
 	cld
-	call event_handler
+	call arch_event_handler
 	addl $4, %esp
 	POP_STRUCT_REGS
 
