@@ -46,11 +46,12 @@ int kmain(struct multiboot_info *mbt)
 	tasking_init();
 	irq_enable();
 
+	/* temporary stuff below */
 	extern void kbd_install(void);
 	kbd_install();
 
 	while (1)
-		;
+		HALT();
 
 	return 0;
 }
