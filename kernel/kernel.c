@@ -18,6 +18,7 @@
 
 #include <radix/boot.h>
 #include <radix/cpu.h>
+#include <radix/event.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
@@ -42,6 +43,7 @@ int kmain(struct multiboot_info *mbt)
 	arch_main_setup();
 	irq_init();
 	percpu_area_setup();
+	event_init();
 
 	tasking_init();
 	irq_enable();

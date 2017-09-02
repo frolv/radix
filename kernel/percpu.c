@@ -19,6 +19,7 @@
 #include <radix/bits.h>
 #include <radix/bootmsg.h>
 #include <radix/cpu.h>
+#include <radix/event.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/mm.h>
@@ -48,6 +49,7 @@ void percpu_init_early(void)
 void percpu_init(void)
 {
 	arch_percpu_init();
+	cpu_event_init();
 }
 
 /*
