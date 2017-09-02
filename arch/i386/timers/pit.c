@@ -93,6 +93,16 @@ static uint64_t pit_read(void)
 	return pit_ticks;
 }
 
+static uint64_t pit_reset(void)
+{
+	uint64_t ret;
+
+	ret = pit_ticks;
+	pit_ticks = 0;
+
+	return ret;
+}
+
 static void pit_tick_handler(__unused void *device)
 {
 	pit_ticks += PIT_TICK_DELTA;
@@ -136,6 +146,7 @@ static void pit_stop(void)
 
 static struct timer pit = {
 	.read           = pit_read,
+	.reset          = pit_reset,
 	.mult           = PIT_MULT,
 	.shift          = PIT_SHIFT,
 	.frequency      = PIT_COUNTER_FREQ,

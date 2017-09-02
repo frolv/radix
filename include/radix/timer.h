@@ -30,6 +30,7 @@ struct timer {
 	unsigned long   frequency;
 	uint64_t        max_ticks;
 	uint64_t        max_ns;
+	uint64_t        (*reset)(void);
 	void            (*start)(void);
 	void            (*stop)(void);
 	int             (*enable)(void);

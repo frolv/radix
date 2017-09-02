@@ -55,6 +55,16 @@ static uint64_t rtc_read(void)
 	return rtc_ticks;
 }
 
+static uint64_t rtc_reset(void)
+{
+	uint64_t ret;
+
+	ret = rtc_ticks;
+	rtc_ticks = 0;
+
+	return ret;
+}
+
 static void rtc_tick_handler(__unused void *device)
 {
 	++rtc_ticks;
@@ -130,6 +140,7 @@ static void rtc_stop(void)
 
 static struct timer rtc = {
 	.read           = rtc_read,
+	.reset          = rtc_reset,
 	.mult           = RTC_MULT,
 	.shift          = RTC_SHIFT,
 	.frequency      = RTC_FREQUENCY,

@@ -38,6 +38,8 @@
  */
 
 static uint32_t acpi_pm_port;
+static uint32_t acpi_pm_prev_ticks = 0;
+static uint32_t acpi_pm_total_ticks = 0;
 
 static struct timer acpi_pm;
 
@@ -47,11 +49,36 @@ static struct timer acpi_pm;
  */
 static uint64_t acpi_pm_read(void)
 {
-	return inl(acpi_pm_port);
+	uint32_t ticks;
+	int diff;
+
+	ticks = inl(acpi_pm_port);
+	diff = ticks - acpi_pm_prev_ticks;
+
+	/* If diff < 0, i.e. prev_ticks > ticks, the counter has overflowed. */
+	if (diff < 0)
+		acpi_pm_total_ticks += (acpi_pm.max_ticks - acpi_pm_prev_ticks)
+		                       + ticks;
+	else
+		acpi_pm_total_ticks += diff;
+
+	acpi_pm_prev_ticks = ticks;
+	return acpi_pm_total_ticks;
+}
+
+static uint64_t acpi_pm_reset(void)
+{
+	uint64_t ticks;
+
+	ticks = acpi_pm_read();
+	acpi_pm_total_ticks = 0;
+
+	return ticks;
 }
 
 static int acpi_pm_enable(void)
 {
+	acpi_pm_prev_ticks = inl(acpi_pm_port);
 	return 0;
 }
 
@@ -66,6 +93,7 @@ static void acpi_pm_dummy(void)
 
 static struct timer acpi_pm = {
 	.read           = acpi_pm_read,
+	.reset          = acpi_pm_reset,
 	.mult           = ACPI_PM_MULT,
 	.shift          = ACPI_PM_SHIFT,
 	.frequency      = ACPI_PM_FREQUENCY,

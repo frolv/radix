@@ -68,6 +68,12 @@ static addr_t hpet_virt;
 
 static int hpet_is_running = 0;
 
+static struct timer hpet;
+static uint64_t (*hpet_readfn)(void);
+
+/* Total number of HPET ticks at last timer reset */
+static uint64_t hpet_last_reset_ticks = 0;
+
 static __always_inline uint32_t hpet_reg_read_32(int reg)
 {
 	return *(uint32_t *)(hpet_virt + reg);
@@ -121,6 +127,22 @@ static uint64_t hpet_read_32(void)
 	return hpet_reg_read_32(HPET_REG_COUNTER_32_LO);
 }
 
+static uint64_t hpet_read(void)
+{
+	return hpet_readfn() - hpet_last_reset_ticks;
+}
+
+static uint64_t hpet_reset(void)
+{
+	uint64_t total_ticks, ret;
+
+	total_ticks = hpet_readfn();
+	ret = total_ticks - hpet_last_reset_ticks;
+	hpet_last_reset_ticks = total_ticks;
+
+	return ret;
+}
+
 static int hpet_enable(void)
 {
 	if (!hpet_is_running) {
@@ -143,6 +165,8 @@ static void hpet_dummy(void)
 }
 
 static struct timer hpet = {
+	.read           = hpet_read,
+	.reset          = hpet_reset,
 	.start          = hpet_dummy,
 	.stop           = hpet_dummy,
 	.enable         = hpet_enable,
@@ -165,13 +189,13 @@ static void hpet_init(void)
 	if (hpet_id & HPET_COUNT_SIZE_CAP) {
 		/* 64 bit counter */
 #ifdef CONFIG_X86_64
-		hpet.read = hpet_read_64_native;
+		hpet_readfn = hpet_read_64_native;
 #else
-		hpet.read = hpet_read_64_mult;
+		hpet_readfn = hpet_read_64_mult;
 #endif
 	} else {
 		/* 32 bit counter */
-		hpet.read = hpet_read_32;
+		hpet_readfn = hpet_read_32;
 		hpet.max_ticks = 0xFFFFFFFF;
 	}
 
