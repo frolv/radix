@@ -19,6 +19,10 @@
 #include <radix/asm/pic.h>
 #include <radix/asm/regs.h>
 
+#include <radix/event.h>
+#include <rlibc/string.h>
+#include <radix/task.h>
+
 /*
  * update_intctx:
  * Copy the necessary values from the specified interrupt context's
@@ -36,5 +40,8 @@ static void update_intctx(struct interrupt_context *intctx)
 void arch_event_handler(struct interrupt_context *intctx)
 {
 	system_pic->eoi(0);
+	memcpy(&current_task()->regs, &intctx->regs, sizeof intctx->regs);
+	event_handler();
+	memcpy(&intctx->regs, &current_task()->regs, sizeof intctx->regs);
 	update_intctx(intctx);
 }
