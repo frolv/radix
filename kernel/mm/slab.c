@@ -134,7 +134,7 @@ void *alloc_cache(struct slab_cache *cache)
 	int err;
 
 	if (unlikely(!cache))
-		return NULL;
+		return ERR_PTR(EINVAL);
 
 	if (list_empty(&cache->partial_slabs)) {
 		/* grow the cache if no space exists */
