@@ -37,4 +37,16 @@ do {                                    \
 	__arch_irq_enable();            \
 } while (0)
 
+#define irq_save(state)                 \
+do {                                    \
+	state = irq_state_save();       \
+	irq_disable();                  \
+} while (0)
+
+#define irq_restore(state)              \
+do {                                    \
+	barrier();                      \
+	irq_state_restore(state);       \
+} while (0)
+
 #endif /* RADIX_IRQSTATE_H */
