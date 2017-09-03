@@ -157,6 +157,8 @@
 
 #include <radix/compiler.h>
 
+#ifdef __KERNEL__
+
 static __always_inline unsigned long cpu_read_cr2(void)
 {
 	unsigned long ret;
@@ -207,5 +209,7 @@ static __always_inline void cpu_update_flags(unsigned long clear,
 	             :
 	             : "r"(~clear), "r"(set));
 }
+
+#endif /* __KERNEL__ */
 
 #endif /* ARCH_I386_RADIX_CPU_DEFS_H */
