@@ -18,6 +18,7 @@
 
 #include <radix/kernel.h>
 #include <radix/klog.h>
+#include <radix/spinlock.h>
 #include <radix/time.h>
 #include <radix/timer.h>
 
@@ -29,12 +30,36 @@ static struct list system_timer_list = LIST_INIT(system_timer_list);
 struct timer *system_timer = NULL;
 static struct irq_timer *sys_irq_timer = NULL;
 
+static spinlock_t time_ns_lock = SPINLOCK_INIT;
+static uint64_t ns_since_boot = 0;
+
 static uint64_t time_ns_timer(void)
+{
+	uint64_t ticks, initial_ns, current_ns;
+
+	spin_lock_irq(&time_ns_lock);
+	ticks = system_timer->read();
+	initial_ns = ns_since_boot;
+	current_ns = (ticks * system_timer->mult) >> system_timer->shift;
+	spin_unlock_irq(&time_ns_lock);
+
+	return initial_ns + current_ns;
+}
+
+/*
+ * timer_accumulate:
+ * Update the `ns_since_boot` variable using the current timer count,
+ * then reset the timer's ticks to zero.
+ * This is done periodically to prevent `ticks * mult` from overflowing.
+ */
+void timer_accumulate(void)
 {
 	uint64_t ticks;
 
-	ticks = system_timer->read();
-	return (ticks * system_timer->mult) >> system_timer->shift;
+	spin_lock_irq(&time_ns_lock);
+	ticks = system_timer->reset();
+	ns_since_boot += (ticks * system_timer->mult) >> system_timer->shift;
+	spin_unlock_irq(&time_ns_lock);
 }
 
 /*
@@ -114,6 +139,10 @@ static void timer_list_add(struct timer *timer)
 	list_ins(&system_timer_list, &timer->timer_list);
 }
 
+/*
+ * update_system_timer:
+ * Switch the system timer to the specified timer.
+ */
 static void update_system_timer(struct timer *timer)
 {
 	if (!(timer->flags & TIMER_ENABLED)) {
@@ -125,6 +154,7 @@ static void update_system_timer(struct timer *timer)
 	}
 
 	if (system_timer) {
+		timer_accumulate();
 		if (system_timer->flags & TIMER_RUNNING)
 			system_timer->stop();
 		if (system_timer->flags & TIMER_ENABLED)

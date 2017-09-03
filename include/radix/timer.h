@@ -48,6 +48,7 @@ struct timer {
 extern struct timer *system_timer;
 
 void timer_register(struct timer *timer);
+void timer_accumulate(void);
 
 
 struct irq_timer {
