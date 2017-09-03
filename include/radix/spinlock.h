@@ -21,7 +21,7 @@
 
 #include <radix/atomic.h>
 #include <radix/compiler.h>
-#include <radix/irq.h>
+#include <radix/irqstate.h>
 
 typedef int spinlock_t;
 
@@ -53,16 +53,18 @@ static __always_inline void spin_unlock(spinlock_t *lock)
 	__spinlock_release(lock);
 }
 
-static __always_inline void spin_lock_irq(spinlock_t *lock)
+static __always_inline void spin_lock_irq(spinlock_t *lock,
+                                          unsigned long *irqstate)
 {
-	irq_disable();
+	irq_save(*irqstate);
 	__spinlock_acquire(lock);
 }
 
-static __always_inline void spin_unlock_irq(spinlock_t *lock)
+static __always_inline void spin_unlock_irq(spinlock_t *lock,
+                                            unsigned long irqstate)
 {
 	__spinlock_release(lock);
-	irq_enable();
+	irq_restore(irqstate);
 }
 
 #endif /* RADIX_SPINLOCK_H */

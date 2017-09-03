@@ -36,12 +36,13 @@ static uint64_t ns_since_boot = 0;
 static uint64_t time_ns_timer(void)
 {
 	uint64_t ticks, initial_ns, current_ns;
+	unsigned long irqstate;
 
-	spin_lock_irq(&time_ns_lock);
+	spin_lock_irq(&time_ns_lock, &irqstate);
 	ticks = system_timer->read();
 	initial_ns = ns_since_boot;
 	current_ns = (ticks * system_timer->mult) >> system_timer->shift;
-	spin_unlock_irq(&time_ns_lock);
+	spin_unlock_irq(&time_ns_lock, irqstate);
 
 	return initial_ns + current_ns;
 }
@@ -55,11 +56,12 @@ static uint64_t time_ns_timer(void)
 void timer_accumulate(void)
 {
 	uint64_t ticks;
+	unsigned long irqstate;
 
-	spin_lock_irq(&time_ns_lock);
+	spin_lock_irq(&time_ns_lock, &irqstate);
 	ticks = system_timer->reset();
 	ns_since_boot += (ticks * system_timer->mult) >> system_timer->shift;
-	spin_unlock_irq(&time_ns_lock);
+	spin_unlock_irq(&time_ns_lock, irqstate);
 }
 
 /*

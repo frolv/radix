@@ -428,16 +428,17 @@ int ioapic_set_delivery_mode(struct ioapic *ioapic, unsigned int pin, int del)
 int ioapic_mask(struct ioapic *ioapic, unsigned int pin)
 {
 	uint32_t low;
+	unsigned long irqstate;
 
 	if (pin >= ioapic->irq_count)
 		return EINVAL;
 
-	spin_lock_irq(&ioapic_lock);
+	spin_lock_irq(&ioapic_lock, &irqstate);
 	ioapic->pins[pin].flags |= APIC_INT_MASKED;
 	low = ioapic_reg_read(ioapic, IOAPIC_IOREDLO(pin));
 	low |= IOREDLO_INTERRUPT_MASK;
 	ioapic_reg_write(ioapic, IOAPIC_IOREDLO(pin), low);
-	spin_unlock_irq(&ioapic_lock);
+	spin_unlock_irq(&ioapic_lock, irqstate);
 
 	return 0;
 }
@@ -449,16 +450,17 @@ int ioapic_mask(struct ioapic *ioapic, unsigned int pin)
 int ioapic_unmask(struct ioapic *ioapic, unsigned int pin)
 {
 	uint32_t low;
+	unsigned long irqstate;
 
 	if (pin >= ioapic->irq_count)
 		return EINVAL;
 
-	spin_lock_irq(&ioapic_lock);
+	spin_lock_irq(&ioapic_lock, &irqstate);
 	ioapic->pins[pin].flags &= ~APIC_INT_MASKED;
 	low = ioapic_reg_read(ioapic, IOAPIC_IOREDLO(pin));
 	low &= ~IOREDLO_INTERRUPT_MASK;
 	ioapic_reg_write(ioapic, IOAPIC_IOREDLO(pin), low);
-	spin_unlock_irq(&ioapic_lock);
+	spin_unlock_irq(&ioapic_lock, irqstate);
 
 	return 0;
 }
@@ -499,9 +501,11 @@ static void __ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
  */
 void ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
 {
-	spin_lock_irq(&ioapic_lock);
+	unsigned long irqstate;
+
+	spin_lock_irq(&ioapic_lock, &irqstate);
 	__ioapic_program_pin(ioapic, pin);
-	spin_unlock_irq(&ioapic_lock);
+	spin_unlock_irq(&ioapic_lock, irqstate);
 }
 
 /*
@@ -511,11 +515,12 @@ void ioapic_program_pin(struct ioapic *ioapic, unsigned int pin)
 void ioapic_program(struct ioapic *ioapic)
 {
 	size_t pin;
+	unsigned long irqstate;
 
-	spin_lock_irq(&ioapic_lock);
+	spin_lock_irq(&ioapic_lock, &irqstate);
 	for (pin = 0; pin < ioapic->irq_count; ++pin)
 		__ioapic_program_pin(ioapic, pin);
-	spin_unlock_irq(&ioapic_lock);
+	spin_unlock_irq(&ioapic_lock, irqstate);
 }
 
 static void ioapic_program_all(void)
