@@ -83,13 +83,7 @@ DECLARE_PER_CPU(int, interrupt_depth);
 
 static __always_inline int interrupts_active(void)
 {
-	uint32_t flags;
-
-	asm volatile("pushf\n\t"
-	             "pop %0"
-	             : "=g"(flags));
-
-	return flags & EFLAGS_IF;
+	return !!(cpu_read_flags() & EFLAGS_IF);
 }
 
 int __arch_request_irq(struct irq_descriptor *desc);

@@ -155,4 +155,57 @@
 #define CR4_SMAP        (1 << 21)
 #define CR4_PKE         (1 << 22)
 
+#include <radix/compiler.h>
+
+static __always_inline unsigned long cpu_read_cr2(void)
+{
+	unsigned long ret;
+
+	asm volatile("mov %%cr2, %0" : "=r"(ret));
+	return ret;
+}
+
+#define cpuid(eax, a, b, c, d)                                  \
+	asm volatile("xchg %%ebx, %1\n\t"                       \
+	             "cpuid\n\t"                                \
+	             "xchg %%ebx, %1"                           \
+	             : "=a"(a), "=r"(b), "=c"(c), "=d"(d)       \
+	             : "0"(eax))
+
+#define __modify_control_register(cr, clear, set)               \
+	asm volatile("movl %%" cr ", %%eax\n\t"                 \
+	             "andl %0, %%eax\n\t"                       \
+	             "orl %1, %%eax\n\t"                        \
+	             "movl %%eax, %%" cr                        \
+	             :                                          \
+	             : "r"(~clear), "r"(set)                    \
+	             : "%eax", "%edx")
+
+#define cpu_modify_cr0(clear, set) \
+	__modify_control_register("cr0", clear, set)
+
+#define cpu_modify_cr4(clear, set) \
+	__modify_control_register("cr4", clear, set)
+
+static __always_inline unsigned long cpu_read_flags(void)
+{
+	unsigned long ret;
+
+	asm volatile("pushf\n\t"
+	             "pop %0"
+	             : "=g"(ret));
+	return ret;
+}
+
+static __always_inline void cpu_update_flags(unsigned long clear,
+                                             unsigned long set)
+{
+	asm volatile("pushf\n\t"
+	             "andl %0, (%%esp)\n\t"
+	             "orl %1, (%%esp)\n\t"
+	             "popf"
+	             :
+	             : "r"(~clear), "r"(set));
+}
+
 #endif /* ARCH_I386_RADIX_CPU_DEFS_H */

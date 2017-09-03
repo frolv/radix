@@ -45,36 +45,6 @@ static __always_inline unsigned long cpuid_supported(void)
 	return res;
 }
 
-static __always_inline unsigned long cpu_read_cr2(void)
-{
-	unsigned long ret;
-
-	asm volatile("mov %%cr2, %0" : "=r"(ret));
-	return ret;
-}
-
-#define cpuid(eax, a, b, c, d)                                  \
-	asm volatile("xchg %%ebx, %1\n\t"                       \
-	             "cpuid\n\t"                                \
-	             "xchg %%ebx, %1"                           \
-	             : "=a"(a), "=r"(b), "=c"(c), "=d"(d)       \
-	             : "0"(eax))
-
-#define __modify_control_register(cr, clear, set)               \
-	asm volatile("movl %%" cr ", %%eax\n\t"                 \
-	             "andl %0, %%eax\n\t"                       \
-	             "orl %1, %%eax\n\t"                        \
-	             "movl %%eax, %%" cr                        \
-	             :                                          \
-	             : "r"(~clear), "r"(set)                    \
-	             : "%eax", "%edx")
-
-#define cpu_modify_cr0(clear, set) \
-	__modify_control_register("cr0", clear, set)
-
-#define cpu_modify_cr4(clear, set) \
-	__modify_control_register("cr4", clear, set)
-
 #include <radix/types.h>
 
 int cpu_supports(uint64_t features);
