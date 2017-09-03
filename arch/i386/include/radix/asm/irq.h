@@ -38,9 +38,6 @@
 
 #define __arch_irq_init         interrupt_init
 #define __arch_in_irq           in_interrupt
-#define __arch_irq_active       interrupts_active
-#define __arch_irq_disable()    asm volatile("cli")
-#define __arch_irq_enable()     asm volatile("sti")
 #define __arch_irq_install      install_interrupt_handler
 #define __arch_irq_uninstall    uninstall_interrupt_handler
 
@@ -70,7 +67,6 @@
 
 #ifdef __KERNEL__
 
-#include <radix/asm/cpu_defs.h>
 #include <radix/asm/pic.h>
 #include <radix/compiler.h>
 #include <radix/percpu.h>
@@ -80,11 +76,6 @@ void interrupt_init(void);
 int in_interrupt(void);
 
 DECLARE_PER_CPU(int, interrupt_depth);
-
-static __always_inline int interrupts_active(void)
-{
-	return !!(cpu_read_flags() & EFLAGS_IF);
-}
 
 int __arch_request_irq(struct irq_descriptor *desc);
 int __arch_request_fixed_irq(unsigned int irq, void *device,

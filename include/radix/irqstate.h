@@ -23,5 +23,18 @@
 
 #define irq_state_save()                __arch_irq_state_save()
 #define irq_state_restore(state)        __arch_irq_state_restore(state)
+#define irq_active                      __arch_irq_active
+
+#define irq_disable()                   \
+do {                                    \
+	barrier();                      \
+	__arch_irq_disable();           \
+} while (0)
+
+#define irq_enable()                    \
+do {                                    \
+	barrier();                      \
+	__arch_irq_enable();            \
+} while (0)
 
 #endif /* RADIX_IRQSTATE_H */
