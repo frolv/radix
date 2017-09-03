@@ -95,8 +95,6 @@ void gdt_init(void)
 {
 	uint32_t *tss_ptr, tss_base;
 
-	irq_disable();
-
 	tss_ptr = raw_cpu_ptr(&tss[0]);
 	tss_base = (uintptr_t)tss_ptr;
 
@@ -113,8 +111,6 @@ void gdt_init(void)
 
 	gdt_load(raw_cpu_ptr(&gdt[0]), GDT_SIZE);
 	tss_load(GDT_OFFSET(GDT_TSS));
-
-	irq_enable();
 }
 
 /*
@@ -129,18 +125,22 @@ void gdt_set_initial_fsbase(uint32_t base)
 
 void gdt_set_fsbase(uint32_t base)
 {
-	irq_disable();
+	unsigned long irqstate;
+
+	irq_save(irqstate);
 	gdt_set(GDT_FS, base, 0xFFFFFFFF, 0x92, 0x0C);
 	asm volatile("mov %0, %%fs" : : "r"(GDT_OFFSET(GDT_FS)));
-	irq_enable();
+	irq_restore(irqstate);
 }
 
 void gdt_set_gsbase(uint32_t base)
 {
-	irq_disable();
+	unsigned long irqstate;
+
+	irq_save(irqstate);
 	gdt_set(GDT_GS, base, 0xFFFFFFFF, 0x92, 0x0C);
 	asm volatile("mov %0, %%gs" : : "r"(GDT_OFFSET(GDT_GS)));
-	irq_enable();
+	irq_restore(irqstate);
 }
 
 /*

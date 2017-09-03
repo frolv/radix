@@ -36,6 +36,7 @@ void mutex_init(struct mutex *m)
 void mutex_lock(struct mutex *m)
 {
 	struct task *curr;
+	unsigned long irqstate;
 
 	if (unlikely(in_irq()))
 		return;
@@ -45,12 +46,12 @@ void mutex_lock(struct mutex *m)
 		 * TODO: this needs to be spinlocked
 		 * when multiprocessing is added
 		 */
-		irq_disable();
+		irq_save(irqstate);
 		curr = current_task();
 		curr->state = TASK_BLOCKED;
 		list_ins(&m->queue, &curr->queue);
 		schedule(1);
-		irq_enable();
+		irq_restore(irqstate);
 	}
 }
 
@@ -58,6 +59,7 @@ void mutex_lock(struct mutex *m)
 void mutex_unlock(struct mutex *m)
 {
 	struct task *next;
+	unsigned long irqstate;
 
 	if (unlikely(in_irq()))
 		return;
@@ -65,11 +67,11 @@ void mutex_unlock(struct mutex *m)
 	m->count = 0;
 
 	/* TODO: this needs to be spinlocked when multiprocessing is added */
-	irq_disable();
+	irq_save(irqstate);
 	if (!list_empty(&m->queue)) {
 		next = list_first_entry(&m->queue, struct task, queue);
 		list_del(&next->queue);
 		sched_unblock(next);
 	}
-	irq_enable();
+	irq_restore(irqstate);
 }

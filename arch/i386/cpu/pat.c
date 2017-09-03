@@ -49,11 +49,12 @@ enum {
 int pat_init(void)
 {
 	uint32_t lo, hi;
+	unsigned long irqstate;
 
 	if (!cpu_supports(CPUID_PAT))
 		return 1;
 
-	irq_disable();
+	irq_save(irqstate);
 
 	cpu_modify_cr0(CR0_NW, CR0_CD);
 	if (cpu_supports(CPUID_PGE))
@@ -86,7 +87,7 @@ int pat_init(void)
 	if (cpu_supports(CPUID_PGE))
 		cpu_modify_cr4(0, CR4_PGE);
 
-	irq_enable();
+	irq_restore(irqstate);
 
 	return 0;
 }

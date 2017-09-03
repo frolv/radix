@@ -104,9 +104,10 @@ extern addr_t __percpu_offset[MAX_CPUS];
 #define this_cpu_ptr(ptr)                       \
 ({                                              \
 	typeof(ptr) __tcp_ret;                  \
-	irq_disable();                          \
+	unsigned long __tcp_irqstate;           \
+	irq_save(__tcp_irqstate);               \
 	__tcp_ret = raw_cpu_ptr(ptr);           \
-	irq_enable();                           \
+	irq_restore(__tcp_irqstate);            \
 	__tcp_ret;                              \
 })
 
@@ -123,31 +124,35 @@ do {                                            \
 #define this_cpu_read_generic(var)              \
 ({                                              \
 	typeof(var) __rg_ret;                   \
-	irq_disable();                          \
+	unsigned long __rg_irqstate;            \
+	irq_save(__rg_irqstate);                \
 	__rg_ret = raw_cpu_read_generic(var);   \
-	irq_enable();                           \
+	irq_restore(__rg_irqstate);             \
 	__rg_ret;                               \
 })
 
 #define this_cpu_write_generic(var, val)        \
 ({                                              \
-	irq_disable();                          \
+	unsigned long __wg_irqstate;            \
+	irq_save(__wg_irqstate);                \
 	raw_cpu_op_generic(var, val, =);        \
-	irq_enable();                           \
+	irq_restore(__wg_irqstate);             \
 })
 
 #define this_cpu_add_generic(var, val)          \
 ({                                              \
-	irq_disable();                          \
+	unsigned long __ag_irqstate;            \
+	irq_save(__ag_irqstate);                \
 	raw_cpu_op_generic(var, val, +=);       \
-	irq_enable();                           \
+	irq_restore(__ag_irqstate);             \
 })
 
 #define this_cpu_sub_generic(var, val)          \
 ({                                              \
-	irq_disable();                          \
+	unsigned long __sg_irqstate;            \
+	irq_save(__sg_irqstate);                \
 	raw_cpu_op_generic(var, val, -=);       \
-	irq_enable();                           \
+	irq_restore(__sg_irqstate);             \
 })
 
 #ifndef this_cpu_read_1

@@ -93,13 +93,14 @@ static void __rtc_reg_write(int reg, uint8_t val)
 static void __rtc_modify_reg(int reg, unsigned int clear, unsigned int set)
 {
 	int val;
+	unsigned long irqstate;
 
-	irq_disable();
+	irq_save(irqstate);
 	val = __rtc_reg_read(reg);
 	val &= ~clear;
 	val |= set;
 	__rtc_reg_write(reg, val);
-	irq_enable();
+	irq_restore(irqstate);
 }
 
 static int rtc_enable(void)
