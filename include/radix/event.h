@@ -22,6 +22,7 @@
 #include <radix/types.h>
 
 void event_init(void);
+void event_start(void);
 void cpu_event_init(void);
 void event_handler(void);
 

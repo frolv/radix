@@ -31,6 +31,8 @@
 
 #include "mm/slab.h"
 
+#include <radix/time.h>
+
 /* kernel entry point */
 int kmain(struct multiboot_info *mbt)
 {
@@ -42,8 +44,9 @@ int kmain(struct multiboot_info *mbt)
 
 	arch_main_setup();
 	irq_init();
-	percpu_area_setup();
 	event_init();
+	percpu_area_setup();
+	event_start();
 
 	tasking_init();
 	irq_enable();

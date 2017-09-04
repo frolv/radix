@@ -130,7 +130,10 @@ void event_init(void)
 	event_cache = create_cache("event", sizeof (struct event),
 	                           SLAB_MIN_ALIGN, SLAB_PANIC,
 	                           struct_event_init, struct_event_init);
+}
 
+void event_start(void)
+{
 	timekeeping_event_init(system_timer->max_ns / 2,
 	                       system_timer->max_ns / 4);
 }
