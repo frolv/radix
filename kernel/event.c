@@ -224,6 +224,35 @@ static void __event_add(struct event *evt)
 		__event_schedule(evt);
 }
 
+/*
+ * __event_remove:
+ * Remove the specified event from the event queue,
+ * rescheduling the timer IRQ if necessary.
+ */
+static void __event_remove(struct event *evt)
+{
+	struct event *prev;
+	struct list *eventq;
+	int sched;
+
+	eventq = this_cpu_ptr(&event_queue);
+	sched = 0;
+
+	if (evt->list.prev == eventq) {
+		sched = 1;
+	} else {
+		prev = list_prev_entry(evt, list);
+		if (prev->type == EVENT_DUMMY) {
+			list_del(&prev->list);
+			sched = 1;
+		}
+	}
+
+	list_del(&evt->list);
+	if (sched)
+		__event_schedule(list_first_entry(eventq, struct event, list));
+}
+
 static struct event *tk_event = NULL;
 
 /*
@@ -242,6 +271,21 @@ static void timekeeping_event_init(uint64_t period, uint64_t initial)
 	tk_event->flags = EVENT_STATIC;
 	tk_event->tk_period = period;
 
+	__event_add(tk_event);
+}
+
+/*
+ * timekeeping_event_update:
+ * Change the period of the timekeeping event to the specified value.
+ */
+void timekeeping_event_update(uint64_t period)
+{
+	if (!tk_event)
+		return;
+
+	__event_remove(tk_event);
+	tk_event->time = time_ns() + period;
+	tk_event->tk_period = period;
 	__event_add(tk_event);
 }
 
