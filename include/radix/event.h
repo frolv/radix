@@ -26,4 +26,6 @@ void event_start(void);
 void cpu_event_init(void);
 void event_handler(void);
 
+void timekeeping_event_update(uint64_t period);
+
 #endif /* RADIX_EVENT_H */

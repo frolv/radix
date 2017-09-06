@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/event.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/spinlock.h>
@@ -157,6 +158,7 @@ static void update_system_timer(struct timer *timer)
 
 	if (system_timer) {
 		timer_accumulate();
+		timekeeping_event_update(timer->max_ns / 2);
 		if (system_timer->flags & TIMER_RUNNING)
 			system_timer->stop();
 		if (system_timer->flags & TIMER_ENABLED)
