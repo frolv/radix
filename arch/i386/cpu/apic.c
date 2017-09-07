@@ -754,7 +754,7 @@ static void lapic_interrupt_setup(void)
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
  */
-void lapic_init(void)
+int lapic_init(void)
 {
 	struct lapic *lapic;
 	int cpu_number;
@@ -767,9 +767,10 @@ void lapic_init(void)
 
 	lapic_enable(lapic_phys_base);
 	lapic = find_cpu_lapic();
-	if (!lapic)
-		panic("CPU %d: LAPIC ID does not represent a valid LAPIC\n",
-		      cpu_number);
+	if (!lapic) {
+		klog(KLOG_ERROR, "cpu %d: invalid lapic id, cpu disabled");
+		return 1;
+	}
 
 	this_cpu_write(local_apic, lapic);
 
@@ -777,8 +778,16 @@ void lapic_init(void)
 		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_FLAT);
 		logical_id = lapic_logid_flat(cpu_number);
 	} else if (cpus_available > APIC_MAX_CLUSTER_CPUS) {
-		/* TODO: give multiple CPUs same logical ID */
-		logical_id = 0;
+		/*
+		 * TODO: give multiple CPUs same logical ID.
+		 * Temporarily just use cluster mode for the maximum
+		 * number of cluster CPUs.
+		 */
+		if (cpu_number >= APIC_MAX_CLUSTER_CPUS)
+			return 1;
+
+		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_CLUSTER);
+		logical_id = lapic_logid_cluster(cpu_number);
 	} else {
 		lapic_reg_write(APIC_REG_DFR, APIC_DFR_MODEL_CLUSTER);
 		logical_id = lapic_logid_cluster(cpu_number);
@@ -814,6 +823,8 @@ void lapic_init(void)
 	lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
 	/* clear any interrupts which may have occurred */
 	lapic_reg_write(APIC_REG_EOI, 0);
+
+	return 0;
 }
 
 static struct irq_timer lapic_timer;
@@ -956,12 +967,17 @@ static struct pic apic = {
 	.unmask         = apic_unmask
 };
 
+static void bsp_apic_fail(void)
+{
+	this_cpu_write(local_apic, NULL);
+	cpus_available = 1;
+}
+
 int bsp_apic_init(void)
 {
 	if (!cpu_supports(CPUID_APIC | CPUID_MSR) ||
 	    (acpi_parse_madt() != 0 && parse_mp_tables() != 0)) {
-		this_cpu_write(local_apic, NULL);
-		cpus_available = 1;
+		bsp_apic_fail();
 		return 1;
 	}
 
@@ -971,7 +987,13 @@ int bsp_apic_init(void)
 	lapic_virt_base = (addr_t)vmalloc(PAGE_SIZE);
 	map_page_kernel(lapic_virt_base, lapic_phys_base,
 	                PROT_WRITE, PAGE_CP_UNCACHEABLE);
-	lapic_init();
+
+	if (lapic_init() != 0) {
+		vfree((void *)lapic_virt_base);
+		bsp_apic_fail();
+		return 1;
+	}
+
 	system_pic = &apic;
 
 	irq_enable();
