@@ -19,12 +19,15 @@
 #ifndef ARCH_I386_RADIX_PIC_H
 #define ARCH_I386_RADIX_PIC_H
 
+#include <radix/cpumask.h>
+
 struct pic {
 	char            name[16];
 	unsigned int    irq_count;
 	void            (*eoi)(unsigned int);
 	void            (*mask)(unsigned int);
 	void            (*unmask)(unsigned int);
+	int             (*send_ipi)(unsigned int, cpumask_t);
 };
 
 extern struct pic *system_pic;

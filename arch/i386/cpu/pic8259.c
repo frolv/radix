@@ -40,6 +40,8 @@
 #define ICW4_SFNM       0x10	/* special fully nested */
 
 #include <radix/asm/pic.h>
+
+#include <radix/compiler.h>
 #include <radix/io.h>
 #include <radix/irq.h>
 
@@ -113,12 +115,20 @@ static void pic8259_unmask(unsigned int irq)
 		__pic8259_change_bits(PIC_SLAVE_DATA, 1 << (irq - 8), 0);
 }
 
+static int pic8259_send_ipi(__unused unsigned int vec,
+                            __unused cpumask_t cpumask)
+{
+	/* no-op */
+	return 0;
+}
+
 static struct pic pic8259 = {
 	.name           = "8259PIC",
 	.irq_count      = ISA_IRQ_COUNT,
 	.eoi            = pic8259_eoi,
 	.mask           = pic8259_mask,
-	.unmask         = pic8259_unmask
+	.unmask         = pic8259_unmask,
+	.send_ipi       = pic8259_send_ipi
 };
 
 void pic8259_init(void)
