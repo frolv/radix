@@ -734,6 +734,8 @@ void lapic_error_handler(void)
 {
 	uint32_t esr;
 
+	system_pic->eoi(0);
+
 	/* clear existing errors and update ESR */
 	lapic_reg_write(APIC_REG_ESR, 0);
 	esr = lapic_reg_read(APIC_REG_ESR);
