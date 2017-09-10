@@ -726,7 +726,7 @@ static uint8_t lapic_logid_cluster(int cpu_number)
 	cluster = cpu_number >> 2;
 	id = cpu_number & 3;
 
-	return (cluster << 4) | id;
+	return (cluster << 4) | (1 << id);
 }
 
 /* lapic_error_handler: handle a local APIC error interrupt */
