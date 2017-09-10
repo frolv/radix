@@ -145,6 +145,17 @@ static spinlock_t ioapic_lock = SPINLOCK_INIT;
 #define APIC_ESR_RECV_ILLEGAL_VECTOR    (1 << 6)
 #define APIC_ESR_ILLEGAL_REGISTER       (1 << 7)
 
+#define APIC_ICR_HI_DEST_SHIFT          24
+#define APIC_ICR_LO_DELMODE_SHIFT       8
+#define APIC_ICR_LO_DESTMODE_LOGICAL    (1 << 11)
+#define APIC_ICR_LO_DELIVERY_STATUS     (1 << 12)
+#define APIC_ICR_LO_LEVEL_ASSERT        (1 << 14)
+#define APIC_ICR_LO_TRIGGER_MODE_LEVEL  (1 << 15)
+#define APIC_ICR_LO_SHORTHAND_NONE      (0 << 18)
+#define APIC_ICR_LO_SHORTHAND_SELF      (1 << 18)
+#define APIC_ICR_LO_SHORTHAND_ALL       (2 << 18)
+#define APIC_ICR_LO_SHORTHAND_OTHER     (3 << 18)
+
 #define APIC_LVT_DELMODE_SHIFT          8
 #define APIC_LVT_DELIVERY_STATUS        (1 << 12)
 #define APIC_LVT_POLARITY_ACTIVE_LOW    (1 << 13)
@@ -751,6 +762,59 @@ static void lapic_interrupt_setup(void)
 }
 
 /*
+ * lapic_send_ipi:
+ * Issue an interprocessor interrupt with the specified interrupt vector to
+ * the set of processors addressed by dest, or the given shorthand, and the
+ * specified interrupt delivery mode.
+ */
+static void lapic_send_ipi(unsigned int vec, uint8_t dest,
+                           uint32_t shorthand, uint8_t mode)
+{
+	uint32_t hi, lo;
+
+	lo = APIC_ICR_LO_LEVEL_ASSERT | APIC_ICR_LO_DESTMODE_LOGICAL | vec;
+	lo |= (uint32_t)mode << APIC_ICR_LO_DELMODE_SHIFT;
+	hi = 0;
+
+	if (!shorthand)
+		hi = (uint32_t)dest << APIC_ICR_HI_DEST_SHIFT;
+	else
+		lo |= shorthand;
+
+	lapic_reg_write(APIC_REG_ICR_HI, hi);
+	barrier();
+	lapic_reg_write(APIC_REG_ICR_LO, lo);
+}
+
+static int lapic_send_ipi_flat(unsigned int vec, cpumask_t cpumask)
+{
+	if (vec < IRQ_BASE || vec > NUM_INTERRUPT_VECTORS)
+		return EINVAL;
+
+	lapic_send_ipi(vec, cpumask & 0xFF, 0, APIC_INT_MODE_FIXED);
+	return 0;
+}
+
+static int lapic_send_ipi_cluster(unsigned int vec, cpumask_t cpumask)
+{
+	int cluster, ids;
+
+	if (vec < IRQ_BASE || vec > NUM_INTERRUPT_VECTORS)
+		return EINVAL;
+
+	for (cluster = 0; cpumask && cluster < 16; cpumask >>= 4, ++cluster) {
+		ids = cpumask & 0xF;
+		if (!ids)
+			continue;
+
+		ids |= cluster << 4;
+		lapic_send_ipi(vec, ids, 0, APIC_INT_MODE_FIXED);
+	}
+
+	return 0;
+}
+
+/*
  * apic_init:
  * Configure the LAPIC to send interrupts and enable it.
  */
@@ -768,7 +832,7 @@ int lapic_init(void)
 	lapic_enable(lapic_phys_base);
 	lapic = find_cpu_lapic();
 	if (!lapic) {
-		klog(KLOG_ERROR, "cpu %d: invalid lapic id, cpu disabled");
+		klog(KLOG_ERROR, APIC "cpu %d: invalid lapic id, cpu disabled");
 		return 1;
 	}
 
@@ -993,6 +1057,11 @@ int bsp_apic_init(void)
 		bsp_apic_fail();
 		return 1;
 	}
+
+	if (cpus_available > APIC_MAX_FLAT_CPUS)
+		apic.send_ipi = lapic_send_ipi_cluster;
+	else
+		apic.send_ipi = lapic_send_ipi_flat;
 
 	system_pic = &apic;
 
