@@ -19,6 +19,7 @@
 #ifndef RADIX_SMP_H
 #define RADIX_SMP_H
 
+#include <radix/cpumask.h>
 #include <radix/percpu.h>
 
 DECLARE_PER_CPU(int, processor_id);
@@ -28,5 +29,10 @@ DECLARE_PER_CPU(int, processor_id);
 #else
 #define processor_id() 0
 #endif
+
+#define CPUMASK_ALL                     (~((cpumask_t)0))
+#define CPUMASK_ALL_BUT(cpu)            (CPUMASK_ALL & ~(1 << (cpu)))
+#define CPUMASK_ALL_BUT_MASK(cpumask)   (CPUMASK_ALL & ~(cpumask))
+#define CPUMASK_ALL_OTHER               CPUMASK_ALL_BUT(processor_id())
 
 #endif /* RADIX_SMP_H */
