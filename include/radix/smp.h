@@ -38,4 +38,7 @@ DECLARE_PER_CPU(int, processor_id);
 #define CPUMASK_ALL_OTHER               CPUMASK_ALL_BUT(processor_id())
 #define CPUMASK_SELF                    CPUMASK_CPU(processor_id())
 
+cpumask_t cpumask_online(void);
+void set_cpu_online(unsigned int cpu);
+
 #endif /* RADIX_SMP_H */
