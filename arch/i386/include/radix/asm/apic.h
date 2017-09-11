@@ -99,6 +99,7 @@ struct lapic {
 #define APIC_INT_MODE_SMI       0x02
 #define APIC_INT_MODE_NMI       0x04
 #define APIC_INT_MODE_INIT      0x05
+#define APIC_INT_MODE_STARTUP   0x06
 #define APIC_INT_MODE_EXTINT    0x07
 #define APIC_INT_MODE_MASK      0x07
 
@@ -132,6 +133,7 @@ int lapic_set_lvt_trigger_mode(uint32_t apic_id, unsigned int pin, int trig);
 
 void lapic_error(void);
 
+int lapic_init(void);
 void lapic_timer_calibrate(void);
 
 #endif /* ARCH_I386_RADIX_APIC_H */
