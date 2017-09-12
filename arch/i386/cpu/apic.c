@@ -797,13 +797,37 @@ static int lapic_send_ipi_flat(unsigned int vec, cpumask_t cpumask)
 	return 0;
 }
 
+/*
+ * lapic_send_ipi_cluster:
+ * Send an IPI to a set of processors specified by `cpumask`
+ * in local APIC cluster addressing mode.
+ */
 static int lapic_send_ipi_cluster(unsigned int vec, cpumask_t cpumask)
 {
-	int cluster, ids;
+	int cluster, ids, cpu_id;
+	cpumask_t online;
 
 	if (vec < IRQ_BASE || vec > NUM_INTERRUPT_VECTORS)
 		return EINVAL;
 
+	online = cpumask_online();
+	cpumask &= online;
+	cpu_id = processor_id();
+
+	/* check for common shorthands to avoid looping through clusters */
+	if (cpumask == online) {
+		lapic_send_ipi(vec, 0, APIC_ICR_LO_SHORTHAND_ALL,
+		               APIC_INT_MODE_FIXED);
+		return 0;
+	}
+
+	if (cpumask == (online & ~(CPUMASK_CPU(cpu_id)))) {
+		lapic_send_ipi(vec, 0, APIC_ICR_LO_SHORTHAND_OTHER,
+		               APIC_INT_MODE_FIXED);
+		return 0;
+	}
+
+	/* send an ipi to the required cpus in each cluster */
 	for (cluster = 0; cpumask && cluster < 16; cpumask >>= 4, ++cluster) {
 		ids = cpumask & 0xF;
 		if (!ids)
