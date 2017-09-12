@@ -23,6 +23,7 @@
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/percpu.h>
+#include <radix/smp.h>
 
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
@@ -886,6 +887,18 @@ void bsp_init(void)
 		klog(KLOG_WARNING, "bsp_init: "
 		     "could not initialize APIC, falling back to 8259 PIC");
 	}
+	cpu_init(0);
+}
+
+void cpu_init(int ap)
+{
+	if (ap) {
+		/* TODO: shutdown cpu */
+		if (lapic_init() != 0)
+			return;
+	}
+
+	set_cpu_online(processor_id());
 }
 
 /*
