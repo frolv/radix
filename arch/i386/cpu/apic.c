@@ -769,7 +769,7 @@ static void lapic_interrupt_setup(void)
  * the set of processors addressed by dest, or the given shorthand, and the
  * specified interrupt delivery mode.
  */
-static void lapic_send_ipi(unsigned int vec, uint8_t dest,
+static void lapic_send_ipi(uint8_t vec, uint8_t dest,
                            uint32_t shorthand, uint8_t mode)
 {
 	uint32_t hi, lo;
@@ -837,6 +837,13 @@ static int lapic_send_ipi_cluster(unsigned int vec, cpumask_t cpumask)
 		lapic_send_ipi(vec, ids, 0, APIC_INT_MODE_FIXED);
 	}
 
+	return 0;
+}
+
+static int lapic_send_sipi(unsigned int vec)
+{
+	lapic_send_ipi(vec, 0, APIC_ICR_LO_SHORTHAND_OTHER,
+	               APIC_INT_MODE_STARTUP);
 	return 0;
 }
 
@@ -1054,7 +1061,8 @@ static struct pic apic = {
 	.irq_count      = 0,
 	.eoi            = apic_eoi,
 	.mask           = apic_mask,
-	.unmask         = apic_unmask
+	.unmask         = apic_unmask,
+	.send_sipi      = lapic_send_sipi
 };
 
 static void bsp_apic_fail(void)
