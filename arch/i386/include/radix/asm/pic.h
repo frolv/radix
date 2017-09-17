@@ -28,6 +28,7 @@ struct pic {
 	void            (*mask)(unsigned int);
 	void            (*unmask)(unsigned int);
 	int             (*send_ipi)(unsigned int, cpumask_t);
+	int             (*send_init)(void);
 	int             (*send_sipi)(unsigned int);
 };
 

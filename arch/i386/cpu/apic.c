@@ -840,6 +840,12 @@ static int lapic_send_ipi_cluster(unsigned int vec, cpumask_t cpumask)
 	return 0;
 }
 
+static int lapic_send_init(void)
+{
+	lapic_send_ipi(0, 0, APIC_ICR_LO_SHORTHAND_OTHER, APIC_INT_MODE_INIT);
+	return 0;
+}
+
 static int lapic_send_sipi(unsigned int vec)
 {
 	lapic_send_ipi(vec, 0, APIC_ICR_LO_SHORTHAND_OTHER,
@@ -1062,6 +1068,7 @@ static struct pic apic = {
 	.eoi            = apic_eoi,
 	.mask           = apic_mask,
 	.unmask         = apic_unmask,
+	.send_init      = lapic_send_init,
 	.send_sipi      = lapic_send_sipi
 };
 
