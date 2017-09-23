@@ -62,9 +62,10 @@ void buddy_init(struct multiboot_info *mbt);
 #define __PA_ZONE_REG   (1 << 1)        /* allocate from kernel zone */
 #define __PA_ZONE_DMA   (1 << 2)        /* allocate from DMA zone */
 #define __PA_ZONE_USR   (1 << 3)        /* allocate from user zone */
-#define __PA_NO_MAP     (1 << 4)        /* don't map pages to virtual address */
-#define __PA_ZERO       (1 << 5)        /* zero pages when allocated */
-#define __PA_READONLY   (1 << 6)        /* mark pages as readonly */
+#define __PA_ZONE_LOW   (1 << 4)        /* allocate from lowmem */
+#define __PA_NO_MAP     (1 << 5)        /* don't map pages to virtual address */
+#define __PA_ZERO       (1 << 6)        /* zero pages when allocated */
+#define __PA_READONLY   (1 << 7)        /* mark pages as readonly */
 
 /* Page allocation flags */
 #define PA_STANDARD     (__PA_ZONE_REG)
@@ -72,6 +73,7 @@ void buddy_init(struct multiboot_info *mbt);
 #define PA_DMA          (__PA_ZONE_DMA | __PA_NO_MAP)
 #define PA_USER         (__PA_ZONE_USR | __PA_NO_MAP)
 #define PA_PAGETABLE    (__PA_ZONE_REG | __PA_NO_MAP)
+#define PA_LOWMEM       (__PA_ZONE_LOW)
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);

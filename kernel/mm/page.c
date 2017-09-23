@@ -29,7 +29,9 @@
 struct page *page_map = (struct page *)PAGE_MAP_BASE;
 addr_t page_map_end = PAGE_MAP_BASE;
 
-/* First 16 MiB of memory. */
+/* First 1 MiB of physical memory. */
+static struct buddy zone_low;
+/* Physical memory under 16 MiB. */
 static struct buddy zone_dma;
 /* Memory for kernel use. */
 static struct buddy zone_reg;
@@ -104,6 +106,8 @@ void buddy_init(struct multiboot_info *mbt)
 
 	/* initialize buddy zones */
 	for (i = 0; i < PA_ORDERS; ++i) {
+		list_init(&zone_low.ord[i]);
+		zone_low.len[i] = 0;
 		list_init(&zone_dma.ord[i]);
 		zone_dma.len[i] = 0;
 		list_init(&zone_reg.ord[i]);
@@ -111,6 +115,7 @@ void buddy_init(struct multiboot_info *mbt)
 		list_init(&zone_usr.ord[i]);
 		zone_usr.len[i] = 0;
 	}
+	zone_low.max_ord = zone_low.total_pages = zone_low.alloc_pages = 0;
 	zone_dma.max_ord = zone_dma.total_pages = zone_dma.alloc_pages = 0;
 	zone_reg.max_ord = zone_reg.total_pages = zone_reg.alloc_pages = 0;
 	zone_usr.max_ord = zone_usr.total_pages = zone_usr.alloc_pages = 0;
@@ -141,6 +146,8 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 	} else if (flags & __PA_ZONE_USR) {
 		zone = &zone_usr;
 		flags |= __PA_UNMAPPABLE;
+	} else if (flags & __PA_ZONE_LOW) {
+		zone = &zone_low;
 	} else {
 		zone = &zone_reg;
 	}
@@ -508,8 +515,8 @@ static void buddy_populate(void)
 	size_t pfn;
 	const unsigned int kflags = PM_PAGE_MAPPED | PM_PAGE_RESERVED;
 
-	/* first 4 MiB are reserved for kernel usage */
-	pfn = zone_init(0, M_TO_PAGES(4), NULL, kflags);
+	pfn = zone_init(0, M_TO_PAGES(1), &zone_low, PM_PAGE_MAPPED);
+	pfn = zone_init(pfn, M_TO_PAGES(4), NULL, kflags);
 	/* addresses < 16 MiB are part of the DMA zone */
 	pfn = zone_init(pfn, M_TO_PAGES(16), &zone_dma, 0);
 	/* mark the pages in the page_map as reserved */
@@ -590,6 +597,10 @@ static size_t zone_init(size_t pfn, size_t section_end,
 		start = pfn;
 		for (; pfn < end; ++pfn) {
 			page_map[pfn].status |= flags;
+			if (flags & PM_PAGE_MAPPED)
+				page_map[pfn].mem =
+					(void *)phys_to_virt(pfn << PAGE_SHIFT);
+
 			PM_SET_MAX_ORDER(page_map + pfn, ord);
 			PM_SET_PAGE_OFFSET(page_map + pfn, pfn - start);
 		}
