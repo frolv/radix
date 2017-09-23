@@ -122,27 +122,13 @@ static int pic8259_send_ipi(__unused unsigned int vec,
 	return 0;
 }
 
-static int pic8259_send_init(void)
-{
-	/* no-op */
-	return 0;
-}
-
-static int pic8259_send_sipi(__unused unsigned int page)
-{
-	/* no-op */
-	return 0;
-}
-
 static struct pic pic8259 = {
 	.name           = "8259PIC",
 	.irq_count      = ISA_IRQ_COUNT,
 	.eoi            = pic8259_eoi,
 	.mask           = pic8259_mask,
 	.unmask         = pic8259_unmask,
-	.send_ipi       = pic8259_send_ipi,
-	.send_init      = pic8259_send_init,
-	.send_sipi      = pic8259_send_sipi
+	.send_ipi       = pic8259_send_ipi
 };
 
 void pic8259_init(void)
