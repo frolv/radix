@@ -28,6 +28,7 @@
 #define __deprecated __attribute__((deprecated))
 #define __unused __attribute__((unused))
 #define __must_check __attribute__((warn_unused_result))
+#define __packed __attribute__((packed))
 
 #define __aligned(x) __attribute__((aligned(x)))
 #define __section(x) __attribute__((section(x)))
