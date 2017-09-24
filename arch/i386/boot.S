@@ -53,6 +53,7 @@ bsp_stack_top:
 # Only takes up 32 bytes, but a whole physical page is
 # reserved for it to make recursive mapping simpler.
 .align PAGE_SIZE
+.global kernel_pdpt
 kernel_pdpt:
 	.fill 0x200, 8, 0x0
 
@@ -75,6 +76,7 @@ kernel_pgtbl:
 
 .align PAGE_SIZE
 # x86 top-level page directory.
+.global kernel_pgdir
 kernel_pgdir:
 	.fill PTRS_PER_PGDIR, 4, 0x0
 # A single page table to map the kernel's memory.
