@@ -43,4 +43,5 @@ void arch_percpu_init(void)
 	offset = __percpu_offset[processor_id()];
 	gdt_set_fsbase(offset);
 	this_cpu_write(__this_cpu_offset, offset);
+	gdt_init(offset);
 }
