@@ -66,51 +66,46 @@ static __always_inline void gdt_set(size_t entry, uint32_t base, uint32_t lim,
 	raw_cpu_write(gdt[entry], gdt_entry(base, lim, access, flags));
 }
 
+void __gdt_init(uint64_t *gdt_ptr, uint32_t *tss_ptr, uint32_t fsbase)
+{
+	uint32_t tss_base;
+
+	tss_base = (uintptr_t)tss_ptr;
+
+	tss_init(tss_ptr, 0x0, GDT_OFFSET(GDT_KERNEL_DATA));
+
+	gdt_ptr[GDT_NULL] = gdt_entry(0, 0, 0, 0);
+	gdt_ptr[GDT_KERNEL_CODE] = gdt_entry(0, 0xFFFFFFFF, 0x9A, 0x0C);
+	gdt_ptr[GDT_KERNEL_DATA] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
+	gdt_ptr[GDT_USER_CODE] = gdt_entry(0, 0xFFFFFFFF, 0xFA, 0x0C);
+	gdt_ptr[GDT_USER_DATA] = gdt_entry(0, 0xFFFFFFFF, 0xF2, 0x0C);
+	gdt_ptr[GDT_TSS] = gdt_entry(tss_base, tss_base + TSS_SIZE, 0x89, 0x04);
+	gdt_ptr[GDT_FS] = gdt_entry(fsbase, 0xFFFFFFFF, 0x92, 0x0C);
+	gdt_ptr[GDT_GS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
+
+	gdt_load(gdt_ptr, GDT_SIZE);
+	tss_load(GDT_OFFSET(GDT_TSS));
+}
+
 /*
  * gdt_init_early:
  * Populate and load a GDT for the bootstrap processor.
  */
 void gdt_init_early(void)
 {
-	uintptr_t tss_base;
-
-	tss_base = (uintptr_t)tss;
-	tss_init(&tss[0], 0x0, 0x10);
-
-	gdt[GDT_NULL] = gdt_entry(0, 0, 0, 0);
-	gdt[GDT_KERNEL_CODE] = gdt_entry(0, 0xFFFFFFFF, 0x9A, 0x0C);
-	gdt[GDT_KERNEL_DATA] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
-	gdt[GDT_USER_CODE] = gdt_entry(0, 0xFFFFFFFF, 0xFA, 0x0C);
-	gdt[GDT_USER_DATA] = gdt_entry(0, 0xFFFFFFFF, 0xF2, 0x0C);
-	gdt[GDT_TSS] = gdt_entry(tss_base, tss_base + TSS_SIZE, 0x89, 0x04);
-	gdt[GDT_FS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
-	gdt[GDT_GS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
-
-	gdt_load(gdt, GDT_SIZE);
-	tss_load(GDT_OFFSET(GDT_TSS));
+	__gdt_init(gdt, tss, 0);
 }
 
-/* gdt_init: populate and load the global descriptor table */
-void gdt_init(void)
+/* gdt_init: populate and load the global descriptor table for this cpu */
+void gdt_init(uint32_t fsbase)
 {
-	uint32_t *tss_ptr, tss_base;
+	__gdt_init(raw_cpu_ptr(gdt), raw_cpu_ptr(tss), fsbase);
+}
 
-	tss_ptr = raw_cpu_ptr(&tss[0]);
-	tss_base = (uintptr_t)tss_ptr;
-
-	tss_init(tss_ptr, 0x0, 0x10);
-
-	gdt_set(GDT_NULL, 0, 0, 0, 0);
-	gdt_set(GDT_KERNEL_CODE, 0, 0xFFFFFFFF, 0x9A, 0x0C);
-	gdt_set(GDT_KERNEL_DATA, 0, 0xFFFFFFFF, 0x92, 0x0C);
-	gdt_set(GDT_USER_CODE, 0, 0xFFFFFFFF, 0xFA, 0x0C);
-	gdt_set(GDT_USER_DATA, 0, 0xFFFFFFFF, 0xF2, 0x0C);
-	gdt_set(GDT_TSS, tss_base, tss_base + TSS_SIZE, 0x89, 0x04);
-	gdt_set(GDT_FS, 0, 0xFFFFFFFF, 0x92, 0x0C);
-	gdt_set(GDT_GS, 0, 0xFFFFFFFF, 0x92, 0x0C);
-
-	gdt_load(raw_cpu_ptr(&gdt[0]), GDT_SIZE);
-	tss_load(GDT_OFFSET(GDT_TSS));
+/* gdt_init_cpu: populate and load the GDT belonging to the given CPU number */
+void gdt_init_cpu(int cpu, uint32_t fsbase)
+{
+	__gdt_init(cpu_ptr(gdt, cpu), cpu_ptr(tss, cpu), fsbase);
 }
 
 /*

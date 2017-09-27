@@ -36,7 +36,8 @@ enum {
 #include <radix/types.h>
 
 void gdt_init_early(void);
-void gdt_init(void);
+void gdt_init(uint32_t fsbase);
+void gdt_init_cpu(int cpu, uint32_t fsbase);
 void gdt_set_initial_fsbase(uint32_t base);
 void gdt_set_fsbase(uint32_t base);
 void gdt_set_gsbase(uint32_t base);
