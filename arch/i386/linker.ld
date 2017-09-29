@@ -17,6 +17,10 @@ SECTIONS {
 		__text_start = .;
 		*(.multiboot)
 		*(.text)
+		. = ALIGN(4K);
+		__smp_tramp_start = .;
+		*(.smp_tramp)
+		__smp_tramp_end = .;
 		*(.init)
 		*(.fini)
 		. = ALIGN(4K);

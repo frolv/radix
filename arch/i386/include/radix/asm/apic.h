@@ -136,4 +136,8 @@ void lapic_error(void);
 int lapic_init(void);
 void lapic_timer_calibrate(void);
 
+int system_smp_capable(void);
+void apic_start_smp(unsigned int vector);
+void set_ap_active(void);
+
 #endif /* ARCH_I386_RADIX_APIC_H */

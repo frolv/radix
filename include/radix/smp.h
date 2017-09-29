@@ -19,6 +19,8 @@
 #ifndef RADIX_SMP_H
 #define RADIX_SMP_H
 
+#include <radix/asm/smp.h>
+
 #include <radix/cpumask.h>
 #include <radix/percpu.h>
 

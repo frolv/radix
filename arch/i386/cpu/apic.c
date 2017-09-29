@@ -43,6 +43,7 @@
 #include <rlibc/string.h>
 
 #define APIC "APIC: "
+#define SMP  "SMP: "
 
 #ifdef CONFIG_MAX_IOAPICS
 #define MAX_IOAPICS CONFIG_MAX_IOAPICS
@@ -194,8 +195,6 @@ static struct lapic_lvt lapic_lvt_default[] = {
 
 static struct lapic lapic_list[MAX_CPUS];
 static unsigned int cpus_available = 0;
-static unsigned int cpus_online = 0;
-static spinlock_t cpus_online_lock = SPINLOCK_INIT;
 
 DEFINE_PER_CPU(struct lapic *, local_apic);
 
@@ -763,18 +762,12 @@ static void lapic_interrupt_setup(void)
 	idt_set(APIC_VEC_ERROR, lapic_error, 0x08, 0x8E);
 }
 
-/*
- * lapic_send_ipi:
- * Issue an interprocessor interrupt with the specified interrupt vector to
- * the set of processors addressed by dest, or the given shorthand, and the
- * specified interrupt delivery mode.
- */
-static void lapic_send_ipi(uint8_t vec, uint8_t dest,
-                           uint32_t shorthand, uint8_t mode)
+static void __lapic_send_ipi(uint8_t vec, uint8_t dest, uint32_t destmode,
+                             uint32_t shorthand, uint8_t mode)
 {
 	uint32_t hi, lo;
 
-	lo = APIC_ICR_LO_LEVEL_ASSERT | APIC_ICR_LO_DESTMODE_LOGICAL | vec;
+	lo = APIC_ICR_LO_LEVEL_ASSERT | destmode | vec;
 	lo |= (uint32_t)mode << APIC_ICR_LO_DELMODE_SHIFT;
 	hi = 0;
 
@@ -786,6 +779,30 @@ static void lapic_send_ipi(uint8_t vec, uint8_t dest,
 	lapic_reg_write(APIC_REG_ICR_HI, hi);
 	barrier();
 	lapic_reg_write(APIC_REG_ICR_LO, lo);
+}
+
+/*
+ * lapic_send_ipi:
+ * Issue an interprocessor interrupt with the specified interrupt vector to
+ * the set of processors addressed by dest, or the given shorthand, and the
+ * specified interrupt delivery mode.
+ */
+static void lapic_send_ipi(uint8_t vec, uint8_t dest,
+                           uint32_t shorthand, uint8_t mode)
+{
+	__lapic_send_ipi(vec, dest, APIC_ICR_LO_DESTMODE_LOGICAL,
+                         shorthand, mode);
+}
+
+/*
+ * lapic_send_ipi_phys:
+ * Issue an interprocessor interrupt with the specified vector to a single
+ * processor identified by `lapic_id`.
+ */
+static void lapic_send_ipi_phys(uint8_t vec, uint8_t lapic_id,
+                                uint32_t shorthand, uint8_t mode)
+{
+	__lapic_send_ipi(vec, lapic_id, 0, shorthand, mode);
 }
 
 static int lapic_send_ipi_flat(unsigned int vec, cpumask_t cpumask)
@@ -850,10 +867,7 @@ int lapic_init(void)
 	int cpu_number;
 	uint32_t logical_id, ver;
 
-	spin_lock(&cpus_online_lock);
-	cpu_number = cpus_online++;
-	spin_unlock(&cpus_online_lock);
-	this_cpu_write(processor_id, cpu_number);
+	cpu_number = this_cpu_read(processor_id);
 
 	lapic_enable(lapic_phys_base);
 	lapic = find_cpu_lapic();
@@ -1094,4 +1108,64 @@ int bsp_apic_init(void)
 	irq_enable();
 
 	return 0;
+}
+
+/* system_smp_capable: return whether the system can run SMP */
+int system_smp_capable(void)
+{
+	return this_cpu_read(local_apic) && cpus_available > 1;
+}
+
+static int ap_active;
+
+void set_ap_active(void)
+{
+	ap_active = 1;
+}
+
+/*
+ * apic_start_smp:
+ * Initialize all application processors in the system, one by one.
+ */
+void apic_start_smp(unsigned int vector)
+{
+	unsigned int apic, cpu_number;
+	uint64_t start, timeout;
+	int retry;
+
+	klog(KLOG_INFO, SMP "starting smp boot sequence");
+	lapic_send_ipi(0, 0, APIC_ICR_LO_SHORTHAND_OTHER, APIC_INT_MODE_INIT);
+	timeout = NSEC_PER_MSEC;
+
+	start = time_ns();
+	while (time_ns() - start < 10 * NSEC_PER_MSEC)
+		;
+
+	cpu_number = 1;
+	for (apic = 1; apic < cpus_available; ++apic) {
+		ap_active = 0;
+		retry = 1;
+		prepare_ap_boot(cpu_number);
+		start = time_ns();
+
+send_sipi:
+		lapic_send_ipi_phys(vector, lapic_list[apic].id, 0,
+		                    APIC_INT_MODE_STARTUP);
+
+		while (!ap_active && time_ns() - start < timeout)
+			;
+
+		if (!ap_active) {
+			if (retry) {
+				retry = 0;
+				goto send_sipi;
+			} else {
+				klog(KLOG_ERROR,
+				     SMP "failed to start cpu with apic id %u",
+				     lapic_list[apic].id);
+			}
+		} else {
+			++cpu_number;
+		}
+	}
 }
