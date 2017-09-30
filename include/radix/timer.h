@@ -44,6 +44,7 @@ struct timer {
 #define TIMER_ENABLED   (1 << 0)
 #define TIMER_RUNNING   (1 << 1)
 #define TIMER_EMULATED  (1 << 2)
+#define TIMER_PERCPU    (1 << 3)
 
 extern struct timer *system_timer;
 

@@ -956,7 +956,7 @@ static int lapic_timer_disable(void)
 static struct irq_timer lapic_timer = {
 	.schedule_irq   = lapic_timer_schedule_irq,
 	.max_ticks      = 0xFFFFFFFF,
-	.flags          = 0,
+	.flags          = TIMER_PERCPU,
 	.enable         = lapic_timer_enable,
 	.disable        = lapic_timer_disable,
 	.name           = "lapic_timer"
