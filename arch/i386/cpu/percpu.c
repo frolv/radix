@@ -33,15 +33,23 @@ void arch_percpu_init_early(void)
 
 /*
  * arch_percpu_init:
- * Complete per-CPU initialization by setting the BSP's fsbase to
- * its newly allocated per-CPU section offset.
+ * Initialize all architecture-specific per-CPU variables.
  */
-void arch_percpu_init(void)
+void arch_percpu_init(int ap)
 {
 	addr_t offset;
 
 	offset = __percpu_offset[processor_id()];
-	gdt_set_fsbase(offset);
-	this_cpu_write(__this_cpu_offset, offset);
-	gdt_init(offset);
+
+	if (ap) {
+		this_cpu_write(__this_cpu_offset, offset);
+	} else {
+		/*
+		 * Complete BSP per-CPU initialization by setting its
+		 * fsbase to its newly allocated per-CPU section offset.
+		 */
+		gdt_set_fsbase(offset);
+		this_cpu_write(__this_cpu_offset, offset);
+		gdt_init(offset);
+	}
 }
