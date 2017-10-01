@@ -219,6 +219,9 @@ int set_irq_timer(struct irq_timer *irqt)
 	if (!irqt)
 		return 1;
 
+	if (sys_irq_timer == irqt)
+		return 0;
+
 	if (!irqt->mult)
 		__calc_mult_shift(&irqt->mult, &irqt->shift, NSEC_PER_SEC,
 				  irqt->frequency, 60);
