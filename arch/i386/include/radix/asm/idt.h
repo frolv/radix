@@ -24,6 +24,7 @@
 #define IDT_ENTRIES 256
 
 void idt_init_early(void);
+void idt_init(void);
 void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags);
 
 #endif /* ARCH_I386_RADIX_IDT_H */

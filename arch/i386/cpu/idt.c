@@ -52,7 +52,7 @@ void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags)
 
 void idt_init(void)
 {
-	/* TODO? */
+	idt_load(idt, sizeof idt);
 }
 
 /*
