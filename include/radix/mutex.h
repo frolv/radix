@@ -20,12 +20,14 @@
 #define RADIX_MUTEX_H
 
 #include <radix/list.h>
+#include <radix/spinlock.h>
 
-#define MUTEX_INIT(name) { 0, LIST_INIT((name).queue) }
+#define MUTEX_INIT(name) { 0, LIST_INIT((name).queue), SPINLOCK_INIT }
 
 struct mutex {
 	int             count;
 	struct list     queue;
+	spinlock_t      lock;
 };
 
 void mutex_init(struct mutex *m);

@@ -26,6 +26,7 @@ void mutex_init(struct mutex *m)
 {
 	m->count = 0;
 	list_init(&m->queue);
+	spin_init(&m->lock);
 }
 
 /*
@@ -42,16 +43,15 @@ void mutex_lock(struct mutex *m)
 		return;
 
 	while (atomic_swap(&m->count, 1) != 0) {
-		/*
-		 * TODO: this needs to be spinlocked
-		 * when multiprocessing is added
-		 */
-		irq_save(irqstate);
 		curr = current_task();
-		curr->state = TASK_BLOCKED;
-		list_ins(&m->queue, &curr->queue);
-		schedule(1);
-		irq_restore(irqstate);
+		/* if there is no current task, functions as a spinlock */
+		if (curr) {
+			curr->state = TASK_BLOCKED;
+			spin_lock_irq(&m->lock, &irqstate);
+			list_ins(&m->queue, &curr->queue);
+			spin_unlock_irq(&m->lock, irqstate);
+			schedule(1);
+		}
 	}
 }
 
@@ -66,12 +66,11 @@ void mutex_unlock(struct mutex *m)
 
 	m->count = 0;
 
-	/* TODO: this needs to be spinlocked when multiprocessing is added */
-	irq_save(irqstate);
+	spin_lock_irq(&m->lock, &irqstate);
 	if (!list_empty(&m->queue)) {
 		next = list_first_entry(&m->queue, struct task, queue);
 		list_del(&next->queue);
 		sched_unblock(next);
 	}
-	irq_restore(irqstate);
+	spin_unlock_irq(&m->lock, irqstate);
 }
