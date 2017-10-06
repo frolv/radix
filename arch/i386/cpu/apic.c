@@ -1023,8 +1023,8 @@ void lapic_timer_calibrate(void)
 	lapic_timer.frequency += (USEC_PER_SEC * 100) / 2;
 	lapic_timer.frequency -= lapic_timer.frequency % (USEC_PER_SEC * 100);
 
-	klog(KLOG_INFO, APIC "lapic timer frequency %llu MHz",
-	     lapic_timer.frequency / USEC_PER_SEC);
+	klog(KLOG_INFO, APIC "CPU%d lapic timer frequency %llu MHz",
+	     processor_id(), lapic_timer.frequency / USEC_PER_SEC);
 
 	set_irq_timer(&lapic_timer);
 }

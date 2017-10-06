@@ -17,6 +17,7 @@
  */
 
 #include <radix/asm/apic.h>
+#include <radix/asm/idt.h>
 
 #include <radix/compiler.h>
 #include <radix/cpu.h>
@@ -91,8 +92,8 @@ void arch_smp_boot(void)
 
 	apic_start_smp(page_to_pfn(smp_tramp));
 
-	free_pages(smp_tramp);
 	unmap_page(smp_tramp_start);
+	free_pages(smp_tramp);
 }
 
 void prepare_ap_boot(int cpu_number)
@@ -115,10 +116,14 @@ void ap_entry(void)
 	int cpu;
 	struct page *p;
 	void *stack_top;
+	addr_t offset;
 
 	cpu = ap_boot_info.cpu_number;
-	gdt_init_cpu(cpu, __percpu_offset[cpu]);
+	offset = __percpu_offset[cpu];
+
+	gdt_init_cpu(cpu, offset);
 	this_cpu_write(processor_id, cpu);
+	this_cpu_write(__this_cpu_offset, offset);
 
 	p = alloc_pages(PA_STANDARD, 2);
 	stack_top = p->mem + 4 * PAGE_SIZE;
@@ -140,4 +145,9 @@ void ap_init(void)
 	 * and synchronization is necessary.
 	 */
 	set_ap_active();
+
+	read_cpu_info();
+	cpu_init(1);
+	percpu_init(1);
+	idt_init();
 }

@@ -39,15 +39,14 @@ void arch_percpu_init(int ap)
 {
 	addr_t offset;
 
-	offset = __percpu_offset[processor_id()];
-
 	if (ap) {
-		this_cpu_write(__this_cpu_offset, offset);
+		/* TODO */
 	} else {
 		/*
 		 * Complete BSP per-CPU initialization by setting its
 		 * fsbase to its newly allocated per-CPU section offset.
 		 */
+		offset = __percpu_offset[processor_id()];
 		gdt_set_fsbase(offset);
 		this_cpu_write(__this_cpu_offset, offset);
 		gdt_init(offset);

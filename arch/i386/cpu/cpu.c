@@ -896,6 +896,8 @@ void cpu_init(int ap)
 		/* TODO: shutdown cpu */
 		if (lapic_init() != 0)
 			return;
+
+		lapic_timer_calibrate();
 	}
 
 	set_cpu_online(processor_id());

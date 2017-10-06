@@ -52,6 +52,8 @@ int cpu_supports(uint64_t features);
 #define __arch_cache_line_size()        i386_cache_line_size()
 #define __arch_cache_str()              i386_cache_str()
 
+void read_cpu_info(void);
+
 void bsp_init(void);
 void cpu_init(int ap);
 
