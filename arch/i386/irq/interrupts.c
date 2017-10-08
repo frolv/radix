@@ -1,5 +1,5 @@
 /*
- * arch/i386/cpu/interrupts.c
+ * arch/i386/irq/interrupts.c
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify

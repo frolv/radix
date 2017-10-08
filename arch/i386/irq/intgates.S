@@ -1,5 +1,5 @@
 #
-# arch/i386/cpu/interrupts.S
+# arch/i386/irq/intgates.S
 # Copyright (C) 2017 Alexei Frolov
 #
 # This program is free software: you can redistribute it and/or modify
