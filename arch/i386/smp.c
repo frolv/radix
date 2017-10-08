@@ -17,6 +17,7 @@
  */
 
 #include <radix/asm/apic.h>
+#include <radix/asm/gdt.h>
 #include <radix/asm/idt.h>
 
 #include <radix/compiler.h>
@@ -27,8 +28,6 @@
 #include <radix/smp.h>
 
 #include <rlibc/string.h>
-
-#include "cpu/gdt.h"
 
 extern int __smp_tramp_start;
 extern int __smp_tramp_end;

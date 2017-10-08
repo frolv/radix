@@ -17,6 +17,7 @@
  */
 
 #include <radix/asm/apic.h>
+#include <radix/asm/gdt.h>
 #include <radix/asm/idt.h>
 
 #include <radix/cpu.h>
@@ -27,8 +28,6 @@
 
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
-
-#include "gdt.h"
 
 struct cpu_cache {
 	/* id[0..3]: level; id[4..7]: type */

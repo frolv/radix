@@ -16,12 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/gdt.h>
 #include <radix/asm/regs.h>
+
 #include <radix/compiler.h>
 #include <radix/kernel.h>
 
 #include "exceptions.h"
-#include "gdt.h"
 
 #define user_mode(regs) ((regs)->cs == GDT_OFFSET(GDT_USER_CODE))
 

@@ -16,10 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/gdt.h>
+
 #include <radix/percpu.h>
 #include <radix/smp.h>
-
-#include "gdt.h"
 
 #define BOOT_PERCPU_OFFSET 0
 

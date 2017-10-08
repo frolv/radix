@@ -16,13 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/gdt.h>
+
 #include <radix/compiler.h>
 #include <radix/irq.h>
 #include <radix/percpu.h>
 
 #include <rlibc/string.h>
-
-#include "gdt.h"
 
 DEFINE_PER_CPU(uint64_t, gdt[8]);
 DEFINE_PER_CPU(uint32_t, tss[26]);
@@ -66,7 +66,7 @@ static __always_inline void gdt_set(size_t entry, uint32_t base, uint32_t lim,
 	raw_cpu_write(gdt[entry], gdt_entry(base, lim, access, flags));
 }
 
-void __gdt_init(uint64_t *gdt_ptr, uint32_t *tss_ptr, uint32_t fsbase)
+static void __gdt_init(uint64_t *gdt_ptr, uint32_t *tss_ptr, uint32_t fsbase)
 {
 	uint32_t tss_base;
 

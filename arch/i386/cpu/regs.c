@@ -16,12 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/gdt.h>
 #include <radix/asm/regs.h>
+
 #include <radix/cpu.h>
 #include <radix/kthread.h>
 #include <radix/mm_types.h>
-
-#include "gdt.h"
 
 /*
  * Setup stack and registers for a kthread to execute function func
