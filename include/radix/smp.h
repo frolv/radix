@@ -43,4 +43,11 @@ DECLARE_PER_CPU(int, processor_id);
 cpumask_t cpumask_online(void);
 void set_cpu_online(unsigned int cpu);
 
+#ifdef CONFIG_SMP
+void smp_init(void);
+void arch_smp_boot(void);
+#else
+#define smp_init()
+#endif /* CONFIG_SMP */
+
 #endif /* RADIX_SMP_H */

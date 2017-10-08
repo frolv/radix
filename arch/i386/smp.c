@@ -29,6 +29,8 @@
 
 #include <rlibc/string.h>
 
+#ifdef CONFIG_SMP
+
 extern int __smp_tramp_start;
 extern int __smp_tramp_end;
 
@@ -150,3 +152,5 @@ void ap_init(void)
 	percpu_init(1);
 	idt_init();
 }
+
+#endif /* CONFIG_SMP */

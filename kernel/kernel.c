@@ -25,13 +25,12 @@
 #include <radix/mm.h>
 #include <radix/multiboot.h>
 #include <radix/percpu.h>
+#include <radix/smp.h>
 #include <radix/tasking.h>
 #include <radix/version.h>
 #include <radix/vmm.h>
 
 #include "mm/slab.h"
-
-#include <radix/time.h>
 
 /* kernel entry point */
 int kmain(struct multiboot_info *mbt)
@@ -50,6 +49,8 @@ int kmain(struct multiboot_info *mbt)
 
 	tasking_init();
 	irq_enable();
+
+	smp_init();
 
 	/* temporary stuff below */
 	extern void kbd_install(void);

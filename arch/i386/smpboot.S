@@ -19,6 +19,8 @@
 #include <radix/assembler.h>
 #include <radix/asm/page_defs.h>
 
+#ifdef CONFIG_SMP
+
 .set KERNEL_VIRTUAL_BASE, 0xC0000000
 
 .section .bootstrap_stack, "aw", @nobits
@@ -120,3 +122,5 @@ BEGIN_FUNC(ap_switch_stack)
 	hlt
 	jmp 1b
 END_FUNC(ap_switch_stack)
+
+#endif /* CONFIG_SMP */

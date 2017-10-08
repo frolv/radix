@@ -1110,6 +1110,8 @@ int bsp_apic_init(void)
 	return 0;
 }
 
+#ifdef CONFIG_SMP
+
 /* system_smp_capable: return whether the system can run SMP */
 int system_smp_capable(void)
 {
@@ -1169,3 +1171,5 @@ send_sipi:
 		}
 	}
 }
+
+#endif /* CONFIG_SMP */
