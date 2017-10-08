@@ -21,6 +21,7 @@
 
 #include <radix/cpu.h>
 #include <radix/error.h>
+#include <radix/ipi.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/slab.h>
@@ -253,6 +254,9 @@ void interrupt_init(void)
 	irq_descriptors[APIC_VEC_THERMAL].flags |= IRQ_RESERVED;
 	irq_descriptors[APIC_VEC_CMCI].flags |= IRQ_RESERVED;
 	irq_descriptors[APIC_VEC_SPURIOUS].flags |= IRQ_RESERVED;
+
+	irq_descriptors[IPI_VEC_TLB_SHOOTDOWN].flags |= IRQ_RESERVED;
+	irq_descriptors[IPI_VEC_TIMER_ACTION].flags |= IRQ_RESERVED;
 
 	next_shared_vector = IRQ_BASE + system_pic->irq_count;
 }
