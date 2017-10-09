@@ -1064,11 +1064,11 @@ static void apic_unmask(unsigned int irq)
 }
 
 static struct pic apic = {
-	.name           = "APIC",
-	.irq_count      = 0,
 	.eoi            = apic_eoi,
 	.mask           = apic_mask,
-	.unmask         = apic_unmask
+	.unmask         = apic_unmask,
+	.irq_count      = 0,
+	.name           = "APIC"
 };
 
 static void bsp_apic_fail(void)

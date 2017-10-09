@@ -123,12 +123,12 @@ static int pic8259_send_ipi(__unused unsigned int vec,
 }
 
 static struct pic pic8259 = {
-	.name           = "8259PIC",
-	.irq_count      = ISA_IRQ_COUNT,
 	.eoi            = pic8259_eoi,
+	.send_ipi       = pic8259_send_ipi,
 	.mask           = pic8259_mask,
 	.unmask         = pic8259_unmask,
-	.send_ipi       = pic8259_send_ipi
+	.irq_count      = ISA_IRQ_COUNT,
+	.name           = "8259PIC"
 };
 
 void pic8259_init(void)

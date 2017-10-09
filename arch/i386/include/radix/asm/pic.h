@@ -22,12 +22,12 @@
 #include <radix/cpumask.h>
 
 struct pic {
-	char            name[16];
-	unsigned int    irq_count;
 	void            (*eoi)(unsigned int);
+	int             (*send_ipi)(unsigned int, cpumask_t);
 	void            (*mask)(unsigned int);
 	void            (*unmask)(unsigned int);
-	int             (*send_ipi)(unsigned int, cpumask_t);
+	unsigned int    irq_count;
+	char            name[16];
 };
 
 extern struct pic *system_pic;
