@@ -243,24 +243,6 @@ interrupt_common:
 	iret
 
 
-# special interrupt vectors
-
-BEGIN_FUNC(lapic_error)
-	pushl $lapic_error_handler
-	jmp irq_noargs_common
-END_FUNC(lapic_error)
-
-irq_noargs_common:
-	incl THIS_CPU_VAR(interrupt_depth)
-	BUILD_STRUCT_REGS 4
-	movl 64(%esp), %eax
-	cld
-	call *%eax
-	POP_STRUCT_REGS
-	addl $4, %esp
-	decl THIS_CPU_VAR(interrupt_depth)
-	iret
-
 #
 # The interrupt used by radix's event system.
 # Unlike the interrupts above, this may result in a context switch and should
@@ -339,3 +321,51 @@ BEGIN_FUNC(event_irq)
 	decl THIS_CPU_VAR(interrupt_depth)
 	iret
 END_FUNC(event_irq)
+
+
+# special interrupt vectors
+
+BEGIN_FUNC(lapic_error)
+	pushl $lapic_error_handler
+	jmp irq_noargs_common
+END_FUNC(lapic_error)
+
+irq_noargs_common:
+	incl THIS_CPU_VAR(interrupt_depth)
+	BUILD_STRUCT_REGS 4
+	movl 64(%esp), %eax
+	cld
+	call *%eax
+	POP_STRUCT_REGS
+	addl $4, %esp
+	decl THIS_CPU_VAR(interrupt_depth)
+	iret
+
+
+# IPI vectors
+
+# TLB shootdown gate
+BEGIN_FUNC(tlb_shootdown)
+	cli
+	push %eax
+	push %edx
+
+	# send EOI to APIC
+	movl system_pic, %eax
+	movl (%eax), %edx
+	push $0
+	call *%edx
+	addl $4, %esp
+
+	# TODO
+
+	pop %edx
+	pop %eax
+	iret
+END_FUNC(tlb_shootdown)
+
+BEGIN_FUNC(timer_action)
+	cli
+	pushl $timer_action_handler
+	jmp irq_noargs_common
+END_FUNC(timer_action)
