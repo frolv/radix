@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/radix/asm/ipi.h
+ * arch/i386/irq/ipi.c
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,14 +16,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_RADIX_IPI_H
-#define ARCH_I386_RADIX_IPI_H
+#include <radix/asm/idt.h>
+#include <radix/asm/pic.h>
 
-#define IPI_VEC_TLB_SHOOTDOWN   0xF0
-#define IPI_VEC_TIMER_ACTION    0xF1
+#include <radix/ipi.h>
+#include <radix/smp.h>
 
-#define __arch_send_timer_ipi i386_send_timer_ipi
+void tlb_shootdown(void);
+void timer_action(void);
 
-void i386_send_timer_ipi(void);
+void arch_ipi_init(void)
+{
+	idt_set(IPI_VEC_TLB_SHOOTDOWN, tlb_shootdown, 0x08, 0x8E);
+	idt_set(IPI_VEC_TIMER_ACTION, timer_action, 0x08, 0x8E);
+}
 
-#endif /* ARCH_I386_RADIX_IPI_H */
+void i386_send_timer_ipi(void)
+{
+	system_pic->send_ipi(IPI_VEC_TIMER_ACTION, CPUMASK_ALL_OTHER);
+}
+
+void timer_action_handler(void)
+{
+	system_pic->eoi(IPI_VEC_TIMER_ACTION);
+}

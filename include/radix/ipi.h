@@ -23,4 +23,9 @@
 
 #include <radix/cpumask.h>
 
+#define send_timer_ipi __arch_send_timer_ipi
+
+void ipi_init(void);
+void arch_ipi_init(void);
+
 #endif /* RADIX_IPI_H */

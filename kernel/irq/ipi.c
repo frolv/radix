@@ -1,5 +1,5 @@
 /*
- * arch/i386/include/radix/asm/ipi.h
+ * kernel/irq/ipi.c
  * Copyright (C) 2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,14 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARCH_I386_RADIX_IPI_H
-#define ARCH_I386_RADIX_IPI_H
+#include <radix/ipi.h>
 
-#define IPI_VEC_TLB_SHOOTDOWN   0xF0
-#define IPI_VEC_TIMER_ACTION    0xF1
-
-#define __arch_send_timer_ipi i386_send_timer_ipi
-
-void i386_send_timer_ipi(void);
-
-#endif /* ARCH_I386_RADIX_IPI_H */
+void ipi_init(void)
+{
+	arch_ipi_init();
+}
