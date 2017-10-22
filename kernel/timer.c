@@ -17,8 +17,10 @@
  */
 
 #include <radix/event.h>
+#include <radix/ipi.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
+#include <radix/smp.h>
 #include <radix/spinlock.h>
 #include <radix/time.h>
 #include <radix/timer.h>
@@ -33,6 +35,24 @@ static struct irq_timer *sys_irq_timer = NULL;
 
 static spinlock_t time_ns_lock = SPINLOCK_INIT;
 static uint64_t ns_since_boot = 0;
+
+enum {
+	TIMER_ACTION_ENABLE,
+	TIMER_ACTION_DISABLE,
+	TIMER_ACTION_UPDATE
+};
+
+#define TIMER_ACTION_IRQ_TIMER (1 << 31)
+
+static struct {
+	int             action;
+	void            *timer;
+	void            *new_timer;
+	cpumask_t	mask;
+} timer_action;
+
+static void send_timer_action(int sync);
+
 
 static uint64_t time_ns_timer(void)
 {
@@ -148,7 +168,22 @@ static void timer_list_add(struct timer *timer)
  */
 static void update_system_timer(struct timer *timer)
 {
+	if ((timer->flags & TIMER_PERCPU) &&
+	    (system_timer->flags & TIMER_PERCPU)) {
+		timer_action.action = TIMER_ACTION_UPDATE;
+		timer_action.timer = system_timer;
+		timer_action.new_timer = timer;
+		send_timer_action(1);
+		return;
+	}
+
 	if (!(timer->flags & TIMER_ENABLED)) {
+		if (timer->flags & TIMER_PERCPU) {
+			timer_action.action = TIMER_ACTION_ENABLE;
+			timer_action.timer = timer;
+			send_timer_action(1);
+		}
+
 		if (timer->enable() != 0) {
 			klog(KLOG_WARNING, TIMER "failed to enable timer %s",
 			     timer->name);
@@ -158,6 +193,13 @@ static void update_system_timer(struct timer *timer)
 
 	if (system_timer) {
 		timer_accumulate();
+
+		if (system_timer->flags & TIMER_PERCPU) {
+			timer_action.action = TIMER_ACTION_DISABLE;
+			timer_action.timer = system_timer;
+			send_timer_action(1);
+		}
+
 		timekeeping_event_update(timer->max_ns / 2);
 		if (system_timer->flags & TIMER_RUNNING)
 			system_timer->stop();
@@ -243,4 +285,27 @@ int set_irq_timer(struct irq_timer *irqt)
 
 	sys_irq_timer = irqt;
 	return 0;
+}
+
+/*
+ * send_timer_action:
+ * Send a timer action IPI to all other processors in the system.
+ * If `sync` is set, wait for all other processors to handle the
+ * IPI before continuing current execution.
+ */
+static void send_timer_action(int sync)
+{
+	cpumask_t online;
+
+	timer_action.mask = CPUMASK_SELF;
+	send_timer_ipi();
+
+	if (!sync)
+		return;
+
+	while (1) {
+		online = cpumask_online();
+		if ((timer_action.mask & online) == online)
+			break;
+	}
 }
