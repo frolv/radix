@@ -162,6 +162,27 @@ static void timer_list_add(struct timer *timer)
 	list_ins(&system_timer_list, &timer->timer_list);
 }
 
+static int timer_enable(struct timer *timer)
+{
+	int err;
+
+	if ((err = timer->enable()) != 0)
+		return err;
+
+	if (!(timer->flags & TIMER_RUNNING))
+		timer->start();
+
+	return 0;
+}
+
+static void timer_disable(struct timer *timer)
+{
+	if (timer->flags & TIMER_RUNNING)
+		timer->stop();
+	if (timer->flags & TIMER_ENABLED)
+		timer->disable();
+}
+
 /*
  * update_system_timer:
  * Switch the system timer to the specified timer.
@@ -184,7 +205,7 @@ static void update_system_timer(struct timer *timer)
 			send_timer_action(1);
 		}
 
-		if (timer->enable() != 0) {
+		if (timer_enable(timer) != 0) {
 			klog(KLOG_WARNING, TIMER "failed to enable timer %s",
 			     timer->name);
 			return;
@@ -201,14 +222,8 @@ static void update_system_timer(struct timer *timer)
 		}
 
 		timekeeping_event_update(timer->max_ns / 2);
-		if (system_timer->flags & TIMER_RUNNING)
-			system_timer->stop();
-		if (system_timer->flags & TIMER_ENABLED)
-			system_timer->disable();
+		timer_disable(system_timer);
 	}
-
-	if (!(timer->flags & TIMER_RUNNING))
-		timer->start();
 
 	system_timer = timer;
 	klog(KLOG_INFO, TIMER "system timer switched to %s", timer->name);
