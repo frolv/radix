@@ -42,6 +42,7 @@ enum {
 	TIMER_ACTION_UPDATE
 };
 
+#define TIMER_ACTION_FAILED    (1 << 30)
 #define TIMER_ACTION_IRQ_TIMER (1 << 31)
 
 static struct {
@@ -51,7 +52,7 @@ static struct {
 	cpumask_t	mask;
 } timer_action;
 
-static void send_timer_action(int sync);
+static void send_timer_action(void);
 
 
 static uint64_t time_ns_timer(void)
@@ -194,7 +195,7 @@ static void update_system_timer(struct timer *timer)
 		timer_action.action = TIMER_ACTION_UPDATE;
 		timer_action.timer = system_timer;
 		timer_action.new_timer = timer;
-		send_timer_action(1);
+		send_timer_action();
 		return;
 	}
 
@@ -202,7 +203,7 @@ static void update_system_timer(struct timer *timer)
 		if (timer->flags & TIMER_PERCPU) {
 			timer_action.action = TIMER_ACTION_ENABLE;
 			timer_action.timer = timer;
-			send_timer_action(1);
+			send_timer_action();
 		}
 
 		if (timer_enable(timer) != 0) {
@@ -218,7 +219,7 @@ static void update_system_timer(struct timer *timer)
 		if (system_timer->flags & TIMER_PERCPU) {
 			timer_action.action = TIMER_ACTION_DISABLE;
 			timer_action.timer = system_timer;
-			send_timer_action(1);
+			send_timer_action();
 		}
 
 		timekeeping_event_update(timer->max_ns / 2);
@@ -305,20 +306,19 @@ int set_irq_timer(struct irq_timer *irqt)
 /*
  * send_timer_action:
  * Send a timer action IPI to all other processors in the system.
- * If `sync` is set, wait for all other processors to handle the
- * IPI before continuing current execution.
  */
-static void send_timer_action(int sync)
+static void send_timer_action(void)
 {
 	cpumask_t online;
 
 	timer_action.mask = CPUMASK_SELF;
 	send_timer_ipi();
 
-	if (!sync)
-		return;
-
 	while (1) {
+		if (timer_action.action & TIMER_ACTION_FAILED) {
+			/* TODO: handle failure cases */
+		}
+
 		online = cpumask_online();
 		if ((timer_action.mask & online) == online)
 			break;
