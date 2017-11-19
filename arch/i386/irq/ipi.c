@@ -21,6 +21,7 @@
 
 #include <radix/ipi.h>
 #include <radix/smp.h>
+#include <radix/timer.h>
 
 void tlb_shootdown(void);
 void timer_action(void);
@@ -39,4 +40,5 @@ void i386_send_timer_ipi(void)
 void timer_action_handler(void)
 {
 	system_pic->eoi(IPI_VEC_TIMER_ACTION);
+	handle_timer_action();
 }

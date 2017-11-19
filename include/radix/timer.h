@@ -68,4 +68,6 @@ struct irq_timer {
 struct irq_timer *system_irq_timer(void);
 int set_irq_timer(struct irq_timer *irqt);
 
+void handle_timer_action(void);
+
 #endif /* RADIX_TIMER_H */

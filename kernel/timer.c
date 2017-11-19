@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/cpu.h>
 #include <radix/event.h>
 #include <radix/ipi.h>
 #include <radix/kernel.h>
@@ -215,11 +216,11 @@ static int enable_percpu_timer(struct timer *timer)
 	/* wait for all other CPUs to complete the action */
 	while (1) {
 		online = cpumask_online();
-		if ((timer_action.mask & online) == online) {
-			timer_action.state |= TIMER_ACTION_COMPLETE;
+		if ((timer_action.mask & online) == online)
 			break;
-		}
 	}
+
+	timer_action.state |= TIMER_ACTION_COMPLETE;
 
 	/*
 	 * During normal system operation, we can assume that a timer change
@@ -352,4 +353,48 @@ int set_irq_timer(struct irq_timer *irqt)
 
 	sys_irq_timer = irqt;
 	return 0;
+}
+
+/*
+ * handle_timer_action:
+ * Handler for the timer action IPI. Called by all CPUs in
+ * the system except for the one issuing the action.
+ * There are three types of timer actions, all of which can
+ * apply to either a system timer or an IRQ timer.
+ *
+ * UPDATE       Replace a running per-CPU timer with a new per-CPU timer
+ * ENABLE       Enable a per-CPU timer
+ * DISABLE      Disable a per-CPU timer
+ */
+void handle_timer_action(void)
+{
+	if (timer_action.action & TIMER_ACTION_IRQ_TIMER) {
+		/* TODO: add timer actions for IRQ timers */
+		switch (timer_action.action & 0xF) {
+		case TIMER_ACTION_UPDATE:
+			/* fallthrough */
+		case TIMER_ACTION_ENABLE:
+			break;
+		case TIMER_ACTION_DISABLE:
+			break;
+		}
+	} else {
+		switch (timer_action.action & 0xF) {
+		case TIMER_ACTION_UPDATE:
+			timer_disable(timer_action.timer);
+			/* fallthrough */
+		case TIMER_ACTION_ENABLE:
+			if (timer_enable(timer_action.timer) != 0)
+				timer_action.state |= TIMER_ACTION_FAILED;
+			break;
+		case TIMER_ACTION_DISABLE:
+			timer_disable(timer_action.timer);
+			break;
+		}
+	}
+
+	timer_action.mask |= CPUMASK_SELF;
+
+	while (!(timer_action.state & TIMER_ACTION_COMPLETE))
+		cpu_pause();
 }
