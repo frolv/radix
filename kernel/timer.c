@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/event.h>
 #include <radix/ipi.h>
@@ -196,14 +197,29 @@ static void timer_disable(struct timer *timer)
 }
 
 /*
+ * __timer_action_wait:
+ * Wait for all other CPUs to complete a timer action.
+ */
+static __always_inline void __timer_action_wait(void)
+{
+	cpumask_t online;
+
+	while (1) {
+		online = cpumask_online();
+		if ((timer_action.mask & online) == online)
+			break;
+	}
+
+	timer_action.state |= TIMER_ACTION_COMPLETE;
+}
+
+/*
  * enable_percpu_timer:
  * Go through the process of enabling a timer source across all CPUs.
  * Returns 1 if any of the CPUs failed to enable the timer.
  */
 static int enable_percpu_timer(struct timer *timer)
 {
-	cpumask_t online;
-
 	timer_action.action = TIMER_ACTION_ENABLE;
 	timer_action.state = 0;
 	timer_action.timer = timer;
@@ -213,14 +229,7 @@ static int enable_percpu_timer(struct timer *timer)
 	if (timer_enable(timer) != 0)
 		timer_action.state |= TIMER_ACTION_FAILED;
 
-	/* wait for all other CPUs to complete the action */
-	while (1) {
-		online = cpumask_online();
-		if ((timer_action.mask & online) == online)
-			break;
-	}
-
-	timer_action.state |= TIMER_ACTION_COMPLETE;
+	__timer_action_wait();
 
 	/*
 	 * During normal system operation, we can assume that a timer change
@@ -239,20 +248,58 @@ static int enable_percpu_timer(struct timer *timer)
 }
 
 /*
+ * disable_percpu_timer:
+ * Disable a per-CPU timer source across all processors in the system.
+ */
+static void disable_percpu_timer(struct timer *timer)
+{
+	timer_action.action = TIMER_ACTION_DISABLE;
+	timer_action.state = 0;
+	timer_action.timer = timer;
+	timer_action.mask = CPUMASK_SELF;
+	send_timer_ipi();
+
+	timer_disable(timer);
+	__timer_action_wait();
+}
+
+/*
+ * update_percpu_timer:
+ * Switch from one per-CPU timer to another, disabling the old one
+ * and enabling the new across all processors in the system.
+ */
+static int update_percpu_timer(struct timer *old, struct timer *new)
+{
+	timer_action.action = TIMER_ACTION_UPDATE;
+	timer_action.timer = old;
+	timer_action.new_timer = new;
+	send_timer_ipi();
+
+	timer_disable(old);
+	if (timer_enable(new) != 0)
+		timer_action.state |= TIMER_ACTION_FAILED;
+
+	__timer_action_wait();
+
+	if (timer_action.state & TIMER_ACTION_FAILED) {
+		time_ns = time_ns_static;
+		return 1;
+	}
+
+	return 0;
+}
+
+/*
  * update_system_timer:
  * Switch the system timer to the specified timer.
  */
-static void update_system_timer(struct timer *timer)
+static int update_system_timer(struct timer *timer)
 {
 	int (*enable_fn)(struct timer *);
 
 	if ((timer->flags & TIMER_PERCPU) &&
-	    (system_timer->flags & TIMER_PERCPU)) {
-		timer_action.action = TIMER_ACTION_UPDATE;
-		timer_action.timer = system_timer;
-		timer_action.new_timer = timer;
-		return;
-	}
+	    (system_timer->flags & TIMER_PERCPU))
+		return update_percpu_timer(system_timer, timer);
 
 	if (!(timer->flags & TIMER_ENABLED)) {
 		enable_fn = (timer->flags & TIMER_PERCPU)
@@ -262,24 +309,25 @@ static void update_system_timer(struct timer *timer)
 		if (enable_fn(timer) != 0) {
 			klog(KLOG_WARNING, TIMER "failed to enable timer %s",
 			     timer->name);
-			return;
+			return 1;
 		}
 	}
 
 	if (system_timer) {
 		timer_accumulate();
 
-		if (system_timer->flags & TIMER_PERCPU) {
-			timer_action.action = TIMER_ACTION_DISABLE;
-			timer_action.timer = system_timer;
-		}
+		if (system_timer->flags & TIMER_PERCPU)
+			disable_percpu_timer(system_timer);
+		else
+			timer_disable(system_timer);
 
 		timekeeping_event_update(timer->max_ns / 2);
-		timer_disable(system_timer);
 	}
 
 	system_timer = timer;
 	klog(KLOG_INFO, TIMER "system timer switched to %s", timer->name);
+
+	return 0;
 }
 
 /*
