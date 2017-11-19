@@ -42,18 +42,28 @@ enum {
 	TIMER_ACTION_UPDATE
 };
 
-#define TIMER_ACTION_FAILED    (1 << 30)
 #define TIMER_ACTION_IRQ_TIMER (1 << 31)
+
+#define TIMER_ACTION_COMPLETE  (1 << 30)
+#define TIMER_ACTION_FAILED    (1 << 31)
 
 static struct {
 	int             action;
+	int		state;
 	void            *timer;
 	void            *new_timer;
 	cpumask_t	mask;
 } timer_action;
 
-static void send_timer_action(void);
-
+/*
+ * time_ns_static:
+ * Temporary time_ns function which returns the last known system time.
+ * Used if no timers in the system are active.
+ */
+static uint64_t time_ns_static(void)
+{
+	return ns_since_boot;
+}
 
 static uint64_t time_ns_timer(void)
 {
@@ -185,28 +195,70 @@ static void timer_disable(struct timer *timer)
 }
 
 /*
+ * enable_percpu_timer:
+ * Go through the process of enabling a timer source across all CPUs.
+ * Returns 1 if any of the CPUs failed to enable the timer.
+ */
+static int enable_percpu_timer(struct timer *timer)
+{
+	cpumask_t online;
+
+	timer_action.action = TIMER_ACTION_ENABLE;
+	timer_action.state = 0;
+	timer_action.timer = timer;
+	timer_action.mask = CPUMASK_SELF;
+	send_timer_ipi();
+
+	if (timer_enable(timer) != 0)
+		timer_action.state |= TIMER_ACTION_FAILED;
+
+	/* wait for all other CPUs to complete the action */
+	while (1) {
+		online = cpumask_online();
+		if ((timer_action.mask & online) == online) {
+			timer_action.state |= TIMER_ACTION_COMPLETE;
+			break;
+		}
+	}
+
+	/*
+	 * During normal system operation, we can assume that a timer change
+	 * will only occur if the current system timer has failed or become
+	 * unreliable. If enabling a new timer failed, other CPUs in the
+	 * system could be running with an invalid timer.
+	 * Until a new timer source is found, the time_ns function is set to
+	 * return a static time.
+	 */
+	if (timer_action.state & TIMER_ACTION_FAILED) {
+		time_ns = time_ns_static;
+		return 1;
+	}
+
+	return 0;
+}
+
+/*
  * update_system_timer:
  * Switch the system timer to the specified timer.
  */
 static void update_system_timer(struct timer *timer)
 {
+	int (*enable_fn)(struct timer *);
+
 	if ((timer->flags & TIMER_PERCPU) &&
 	    (system_timer->flags & TIMER_PERCPU)) {
 		timer_action.action = TIMER_ACTION_UPDATE;
 		timer_action.timer = system_timer;
 		timer_action.new_timer = timer;
-		send_timer_action();
 		return;
 	}
 
 	if (!(timer->flags & TIMER_ENABLED)) {
-		if (timer->flags & TIMER_PERCPU) {
-			timer_action.action = TIMER_ACTION_ENABLE;
-			timer_action.timer = timer;
-			send_timer_action();
-		}
+		enable_fn = (timer->flags & TIMER_PERCPU)
+		          ? enable_percpu_timer
+		          : timer_enable;
 
-		if (timer_enable(timer) != 0) {
+		if (enable_fn(timer) != 0) {
 			klog(KLOG_WARNING, TIMER "failed to enable timer %s",
 			     timer->name);
 			return;
@@ -219,7 +271,6 @@ static void update_system_timer(struct timer *timer)
 		if (system_timer->flags & TIMER_PERCPU) {
 			timer_action.action = TIMER_ACTION_DISABLE;
 			timer_action.timer = system_timer;
-			send_timer_action();
 		}
 
 		timekeeping_event_update(timer->max_ns / 2);
@@ -301,26 +352,4 @@ int set_irq_timer(struct irq_timer *irqt)
 
 	sys_irq_timer = irqt;
 	return 0;
-}
-
-/*
- * send_timer_action:
- * Send a timer action IPI to all other processors in the system.
- */
-static void send_timer_action(void)
-{
-	cpumask_t online;
-
-	timer_action.mask = CPUMASK_SELF;
-	send_timer_ipi();
-
-	while (1) {
-		if (timer_action.action & TIMER_ACTION_FAILED) {
-			/* TODO: handle failure cases */
-		}
-
-		online = cpumask_online();
-		if ((timer_action.mask & online) == online)
-			break;
-	}
 }
