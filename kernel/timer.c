@@ -22,6 +22,7 @@
 #include <radix/ipi.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
+#include <radix/percpu.h>
 #include <radix/smp.h>
 #include <radix/spinlock.h>
 #include <radix/time.h>
@@ -34,6 +35,9 @@ static struct list system_timer_list = LIST_INIT(system_timer_list);
 
 struct timer *system_timer = NULL;
 static struct irq_timer *sys_irq_timer = NULL;
+
+DEFINE_PER_CPU(struct percpu_timer_data *, pcpu_timer) = NULL;
+DEFINE_PER_CPU(struct percpu_timer_data *, pcpu_irq_timer) = NULL;
 
 static spinlock_t time_ns_lock = SPINLOCK_INIT;
 static uint64_t ns_since_boot = 0;

@@ -68,6 +68,15 @@ struct irq_timer {
 struct irq_timer *system_irq_timer(void);
 int set_irq_timer(struct irq_timer *irqt);
 
+
+struct percpu_timer_data {
+	uint32_t        mult;
+	uint32_t        shift;
+	unsigned long   frequency;
+	uint64_t        max_ticks;
+	uint64_t        max_ns;
+};
+
 void handle_timer_action(void);
 
 #endif /* RADIX_TIMER_H */
