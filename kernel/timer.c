@@ -186,6 +186,13 @@ static int timer_enable(struct timer *timer)
 	if ((err = timer->enable()) != 0)
 		return err;
 
+	if (timer->flags & TIMER_PERCPU) {
+		if (!this_cpu_read(pcpu_timer))
+			return 1;
+	} else {
+		this_cpu_write(pcpu_timer, NULL);
+	}
+
 	if (!(timer->flags & TIMER_RUNNING))
 		timer->start();
 
@@ -219,8 +226,8 @@ static __always_inline void __timer_action_wait(void)
 
 /*
  * enable_percpu_timer:
- * Go through the process of enabling a timer source across all CPUs.
- * Returns 1 if any of the CPUs failed to enable the timer.
+ * Enable the specified timer source across all CPUs in the system.
+ * Returns 1 if any processors fail to enable the timer.
  */
 static int enable_percpu_timer(struct timer *timer)
 {
@@ -238,10 +245,10 @@ static int enable_percpu_timer(struct timer *timer)
 	/*
 	 * During normal system operation, we can assume that a timer change
 	 * will only occur if the current system timer has failed or become
-	 * unreliable. If enabling a new timer failed, other CPUs in the
-	 * system could be running with an invalid timer.
+	 * unreliable. If enabling a new timer fails, other CPUs in the
+	 * system could continue running with an invalid timer.
 	 * Until a new timer source is found, the time_ns function is set to
-	 * return a static time.
+	 * return the last known system time.
 	 */
 	if (timer_action.state & TIMER_ACTION_FAILED) {
 		time_ns = time_ns_static;
@@ -405,6 +412,43 @@ int set_irq_timer(struct irq_timer *irqt)
 
 	sys_irq_timer = irqt;
 	return 0;
+}
+
+/*
+ * __calc_pcpu_data:
+ * Calculate timer values in the specified percpu_timer_data
+ * struct based on the timer's frequency.
+ */
+static void __calc_pcpu_data(struct percpu_timer_data *pd)
+{
+	uint64_t max_ticks;
+
+	if (!pd)
+		return;
+
+	if (!pd->mult)
+		__calc_mult_shift(&pd->mult, &pd->shift, pd->frequency,
+		                  NSEC_PER_SEC, 600);
+
+	max_ticks = ~0ULL / pd->mult;
+	if (pd->max_ticks)
+		pd->max_ticks = min(pd->max_ticks, max_ticks);
+	else
+		pd->max_ticks = max_ticks;
+
+	pd->max_ns = (pd->max_ticks << pd->shift) / pd->mult;
+}
+
+void set_percpu_timer_data(struct percpu_timer_data *pcpu_data)
+{
+	__calc_pcpu_data(pcpu_data);
+	this_cpu_write(pcpu_timer, pcpu_data);
+}
+
+void set_percpu_irq_timer_data(struct percpu_timer_data *pcpu_data)
+{
+	__calc_pcpu_data(pcpu_data);
+	this_cpu_write(pcpu_irq_timer, pcpu_data);
 }
 
 /*

@@ -77,6 +77,9 @@ struct percpu_timer_data {
 	uint64_t        max_ns;
 };
 
+void set_percpu_timer_data(struct percpu_timer_data *pcpu_data);
+void set_percpu_irq_timer_data(struct percpu_timer_data *pcpu_data);
+
 void handle_timer_action(void);
 
 #endif /* RADIX_TIMER_H */
