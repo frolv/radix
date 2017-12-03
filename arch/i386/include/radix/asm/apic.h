@@ -135,6 +135,7 @@ void lapic_error(void);
 
 int lapic_init(void);
 void lapic_timer_calibrate(void);
+void lapic_timer_register(void);
 
 int system_smp_capable(void);
 void apic_start_smp(unsigned int vector);

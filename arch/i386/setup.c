@@ -37,8 +37,9 @@ void arch_main_setup(void)
 
 	/* If there is no APIC, the PIT must be used as a scheduling timer. */
 	if (cpu_supports(CPUID_APIC)) {
-		pit_register();
 		lapic_timer_calibrate();
+		lapic_timer_register();
+		pit_register();
 	} else {
 		pit_oneshot_register();
 	}

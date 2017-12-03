@@ -1025,7 +1025,11 @@ void lapic_timer_calibrate(void)
 
 	klog(KLOG_INFO, APIC "CPU%d lapic timer frequency %llu MHz",
 	     processor_id(), lapic_timer.frequency / USEC_PER_SEC);
+}
 
+/* lapic_timer_register: set the local APIC timer as the system IRQ timer */
+void lapic_timer_register(void)
+{
 	set_irq_timer(&lapic_timer);
 }
 
