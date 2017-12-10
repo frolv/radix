@@ -932,6 +932,9 @@ int lapic_init(void)
 }
 
 static struct irq_timer lapic_timer;
+static DEFINE_PER_CPU(struct percpu_timer_data, lapic_timer_percpu) = {
+	.max_ticks = 0xFFFFFFFF
+};
 
 static void lapic_timer_schedule_irq(uint64_t ticks)
 {
@@ -940,6 +943,7 @@ static void lapic_timer_schedule_irq(uint64_t ticks)
 
 static int lapic_timer_enable(void)
 {
+	set_percpu_irq_timer_data(this_cpu_ptr(&lapic_timer_percpu));
 	idt_set(APIC_VEC_TIMER, event_irq, 0x08, 0x8E);
 	lapic_timer.flags |= TIMER_ENABLED;
 	return 0;
@@ -962,7 +966,7 @@ static struct irq_timer lapic_timer = {
 	.name           = "lapic_timer"
 };
 
-static void __lapic_timer_pit_calibrate(void)
+static unsigned long __lapic_timer_pit_calibrate(void)
 {
 	uint32_t timer_start, timer_end;
 
@@ -976,14 +980,14 @@ static void __lapic_timer_pit_calibrate(void)
 	timer_end = lapic_reg_read(APIC_REG_TIMER_COUNT);
 	pit_wait_finish();
 
-	lapic_timer.frequency = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
+	return (timer_start - timer_end) * (MSEC_PER_SEC / 4);
 }
 
 /*
  * __lapic_timer_timer_calibrate:
  * Determine frequency of the local APIC timer using the system timer source.
  */
-static void __lapic_timer_timer_calibrate(void)
+static unsigned long __lapic_timer_timer_calibrate(void)
 {
 	uint64_t target_ticks, start_ticks, end_ticks;
 	uint32_t timer_start, timer_end;
@@ -998,7 +1002,7 @@ static void __lapic_timer_timer_calibrate(void)
 		;
 
 	timer_end = lapic_reg_read(APIC_REG_TIMER_COUNT);
-	lapic_timer.frequency = (timer_start - timer_end) * (MSEC_PER_SEC / 4);
+	return (timer_start - timer_end) * (MSEC_PER_SEC / 4);
 }
 
 /*
@@ -1008,20 +1012,25 @@ static void __lapic_timer_timer_calibrate(void)
  */
 void lapic_timer_calibrate(void)
 {
+	unsigned long frequency;
+
 	if (system_timer->flags & TIMER_EMULATED) {
 		/*
 		 * Emulated x86 timers don't have the precision to calibrate
 		 * the APIC. Instead, the PIT is used directly.
 		 */
-		__lapic_timer_pit_calibrate();
+		frequency = __lapic_timer_pit_calibrate();
 	} else {
-		__lapic_timer_timer_calibrate();
+		frequency = __lapic_timer_timer_calibrate();
 	}
 	lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
 
 	/* round frequency to the closest 100 MHz */
-	lapic_timer.frequency += (USEC_PER_SEC * 100) / 2;
-	lapic_timer.frequency -= lapic_timer.frequency % (USEC_PER_SEC * 100);
+	frequency += (USEC_PER_SEC * 100) / 2;
+	frequency -= lapic_timer.frequency % (USEC_PER_SEC * 100);
+
+	lapic_timer.frequency = frequency;
+	this_cpu_write(lapic_timer_percpu.frequency, frequency);
 
 	klog(KLOG_INFO, APIC "CPU%d lapic timer frequency %llu MHz",
 	     processor_id(), lapic_timer.frequency / USEC_PER_SEC);
