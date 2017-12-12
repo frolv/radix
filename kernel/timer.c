@@ -372,10 +372,33 @@ void timer_register(struct timer *timer)
 	}
 }
 
-struct irq_timer *system_irq_timer(void)
+static void __schedule_timer_irq_percpu(uint64_t ns)
 {
-	return sys_irq_timer;
+	struct percpu_timer_data *pcpu;
+
+	pcpu = this_cpu_read(pcpu_irq_timer);
+	sys_irq_timer->schedule_irq((ns * pcpu->mult) >> pcpu->shift);
 }
+
+static uint64_t __irq_timer_max_ns_percpu(void)
+{
+	return this_cpu_read(pcpu_irq_timer)->max_ns;
+}
+
+static void __schedule_timer_irq_normal(uint64_t ns)
+{
+	uint64_t ticks = (ns * sys_irq_timer->mult) >> sys_irq_timer->shift;
+
+	sys_irq_timer->schedule_irq(ticks);
+}
+
+static uint64_t __irq_timer_max_ns_normal(void)
+{
+	return sys_irq_timer->max_ns;
+}
+
+void (*schedule_timer_irq)(uint64_t ns) = NULL;
+uint64_t (*irq_timer_max_ns)(void) = NULL;
 
 /*
  * set_irq_timer:
@@ -391,17 +414,19 @@ int set_irq_timer(struct irq_timer *irqt)
 	if (sys_irq_timer == irqt)
 		return 0;
 
-	if (!irqt->mult)
-		__calc_mult_shift(&irqt->mult, &irqt->shift, NSEC_PER_SEC,
-				  irqt->frequency, 60);
+	if (!(irqt->flags & TIMER_PERCPU)) {
+		if (!irqt->mult)
+			__calc_mult_shift(&irqt->mult, &irqt->shift,
+			                  NSEC_PER_SEC, irqt->frequency, 60);
 
-	max_ticks = ~0ULL / irqt->mult;
-	if (irqt->max_ticks)
-		irqt->max_ticks = min(irqt->max_ticks, max_ticks);
-	else
-		irqt->max_ticks = max_ticks;
+		max_ticks = ~0ULL / irqt->mult;
+		if (irqt->max_ticks)
+			irqt->max_ticks = min(irqt->max_ticks, max_ticks);
+		else
+			irqt->max_ticks = max_ticks;
 
-	irqt->max_ns = (irqt->max_ticks << irqt->shift) / irqt->mult;
+		irqt->max_ns = (irqt->max_ticks << irqt->shift) / irqt->mult;
+	}
 
 	if (irqt->enable() != 0)
 		return 1;
@@ -411,6 +436,15 @@ int set_irq_timer(struct irq_timer *irqt)
 	}
 
 	sys_irq_timer = irqt;
+
+	if (irqt->flags & TIMER_PERCPU) {
+		schedule_timer_irq = __schedule_timer_irq_percpu;
+		irq_timer_max_ns = __irq_timer_max_ns_percpu;
+	} else {
+		schedule_timer_irq = __schedule_timer_irq_normal;
+		irq_timer_max_ns = __irq_timer_max_ns_normal;
+	}
+
 	return 0;
 }
 

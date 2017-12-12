@@ -138,13 +138,6 @@ void event_start(void)
 	                       system_timer->max_ns / 4);
 }
 
-static __always_inline void __schedule_timer_irq(uint64_t ns)
-{
-	struct irq_timer *irqt = system_irq_timer();
-
-	irqt->schedule_irq((ns * irqt->mult) >> irqt->shift);
-}
-
 /*
  * __event_insert:
  * Insert the specified event into the event queue. If it gets inserted
@@ -195,22 +188,21 @@ static void __dummy_event(uint64_t delta)
 	eventq = this_cpu_ptr(&event_queue);
 
 	list_add(eventq, &dummy->list);
-	__schedule_timer_irq(delta);
+	schedule_timer_irq(delta);
 }
 
 static void __event_schedule(struct event *evt)
 {
-	struct irq_timer *irqt;
-	uint64_t now, delta;
+	uint64_t now, delta, max_ns;
 
-	irqt = system_irq_timer();
 	now = time_ns();
 	delta = max(evt->time - now, MIN_EVENT_DELTA);
+	max_ns = irq_timer_max_ns();
 
-	if (delta > irqt->max_ns)
-		__dummy_event(irqt->max_ns - NSEC_PER_USEC);
+	if (delta > max_ns)
+		__dummy_event(max_ns - NSEC_PER_USEC);
 	else
-		__schedule_timer_irq(delta);
+		schedule_timer_irq(delta);
 }
 
 /*
