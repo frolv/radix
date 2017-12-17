@@ -528,3 +528,29 @@ void handle_timer_action(void)
 	while (!(timer_action.state & TIMER_ACTION_COMPLETE))
 		cpu_pause();
 }
+
+/*
+ * cpu_timer_init:
+ * Enable per-CPU timers on application processors on initial boot.
+ * Returns 0 on success, or non-zero on failure.
+ */
+int cpu_timer_init(void)
+{
+	int err;
+
+	if (system_timer->flags & TIMER_PERCPU) {
+		/*
+		 * TODO: if this fails, the system should try to
+		 * fall back to the next timer in the queue.
+		 */
+		if ((err = timer_enable(system_timer)))
+			return err;
+	}
+
+	if (sys_irq_timer->flags & TIMER_PERCPU) {
+		if ((err = sys_irq_timer->enable()))
+			return err;
+	}
+
+	return 0;
+}

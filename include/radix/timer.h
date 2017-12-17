@@ -80,6 +80,7 @@ struct percpu_timer_data {
 
 void set_percpu_timer_data(struct percpu_timer_data *pcpu_data);
 void set_percpu_irq_timer_data(struct percpu_timer_data *pcpu_data);
+int cpu_timer_init(void);
 
 void handle_timer_action(void);
 

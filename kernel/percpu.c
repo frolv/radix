@@ -24,6 +24,7 @@
 #include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/percpu.h>
+#include <radix/timer.h>
 #include <radix/vmm.h>
 
 #include <rlibc/string.h>
@@ -51,6 +52,9 @@ int percpu_init(int ap)
 	int err;
 
 	if ((err = arch_percpu_init(ap)))
+		return err;
+
+	if ((err = cpu_timer_init()))
 		return err;
 
 	cpu_event_init();
