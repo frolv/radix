@@ -1027,13 +1027,12 @@ void lapic_timer_calibrate(void)
 
 	/* round frequency to the closest 100 MHz */
 	frequency += (USEC_PER_SEC * 100) / 2;
-	frequency -= lapic_timer.frequency % (USEC_PER_SEC * 100);
+	frequency -= frequency % (USEC_PER_SEC * 100);
 
-	lapic_timer.frequency = frequency;
 	this_cpu_write(lapic_timer_percpu.frequency, frequency);
 
 	klog(KLOG_INFO, APIC "CPU%d lapic timer frequency %llu MHz",
-	     processor_id(), lapic_timer.frequency / USEC_PER_SEC);
+	     processor_id(), frequency / USEC_PER_SEC);
 }
 
 /* lapic_timer_register: set the local APIC timer as the system IRQ timer */
