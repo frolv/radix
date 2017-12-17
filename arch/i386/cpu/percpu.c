@@ -35,7 +35,7 @@ void arch_percpu_init_early(void)
  * arch_percpu_init:
  * Initialize all architecture-specific per-CPU variables.
  */
-void arch_percpu_init(int ap)
+int arch_percpu_init(int ap)
 {
 	addr_t offset;
 
@@ -51,4 +51,6 @@ void arch_percpu_init(int ap)
 		this_cpu_write(__this_cpu_offset, offset);
 		gdt_init(offset);
 	}
+
+	return 0;
 }

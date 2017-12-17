@@ -46,10 +46,16 @@ void percpu_init_early(void)
  * percpu_init:
  * Initialize all necessary per-CPU variables for each CPU.
  */
-void percpu_init(int ap)
+int percpu_init(int ap)
 {
-	arch_percpu_init(ap);
+	int err;
+
+	if ((err = arch_percpu_init(ap)))
+		return err;
+
 	cpu_event_init();
+
+	return 0;
 }
 
 /*

@@ -889,17 +889,20 @@ void bsp_init(void)
 	cpu_init(0);
 }
 
-void cpu_init(int ap)
+int cpu_init(int ap)
 {
+	int err;
+
 	if (ap) {
-		/* TODO: shutdown cpu */
-		if (lapic_init() != 0)
-			return;
+		if ((err = lapic_init()))
+			return err;
 
 		lapic_timer_calibrate();
 	}
 
 	set_cpu_online(processor_id());
+
+	return 0;
 }
 
 /*

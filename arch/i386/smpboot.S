@@ -123,4 +123,10 @@ BEGIN_FUNC(ap_switch_stack)
 	jmp 1b
 END_FUNC(ap_switch_stack)
 
+# TODO: is there a better way to do this?
+BEGIN_FUNC(ap_stop)
+	cli
+	hlt
+END_FUNC(ap_stop)
+
 #endif /* CONFIG_SMP */

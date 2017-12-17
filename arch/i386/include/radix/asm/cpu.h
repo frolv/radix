@@ -55,7 +55,7 @@ int cpu_supports(uint64_t features);
 void read_cpu_info(void);
 
 void bsp_init(void);
-void cpu_init(int ap);
+int cpu_init(int ap);
 
 unsigned long i386_cache_line_size(void);
 char *i386_cache_str(void);

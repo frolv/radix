@@ -23,6 +23,7 @@
 #include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/percpu.h>
 #include <radix/smp.h>
@@ -30,6 +31,8 @@
 #include <rlibc/string.h>
 
 #ifdef CONFIG_SMP
+
+#define SMPBOOT "smpboot: "
 
 extern int __smp_tramp_start;
 extern int __smp_tramp_end;
@@ -103,6 +106,7 @@ void prepare_ap_boot(int cpu_number)
 }
 
 void ap_switch_stack(void *stack);
+void ap_stop(void);
 
 DECLARE_PER_CPU(void *, cpu_stack);
 
@@ -133,6 +137,13 @@ void ap_entry(void)
 	ap_switch_stack(stack_top);
 }
 
+/* ap_shutdown: halt the executing processor */
+static void ap_shutdown(void)
+{
+	klog(KLOG_ERROR, SMPBOOT "shutting down processor %d", processor_id());
+	ap_stop();
+}
+
 /*
  * ap_init:
  * Main application processor initialization sequence.
@@ -148,8 +159,13 @@ void ap_init(void)
 	set_ap_active();
 
 	read_cpu_info();
-	cpu_init(1);
-	percpu_init(1);
+
+	if (cpu_init(1) != 0)
+		ap_shutdown();
+
+	if (percpu_init(1) != 0)
+		ap_shutdown();
+
 	idt_init();
 }
 
