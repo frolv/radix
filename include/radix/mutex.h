@@ -25,7 +25,7 @@
 #define MUTEX_INIT(name) { 0, LIST_INIT((name).queue), SPINLOCK_INIT }
 
 struct mutex {
-	int             count;
+	unsigned long   count;
 	struct list     queue;
 	spinlock_t      lock;
 };

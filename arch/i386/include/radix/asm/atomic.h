@@ -29,13 +29,13 @@
 #define __arch_atomic_swap      x86_atomic_swap
 #define __arch_atomic_write     x86_atomic_write
 
-static __always_inline int x86_atomic_swap(int *a, int b)
+static __always_inline int x86_atomic_swap(unsigned long *a, unsigned long b)
 {
 	asm volatile("xchg %0, %1" : "=r"(b), "=m"(*a) : "0"(b) : "memory");
 	return b;
 }
 
-static __always_inline void x86_atomic_write(int *p, int val)
+static __always_inline void x86_atomic_write(unsigned long *p, unsigned long val)
 {
 	asm volatile("movl %1, %0" : "=m"(*p) : "r"(val) : "memory");
 }

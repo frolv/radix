@@ -23,7 +23,7 @@
 #include <radix/compiler.h>
 #include <radix/irqstate.h>
 
-typedef int spinlock_t;
+typedef unsigned long spinlock_t;
 
 #define SPINLOCK_INIT 0
 
