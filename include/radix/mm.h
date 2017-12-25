@@ -72,7 +72,7 @@ void buddy_init(struct multiboot_info *mbt);
 #define PA_READONLY     (__PA_ZONE_REG | __PA_READONLY)
 #define PA_DMA          (__PA_ZONE_DMA | __PA_NO_MAP)
 #define PA_USER         (__PA_ZONE_USR | __PA_NO_MAP)
-#define PA_PAGETABLE    (__PA_ZONE_REG | __PA_NO_MAP)
+#define PA_PAGETABLE    (__PA_ZONE_USR | __PA_NO_MAP)
 #define PA_LOWMEM       (__PA_ZONE_LOW)
 
 struct page *alloc_pages(unsigned int flags, size_t ord);

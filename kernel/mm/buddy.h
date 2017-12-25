@@ -22,6 +22,15 @@
 #include <radix/list.h>
 #include <radix/mm.h>
 #include <radix/mm_types.h>
+#include <radix/spinlock.h>
+
+#define BUDDY_INIT {            \
+	.len = { 0 },           \
+	.max_ord = 0,           \
+	.alloc_pages = 0,       \
+	.total_pages = 0,       \
+	.lock = SPINLOCK_INIT   \
+}
 
 struct buddy {
 	struct list     ord[PA_ORDERS];         /* lists of 2^i size blocks */
@@ -29,6 +38,7 @@ struct buddy {
 	size_t          max_ord;                /* maximum available order */
 	size_t          total_pages;            /* total pages in this zone */
 	size_t          alloc_pages;            /* number of allocated pages */
+	spinlock_t      lock;
 };
 
 #endif /* KERNEL_MM_BUDDY_H */

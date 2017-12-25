@@ -37,7 +37,8 @@ static struct slab_cache cache_cache;
 
 static void __init_cache(struct slab_cache *cache, const char *name,
                          size_t size, size_t align, unsigned long flags,
-                         void (*ctor)(void *), void (*dtor)(void *));
+                         void (*ctor)(void *));
+static int __grow_cache_unlocked(struct slab_cache *cache);
 
 /*
  * Slabs with objects less than this size
@@ -53,12 +54,12 @@ void slab_init(void)
 	list_init(&slab_caches);
 
 	__init_cache(&cache_cache, "cache_cache", sizeof (struct slab_cache),
-	             SLAB_MIN_ALIGN, SLAB_HW_CACHE_ALIGN, NULL, NULL);
+	             SLAB_MIN_ALIGN, SLAB_HW_CACHE_ALIGN, NULL);
 	list_add(&slab_caches, &cache_cache.list);
 
 	/* preemptively allocate space for some caches */
-	grow_cache(&cache_cache);
-	grow_cache(&cache_cache);
+	__grow_cache_unlocked(&cache_cache);
+	__grow_cache_unlocked(&cache_cache);
 
 	kmalloc_init();
 }
@@ -73,7 +74,7 @@ static int destroy_slab(struct slab_cache *cache, struct slab_desc *s);
  */
 struct slab_cache *create_cache(const char *name, size_t size,
                                 size_t align, unsigned long flags,
-                                void (*ctor)(void *), void (*dtor)(void *))
+                                void (*ctor)(void *))
 {
 	struct slab_cache *cache;
 
@@ -90,7 +91,7 @@ struct slab_cache *create_cache(const char *name, size_t size,
 		return (void *)cache;
 	}
 
-	__init_cache(cache, name, size, align, flags, ctor, dtor);
+	__init_cache(cache, name, size, align, flags, ctor);
 	list_ins(&slab_caches, &cache->list);
 
 	return cache;
@@ -136,11 +137,14 @@ void *alloc_cache(struct slab_cache *cache)
 	if (unlikely(!cache))
 		return ERR_PTR(EINVAL);
 
+	spin_lock(&cache->lock);
 	if (list_empty(&cache->partial_slabs)) {
 		/* grow the cache if no space exists */
 		if (list_empty(&cache->free_slabs)) {
-			if ((err = grow_cache(cache)))
-				return ERR_PTR(err);
+			if ((err = __grow_cache_unlocked(cache))) {
+				obj = ERR_PTR(err);
+				goto out_unlock;
+			}
 		}
 
 		s = list_first_entry(&cache->free_slabs,
@@ -162,6 +166,8 @@ void *alloc_cache(struct slab_cache *cache)
 		list_add(&cache->full_slabs, &s->list);
 	}
 
+out_unlock:
+	spin_unlock(&cache->lock);
 	return obj;
 }
 
@@ -190,8 +196,10 @@ void free_cache(struct slab_cache *cache, void *obj)
 		return;
 	ind = diff / cache->offset;
 
-	if (cache->dtor)
-		cache->dtor(obj);
+	if (cache->ctor)
+		cache->ctor(obj);
+
+	spin_lock(&cache->lock);
 
 	/* update s->next to the index of the freed object */
 	FREE_OBJ_ARR(s)[ind] = s->next;
@@ -207,18 +215,17 @@ void free_cache(struct slab_cache *cache, void *obj)
 		list_add(&cache->free_slabs, &s->list);
 	}
 	s->in_use--;
+
+	spin_unlock(&cache->lock);
 }
 
 /*
- * grow_cache:
+ * __grow_cache_unlocked:
  * Allocate a new slab for the given cache.
  */
-int grow_cache(struct slab_cache *cache)
+static int __grow_cache_unlocked(struct slab_cache *cache)
 {
 	struct slab_desc *s;
-
-	if (unlikely(!cache))
-		return 0;
 
 	s = init_slab(cache);
 	if (IS_ERR(s))
@@ -230,26 +237,53 @@ int grow_cache(struct slab_cache *cache)
 	cache->flags |= SLAB_IS_GROWING;
 
 	list_add(&cache->free_slabs, &s->list);
+
 	return 0;
 }
 
+int grow_cache(struct slab_cache *cache)
+{
+	int ret;
+
+	if (unlikely(!cache))
+		return 0;
+
+	spin_lock(&cache->lock);
+	ret = __grow_cache_unlocked(cache);
+	spin_unlock(&cache->lock);
+
+	return ret;
+}
+
 /*
- * shrink_cache:
+ * __shrink_cache_unlocked:
  * Remove (and deallocate) all free slabs from the given cache.
  * Return the number of pages freed.
  */
-int shrink_cache(struct slab_cache *cache)
+static int __shrink_cache_unlocked(struct slab_cache *cache)
 {
 	struct list *l, *tmp;
 	int n;
 
 	n = 0;
+
 	list_for_each_safe(l, tmp, &cache->free_slabs) {
 		n += destroy_slab(cache, list_entry(l, struct slab_desc, list));
 		list_del(l);
 	}
 
 	return n;
+}
+
+int shrink_cache(struct slab_cache *cache)
+{
+	int ret;
+
+	spin_lock(&cache->lock);
+	ret = __shrink_cache_unlocked(cache);
+	spin_unlock(&cache->lock);
+
+	return ret;
 }
 
 /*
@@ -307,7 +341,6 @@ static struct slab_desc *init_slab(struct slab_cache *cache)
 static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
 {
 	struct page *p;
-	size_t i;
 	int n;
 
 	if (cache->flags & SLAB_DESC_ON_SLAB) {
@@ -317,12 +350,6 @@ static int destroy_slab(struct slab_cache *cache, struct slab_desc *s)
 		p = s->first;
 		n = pow2(PM_PAGE_BLOCK_ORDER(p));
 		kfree(s);
-	}
-
-	/* destroy all cached objects */
-	if (cache->dtor) {
-		for (i = 0; i < cache->count; ++i)
-			cache->dtor(s->first + i * cache->offset);
 	}
 
 	free_pages(p);
@@ -385,7 +412,7 @@ static int calculate_count(size_t npages, size_t offset, unsigned long flags)
 
 static void __init_cache(struct slab_cache *cache, const char *name,
                          size_t size, size_t align, unsigned long flags,
-                         void (*ctor)(void *), void (*dtor)(void *))
+                         void (*ctor)(void *))
 {
 	cache->objsize = size;
 	cache->align = calculate_align(flags, align, size);
@@ -399,10 +426,9 @@ static void __init_cache(struct slab_cache *cache, const char *name,
 
 	cache->count = calculate_count(pow2(cache->slab_ord),
 	                               cache->offset, cache->flags);
-
 	cache->ctor = ctor;
-	cache->dtor = dtor;
 
+	spin_init(&cache->lock);
 	list_init(&cache->full_slabs);
 	list_init(&cache->partial_slabs);
 	list_init(&cache->free_slabs);
@@ -442,10 +468,10 @@ void kmalloc_init(void)
 		sz = i * 8;
 		sprintf(name, "kmalloc-%u", sz);
 		cache = create_cache(name, sz, SLAB_MIN_ALIGN,
-		                     SLAB_PANIC, NULL, NULL);
+		                     SLAB_PANIC, NULL);
 
 		for (j = 0; j < 32; ++j) {
-			if ((err = grow_cache(cache)))
+			if ((err = __grow_cache_unlocked(cache)))
 				goto err_grow;
 		}
 		kmalloc_sm_caches[i - 1] = cache;
@@ -455,10 +481,10 @@ void kmalloc_init(void)
 		sz = 256 * pow2(i);
 		sprintf(name, "kmalloc-%u", sz);
 		cache = create_cache(name, sz, SLAB_MIN_ALIGN,
-		                     SLAB_PANIC, NULL, NULL);
-		if ((err = grow_cache(cache)))
+		                     SLAB_PANIC, NULL);
+		if ((err = __grow_cache_unlocked(cache)))
 			goto err_grow;
-		if ((err = grow_cache(cache)))
+		if ((err = __grow_cache_unlocked(cache)))
 			goto err_grow;
 		kmalloc_lg_caches[i] = cache;
 	}

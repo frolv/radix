@@ -23,6 +23,7 @@
 #include <radix/list.h>
 #include <radix/mm_types.h>
 #include <radix/rbtree.h>
+#include <radix/spinlock.h>
 #include <radix/task.h>
 #include <radix/types.h>
 
@@ -43,6 +44,7 @@ struct vmm_structures {
 struct vmm_space {
 	struct vmm_structures   structures;
 	struct list             vmm_list;
+	spinlock_t              structures_lock;
 	int                     pages;
 };
 

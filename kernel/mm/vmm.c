@@ -77,6 +77,7 @@ static struct vmm_structures vmm_kernel = {
 	.size_tree = RB_ROOT,
 	.alloc_tree = RB_ROOT
 };
+static spinlock_t vmm_kernel_lock = SPINLOCK_INIT;
 
 static void vmm_block_init(void *p)
 {
@@ -270,10 +271,10 @@ void vmm_init(void)
 
 	vmm_block_cache = create_cache("vmm_block", sizeof (struct vmm_block),
 	                               SLAB_MIN_ALIGN, SLAB_PANIC,
-	                               vmm_block_init, vmm_block_init);
+	                               vmm_block_init);
 	vmm_space_cache = create_cache("vmm_space", sizeof (struct vmm_space),
 	                               SLAB_MIN_ALIGN, SLAB_PANIC,
-	                               vmm_space_init, vmm_space_init);
+	                               vmm_space_init);
 
 	first = vmm_block_alloc();
 	if (IS_ERR(first))
@@ -421,10 +422,19 @@ static struct vmm_block *vmm_try_coalesce(struct vmm_block *block)
 {
 	struct vmm_block *neighbour;
 	struct vmm_structures *s;
+	spinlock_t *lock;
 	addr_t new_base;
 	size_t new_size;
 
-	s = block->vmm ? &block->vmm->structures : &vmm_kernel;
+	if (block->vmm) {
+		s = &block->vmm->structures;
+		lock = &block->vmm->structures_lock;
+	} else {
+		s = &vmm_kernel;
+		lock = &vmm_kernel_lock;
+	}
+
+	spin_lock(lock);
 
 	rb_delete(&s->addr_tree, &block->addr_node);
 	list_del(&block->area.list);
@@ -466,6 +476,8 @@ static struct vmm_block *vmm_try_coalesce(struct vmm_block *block)
 	block->area.size = new_size;
 	vmm_tree_insert(s, block);
 
+	spin_unlock(lock);
+
 	return block;
 }
 
@@ -479,6 +491,8 @@ static struct vmm_block *vmm_try_coalesce_small(struct vmm_block *block)
 	struct vmm_block *neighbour;
 	addr_t new_base, page;
 	size_t new_size;
+
+	spin_lock(&vmm_kernel_lock);
 
 	rb_delete(&vmm_kernel.addr_tree, &block->addr_node);
 	list_del(&block->area.list);
@@ -520,6 +534,8 @@ static struct vmm_block *vmm_try_coalesce_small(struct vmm_block *block)
 	block->area.base = new_base;
 	block->area.size = new_size;
 	vmm_tree_insert(&vmm_kernel, block);
+
+	spin_unlock(&vmm_kernel_lock);
 
 	return block;
 }
@@ -627,7 +643,8 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 		size = VMM_AREA_MIN_SIZE;
 	}
 
-	/* TODO: lock vmm_kernel_lock */
+	spin_lock(&vmm_kernel_lock);
+
 	block = vmm_find_by_size(&vmm_kernel, size);
 	if (!block) {
 		err = ENOMEM;
@@ -649,7 +666,8 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	block->flags |= VMM_ALLOCATED;
 	list_ins(&vmm_kernel.alloc_list, &block->area.list);
 	vmm_addr_tree_insert(&vmm_kernel.alloc_tree, block);
-	/* TODO: unlock vmm_kernel_lock */
+
+	spin_unlock(&vmm_kernel_lock);
 
 	if (flags & VMM_ALLOC_UPFRONT)
 		vmm_alloc_block_pages(block);
@@ -657,7 +675,7 @@ static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
 	return &block->area;
 
 out_err:
-	/* TODO: unlock vmm_kernel_lock */
+	spin_unlock(&vmm_kernel_lock);
 	return ERR_PTR(err);
 }
 

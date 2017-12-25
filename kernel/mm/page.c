@@ -30,13 +30,13 @@ struct page *page_map = (struct page *)PAGE_MAP_BASE;
 addr_t page_map_end = PAGE_MAP_BASE;
 
 /* First 1 MiB of physical memory. */
-static struct buddy zone_low;
+static struct buddy zone_low = BUDDY_INIT;
 /* Physical memory under 16 MiB. */
-static struct buddy zone_dma;
+static struct buddy zone_dma = BUDDY_INIT;
 /* Memory for kernel use. */
-static struct buddy zone_reg;
+static struct buddy zone_reg = BUDDY_INIT;
 /* The rest of memory. */
-static struct buddy zone_usr;
+static struct buddy zone_usr = BUDDY_INIT;
 
 #define __PA_UNMAPPABLE (1 << 31)
 
@@ -104,21 +104,13 @@ void buddy_init(struct multiboot_info *mbt)
 	else if (zone_reg_end > RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE)
 		zone_reg_end = RESERVED_VIRT_BASE - KERNEL_VIRTUAL_BASE;
 
-	/* initialize buddy zones */
+	/* initialize buddy zone lists */
 	for (i = 0; i < PA_ORDERS; ++i) {
 		list_init(&zone_low.ord[i]);
-		zone_low.len[i] = 0;
 		list_init(&zone_dma.ord[i]);
-		zone_dma.len[i] = 0;
 		list_init(&zone_reg.ord[i]);
-		zone_reg.len[i] = 0;
 		list_init(&zone_usr.ord[i]);
-		zone_usr.len[i] = 0;
 	}
-	zone_low.max_ord = zone_low.total_pages = zone_low.alloc_pages = 0;
-	zone_dma.max_ord = zone_dma.total_pages = zone_dma.alloc_pages = 0;
-	zone_reg.max_ord = zone_reg.total_pages = zone_reg.alloc_pages = 0;
-	zone_usr.max_ord = zone_usr.total_pages = zone_usr.alloc_pages = 0;
 
 	buddy_populate();
 }
@@ -136,6 +128,7 @@ static struct page *buddy_coalesce(struct buddy *zone, struct page *p);
 struct page *alloc_pages(unsigned int flags, size_t ord)
 {
 	struct buddy *zone;
+	struct page *ret;
 
 	if (ord > PA_MAX_ORDER)
 		return ERR_PTR(EINVAL);
@@ -155,11 +148,17 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 	if ((flags & __PA_UNMAPPABLE) && !(flags & __PA_NO_MAP))
 		return ERR_PTR(EINVAL);
 
+	spin_lock(&zone->lock);
+
 	/* TODO: if zone is full, allocate from another */
 	if (zone->alloc_pages == zone->total_pages)
-		return ERR_PTR(ENOMEM);
+		ret = ERR_PTR(ENOMEM);
+	else
+		ret = __alloc_pages(zone, flags, ord);
 
-	return __alloc_pages(zone, flags, ord);
+	spin_unlock(&zone->lock);
+
+	return ret;
 }
 
 /* free_pages: free the block of pages starting at `p` */
@@ -193,6 +192,8 @@ void free_pages(struct page *p)
 		zone = &zone_reg;
 	}
 
+	spin_lock(&zone->lock);
+
 	zone->alloc_pages -= pow2(ord);
 	memused -= pow2(ord) * PAGE_SIZE;
 
@@ -204,6 +205,8 @@ void free_pages(struct page *p)
 	list_add(&zone->ord[ord], &p->list);
 	zone->len[ord]++;
 	zone->max_ord = max(zone->max_ord, ord);
+
+	spin_unlock(&zone->lock);
 }
 
 /* __alloc_pages: allocate 2^{ord} pages from `zone` */

@@ -36,7 +36,7 @@ void tasking_init(void)
 	task_cache = create_cache("task_cache", sizeof (struct task),
 	                          SLAB_MIN_ALIGN,
 	                          SLAB_HW_CACHE_ALIGN | SLAB_PANIC,
-	                          task_init, task_init);
+	                          task_init);
 	sched_init();
 
 	/*

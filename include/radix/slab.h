@@ -20,6 +20,7 @@
 #define RADIX_SLAB_H
 
 #include <radix/list.h>
+#include <radix/spinlock.h>
 #include <radix/types.h>
 
 #define NAME_LEN        0x40
@@ -32,7 +33,7 @@ struct slab_cache {
 	size_t          slab_ord;               /* order of pages per slab */
 	unsigned long   flags;                  /* allocator options */
 	void            (*ctor)(void *);        /* object constructor */
-	void            (*dtor)(void *);        /* object destructor */
+	spinlock_t      lock;                   /* slab spinlock */
 
 	struct list     full_slabs;             /* full slabs */
 	struct list     partial_slabs;          /* partially full slabs */
@@ -55,7 +56,7 @@ struct slab_desc {
 
 struct slab_cache *create_cache(const char *name, size_t size,
                                 size_t align, unsigned long flags,
-                                void (*ctor)(void *), void (*dtor)(void *));
+                                void (*ctor)(void *));
 void destroy_cache(struct slab_cache *cache);
 
 int grow_cache(struct slab_cache *cache);
