@@ -19,6 +19,7 @@
 #include <radix/asm/apic.h>
 #include <radix/asm/gdt.h>
 #include <radix/asm/idt.h>
+#include <radix/asm/pat.h>
 
 #include <radix/cpu.h>
 #include <radix/kernel.h>
@@ -900,6 +901,7 @@ int cpu_init(int ap)
 		lapic_timer_calibrate();
 	}
 
+	pat_init();
 	set_cpu_online(processor_id());
 
 	return 0;
