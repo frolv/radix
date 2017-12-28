@@ -1,5 +1,5 @@
 /*
- * kernel/mm/page.c
+ * kernel/mm/buddy.h
  * Copyright (C) 2016-2017 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
