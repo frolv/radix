@@ -138,6 +138,11 @@ void gdt_set_gsbase(uint32_t base)
 	irq_restore(irqstate);
 }
 
+void tss_set_stack(uint32_t new_esp)
+{
+	this_cpu_write(tss[1], new_esp);
+}
+
 /*
  * tss_init:
  * Initialize the task state segment.

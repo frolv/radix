@@ -42,4 +42,6 @@ void gdt_set_initial_fsbase(uint32_t base);
 void gdt_set_fsbase(uint32_t base);
 void gdt_set_gsbase(uint32_t base);
 
+void tss_set_stack(uint32_t new_esp);
+
 #endif /* ARCH_I386_RADIX_GDT_H */
