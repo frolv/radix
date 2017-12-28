@@ -57,8 +57,12 @@ KERNEL_OBJS := $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*.c))
 KERNEL_OBJS += $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*/*.c))
 KERNEL_OBJS += $(KERNEL_ARCH_OBJS)
 
+_GLOBAL_INCLUDES := $(CONFIG_H)
+_GLOBAL_INCLUDES := $(shell realpath $(_GLOBAL_INCLUDES))
+GLOBAL_INCLUDES := $(patsubst %,-include %,$(_GLOBAL_INCLUDES))
+
 _INCLUDE := $(shell realpath $(INCLUDEDIRS))
-INCLUDE := $(patsubst %,-I%,$(_INCLUDE)) -include $(CONFIG_H)
+INCLUDE := $(patsubst %,-I%,$(_INCLUDE)) $(GLOBAL_INCLUDES)
 
 .SUFFIXES: .o .c .S
 
