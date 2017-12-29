@@ -28,8 +28,6 @@
 #include <radix/timer.h>
 #include <radix/time.h>
 
-#define MIN_EVENT_DELTA (25 * NSEC_PER_USEC)
-
 enum event_type {
 	EVENT_SCHED,
 	EVENT_SLEEP,

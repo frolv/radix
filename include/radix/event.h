@@ -19,7 +19,9 @@
 #ifndef RADIX_EVENT_H
 #define RADIX_EVENT_H
 
-#include <radix/types.h>
+#include <radix/time.h>
+
+#define MIN_EVENT_DELTA (25 * NSEC_PER_USEC)
 
 void event_init(void);
 void event_start(void);
