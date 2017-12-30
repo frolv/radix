@@ -168,6 +168,11 @@ unsigned long i386_cache_line_size(void)
 	return cache_line_size;
 }
 
+void i386_set_kernel_stack(void *stack)
+{
+	tss_set_stack((unsigned long)stack);
+}
+
 int cpu_supports(uint64_t features)
 {
 	return !!(cpu_shared_features & features);

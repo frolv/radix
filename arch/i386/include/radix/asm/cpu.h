@@ -50,6 +50,7 @@ static __always_inline unsigned long cpuid_supported(void)
 int cpu_supports(uint64_t features);
 
 #define __arch_cache_line_size()        i386_cache_line_size()
+#define __arch_set_kernel_stack(s)      i386_set_kernel_stack(s)
 #define __arch_cache_str()              i386_cache_str()
 
 void read_cpu_info(void);
@@ -58,6 +59,7 @@ void bsp_init(void);
 int cpu_init(int ap);
 
 unsigned long i386_cache_line_size(void);
+void i386_set_kernel_stack(void *stack);
 char *i386_cache_str(void);
 
 #endif /* ARCH_I386_RADIX_CPU_H */

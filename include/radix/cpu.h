@@ -22,6 +22,7 @@
 #include <radix/asm/cpu.h>
 
 #define cpu_cache_line_size()   __arch_cache_line_size()
+#define cpu_set_kernel_stack(s) __arch_set_kernel_stack(s)
 #define cpu_cache_str()         __arch_cache_str()
 
 #endif /* RADIX_CPU_H */
