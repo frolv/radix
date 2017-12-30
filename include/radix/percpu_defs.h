@@ -102,6 +102,8 @@ extern addr_t __percpu_offset[MAX_CPUS];
 
 #define cpu_ptr(ptr, cpu) shift_percpu_ptr(ptr, __percpu_offset[cpu])
 
+#define cpu_var(var, cpu) (*cpu_ptr(&(var), cpu))
+
 
 #define this_cpu_ptr(ptr)                       \
 ({                                              \
