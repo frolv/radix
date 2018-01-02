@@ -22,6 +22,7 @@
 #include <radix/kernel.h>
 #include <radix/list.h>
 #include <radix/percpu.h>
+#include <radix/sched.h>
 #include <radix/slab.h>
 #include <radix/smp.h>
 #include <radix/task.h>
@@ -60,6 +61,7 @@ static void event_process(struct event *evt)
 {
 	switch (evt->type) {
 	case EVENT_SCHED:
+		schedule(0);
 		break;
 	case EVENT_SLEEP:
 		break;
@@ -277,6 +279,26 @@ void timekeeping_event_update(uint64_t period)
 	tk_event->time = time_ns() + period;
 	tk_event->tk_period = period;
 	__event_add(tk_event);
+}
+
+/*
+ * sched_event_add:
+ * Insert a scheduler event to occur at the specified timestamp.
+ */
+int sched_event_add(uint64_t timestamp)
+{
+	struct event *evt;
+
+	evt = event_alloc();
+	if (IS_ERR(evt))
+		return ERR_VAL(evt);
+
+	evt->time = timestamp;
+	evt->type = EVENT_SCHED;
+	evt->flags = 0;
+
+	__event_add(tk_event);
+	return 0;
 }
 
 /*
