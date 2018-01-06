@@ -20,7 +20,10 @@
 #define RADIX_TASK_H
 
 #include <radix/asm/regs.h>
+
+#include <radix/cpumask.h>
 #include <radix/list.h>
+#include <radix/mm_types.h>
 #include <radix/percpu.h>
 #include <radix/types.h>
 
@@ -29,14 +32,14 @@ struct vmm_space;
 /*
  * A single task (process/kthread) in the system.
  *
- * Rearranging the members of this struct requires changes to be made to
- * the switch_to_task function.
+ * Rearranging the members of this struct requires changes
+ * to be made to the switch_task function.
  */
 struct task {
 	int                     state;
 	int                     priority;
-	int                     exit_code;
-	int                     interrupt_depth;
+	int                     exit_status;
+	int                     errno;
 	pid_t                   pid;
 	uid_t                   uid;
 	gid_t                   gid;
@@ -45,8 +48,13 @@ struct task {
 	struct list             queue;
 	struct vmm_space        *vmm;
 	void                    *stack_base;
+	cpumask_t               cpu_affinity;
+	cpumask_t               cpu_restrict;
+	uint64_t                sched_ts;
+	uint64_t                remaining_time;
 	char                    **cmdline;
 	char                    *cwd;
+	int                     prio_level;
 };
 
 enum task_state {
