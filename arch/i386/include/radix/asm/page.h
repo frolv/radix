@@ -54,6 +54,7 @@ static __always_inline pdpte_t make_pdpte(pdpteval_t val)
 #include <radix/types.h>
 
 enum cache_policy;
+struct vmm_space;
 
 /*
  * i386 definitions of generic memory management functions.
@@ -76,6 +77,8 @@ void i386_tlb_flush_range_lazy(addr_t start, addr_t end);
 void i386_tlb_flush_page(addr_t addr, int sync);
 void i386_tlb_flush_page_lazy(addr_t addr);
 
+void i386_switch_address_space(struct vmm_space *vmm);
+
 static __always_inline addr_t __arch_pa(addr_t v)
 {
 	if (v < __ARCH_KERNEL_VIRT_BASE || v >= __ARCH_RESERVED_VIRT_BASE)
@@ -86,13 +89,14 @@ static __always_inline addr_t __arch_pa(addr_t v)
 
 #define __arch_va(addr) ((addr) + __ARCH_KERNEL_VIRT_BASE)
 
-#define __arch_set_pde          i386_set_pde
-#define __arch_addr_mapped      i386_addr_mapped
-#define __arch_map_page_kernel  i386_map_page_kernel
-#define __arch_map_page_user    i386_map_page_user
-#define __arch_map_pages        i386_map_pages
-#define __arch_unmap_pages      i386_unmap_pages
-#define __arch_set_cache_policy i386_set_cache_policy
+#define __arch_set_pde                  i386_set_pde
+#define __arch_addr_mapped              i386_addr_mapped
+#define __arch_map_page_kernel          i386_map_page_kernel
+#define __arch_map_page_user            i386_map_page_user
+#define __arch_map_pages                i386_map_pages
+#define __arch_unmap_pages              i386_unmap_pages
+#define __arch_set_cache_policy         i386_set_cache_policy
+#define __arch_switch_address_space     i386_switch_address_space
 
 #define __arch_tlb_flush_all            i386_tlb_flush_all
 #define __arch_tlb_flush_nonglobal      i386_tlb_flush_nonglobal

@@ -19,6 +19,8 @@
 #include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
+#include <radix/vmm.h>
+
 #include <rlibc/string.h>
 
 static int ___map_page(pde_t *pgdir, pte_t *pgtbl, size_t pdi, size_t pti,
@@ -437,4 +439,12 @@ int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 	tlb_flush_page_lazy(virt);
 
 	return 0;
+}
+
+void i386_switch_address_space(struct vmm_space *vmm)
+{
+	if (!vmm)
+		return;
+
+	cpu_write_cr3(vmm->paging_base);
 }

@@ -45,6 +45,7 @@ struct vmm_space {
 	struct vmm_structures   structures;
 	struct list             vmm_list;
 	spinlock_t              structures_lock;
+	paddr_t                 paging_base;
 	int                     pages;
 };
 

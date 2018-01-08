@@ -167,6 +167,11 @@ static __always_inline unsigned long cpu_read_cr2(void)
 	return ret;
 }
 
+static __always_inline void cpu_write_cr3(unsigned long val)
+{
+	asm volatile("mov %0, %%cr3" : : "r"(val));
+}
+
 #define cpuid(eax, a, b, c, d)                                  \
 	asm volatile("xchg %%ebx, %1\n\t"                       \
 	             "cpuid\n\t"                                \

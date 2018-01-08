@@ -157,6 +157,8 @@ enum cache_policy {
 #define mark_page_wc(virt)      set_cache_policy(virt, PAGE_CP_WRITE_COMBINING)
 #define mark_page_wp(virt)      set_cache_policy(virt, PAGE_CP_WRITE_PROTECTED)
 
+#define switch_address_space(vmm)       __arch_switch_address_space(vmm)
+
 /*
  * TLB control functions.
  */
