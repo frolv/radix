@@ -1,6 +1,6 @@
 /*
  * include/radix/bits.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2016-2018 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,12 @@
 #include <radix/asm/bits.h>
 #include <radix/compiler.h>
 
+#ifndef ffs
+#include <radix/bits/ffs.h>
+
+#define ffs(x) __ffs_generic(x)
+#endif
+
 #ifndef fls
 #include <radix/bits/fls.h>
 
@@ -29,6 +35,6 @@
 #endif
 
 #define pow2(x) (1U << (x))
-#define log2(x) fls(x)
+#define log2(x) (fls(x) - 1)
 
 #endif /* RADIX_BITS_H */

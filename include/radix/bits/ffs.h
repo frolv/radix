@@ -1,6 +1,6 @@
 /*
- * include/radix/bits/fls.h
- * Copyright (C) 2016-2018 Alexei Frolov
+ * include/radix/bits/ffs.h
+ * Copyright (C) 2018 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_BITS_FLS_H
-#define RADIX_BITS_FLS_H
+#ifndef RADIX_BITS_FFS_H
+#define RADIX_BITS_FFS_H
 
 #ifndef RADIX_BITS_H
 #error only <radix/bits.h> can be included directly
@@ -25,17 +25,20 @@
 
 #include <radix/types.h>
 
-static __always_inline unsigned int __fls_generic(uint64_t x)
+static __always_inline unsigned int __ffs_generic(uint64_t x)
 {
-	int ord = 1;
+	int n, ret;
 
 	if (!x)
 		return 0;
 
-	while ((x >>= 1))
-		++ord;
+	n = ret = 1;
+	while (!(x & n)) {
+		n <<= 1;
+		++ret;
+	}
 
-	return ord;
+	return ret;
 }
 
-#endif /* RADIX_BITS_FLS_H */
+#endif /* RADIX_BITS_FFS_H */

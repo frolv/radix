@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/bits.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2016-2018 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,24 +24,83 @@
 #endif
 
 #include <radix/compiler.h>
+#include <radix/types.h>
 
+#include <radix/bits/ffs.h>
 #include <radix/bits/fls.h>
 
-#define fls(x) __fls(x)
-static __always_inline unsigned long __fls(unsigned long x)
-{
-	if (is_immediate(x))
-		return __fls_generic(x);
+#define __fop_size(name, x)                                             \
+({                                                                      \
+	unsigned int __fop_ret;                                         \
+	switch (sizeof (x)) {                                           \
+	case 1: case 2: case 4: __fop_ret = __##name##_32(x); break;    \
+	case 8: __fop_ret = __##name##_64(x); break;                    \
+	}                                                               \
+	__fop_ret;                                                      \
+})
 
-	asm volatile("bsr %1, %0\n\t"
+#define __fop(name, x) \
+	(!is_immediate(x) ? __##name##_generic(x) : __fop_size(name, x))
+
+#define ffs(x) __fop(ffs, x)
+#define fls(x) __fop(fls, x)
+
+static __always_inline unsigned int __ffs_32(uint32_t x)
+{
+	int r;
+
+	asm volatile("bsfl %1, %0\n\t"
 	             "jnz 1f\n\t"
-	             "movl $0, %0\n"
+	             "movl $-1, %0\n"
 	             "1:"
-	             : "=r"(x)
+	             : "=r"(r)
 	             : "rm"(x)
 	            );
 
-	return x;
+	return r + 1;
+}
+
+static __always_inline unsigned int __ffs_64(uint32_t x)
+{
+#ifdef CONFIG_X86_64
+	int pos = -1;
+
+	asm volatile("bsfq %1, %q0"
+	             : "+r"(pos)
+	             : "rm"(x));
+	return pos + 1;
+#else
+	return __ffs_generic(x);
+#endif /* CONFIG_X86_64 */
+}
+
+static __always_inline unsigned int __fls_32(uint32_t x)
+{
+	int r;
+
+	asm volatile("bsrl %1, %0\n\t"
+	             "jnz 1f\n\t"
+	             "movl $-1, %0\n"
+	             "1:"
+	             : "=r"(r)
+	             : "rm"(x)
+	            );
+
+	return r + 1;
+}
+
+static __always_inline unsigned int __fls_64(uint64_t x)
+{
+#ifdef CONFIG_X86_64
+	int pos = -1;
+
+	asm volatile("bsrq %1, %q0"
+	             : "+r"(pos)
+	             : "rm"(x));
+	return pos + 1;
+#else
+	return __fls_generic(x);
+#endif /* CONFIG_X86_64 */
 }
 
 #endif /* ARCH_I386_RADIX_BITS_H */
