@@ -34,6 +34,17 @@
 #define fls(x) __fls_generic(x)
 #endif
 
+static __always_inline unsigned int fns(uint64_t x, unsigned int bit)
+{
+	int ret;
+
+	if (!bit)
+		return 0;
+
+	ret = ffs(x >> bit);
+	return ret ? bit + ret : 0;
+}
+
 #define pow2(x) (1U << (x))
 #define log2(x) (fls(x) - 1)
 
