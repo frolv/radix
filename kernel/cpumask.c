@@ -25,7 +25,7 @@ cpumask_t cpumask_online(void)
 	return online_cpus;
 }
 
-void set_cpu_online(unsigned int cpu)
+void set_cpu_online(int cpu)
 {
 	online_cpus |= CPUMASK_CPU(cpu);
 }
