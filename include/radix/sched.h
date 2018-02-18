@@ -1,6 +1,6 @@
 /*
  * include/radix/sched.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2016-2018 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,9 @@
 
 void schedule(int preempt);
 
-void sched_init(void);
+int sched_init(void);
 
-void sched_add(struct task *t);
+int sched_add(struct task *t);
 void sched_del(struct task *t);
 
 void sched_unblock(struct task *t);

@@ -1,6 +1,6 @@
 #
 # arch/i386/cpu/task.S
-# Copyright (C) 2016-2017 Alexei Frolov
+# Copyright (C) 2016-2018 Alexei Frolov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,27 +19,27 @@
 .section .text
 .align 4
 
-.global switch_to_task
-.type switch_to_task, @function
+.global switch_task
+.type switch_task, @function
 
-# Takes address of a struct task as an argument.
-# Saves current registers and loads those from given task.
+# switch_task(struct task *old, struct task *new)
+# Switches the system from running task `old` to task `new`.
+# Saves current registers from `old` loads and loads those from `new`.
 # Starts executing at the new eip after returning.
 # The struct regs within the struct task must begin at an offset of 32.
-switch_to_task:
+switch_task:
 	push %ebp
 	movl %esp, %ebp
 
 	pushf
 
-	# Load current task struct.
 	push %eax
-	movl %fs:current_task, %eax
-	# Check if current_task is zero (NULL). If it is, skip register saving.
+	movl 8(%ebp), %eax
+	# Check if old is NULL. If it is, skip register saving.
 	test %eax, %eax
 	je load_registers
 
-	# Store registers into current task's struct regs.
+	# Store registers into old's struct regs.
 	# Struct regs starts at offset of 32.
 	movl %edi, 32(%eax)
 	movl %esi, 36(%eax)
@@ -74,7 +74,7 @@ switch_to_task:
 
 # Load the new task struct.
 load_registers:
-	movl 8(%ebp), %eax
+	movl 12(%ebp), %eax
 
 	# Switch over to the new thread's stack.
 	# Make space for to store EFLAGS and EIP.
@@ -108,10 +108,6 @@ load_registers:
 	# Store task's EFLAGS register on the stack.
 	movl 92(%eax), %ecx
 	movl %ecx, 8(%esp)
-
-	# Change task state to TASK_RUNNING and set it as current_task.
-	movl $3, 0(%eax)
-	movl %eax, %fs:current_task
 
 	pop %eax
 	pop %ecx
