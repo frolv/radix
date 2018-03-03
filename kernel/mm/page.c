@@ -179,7 +179,9 @@ void free_pages(struct page *p)
 	p->status &= ~PM_PAGE_ALLOCATED;
 	ord = PM_PAGE_BLOCK_ORDER(p);
 
-	if (page_to_phys(p) < MIB(16)) {
+	if (page_to_phys(p) < MIB(1)) {
+		zone = &zone_low;
+	} else if (page_to_phys(p) < MIB(16)) {
 		zone = &zone_dma;
 	} else if (p->status & PM_PAGE_ZONE_USR) {
 		zone = &zone_usr;
