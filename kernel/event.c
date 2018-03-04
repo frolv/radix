@@ -297,7 +297,7 @@ int sched_event_add(uint64_t timestamp)
 	evt->type = EVENT_SCHED;
 	evt->flags = 0;
 
-	__event_add(tk_event);
+	__event_add(evt);
 	return 0;
 }
 
