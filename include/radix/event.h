@@ -31,5 +31,6 @@ void event_handler(void);
 void timekeeping_event_update(uint64_t period);
 
 int sched_event_add(uint64_t timestamp);
+int sched_event_del(void);
 
 #endif /* RADIX_EVENT_H */

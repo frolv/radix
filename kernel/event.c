@@ -52,7 +52,8 @@ struct event {
 static struct slab_cache *event_cache;
 
 static DEFINE_PER_CPU(struct list, event_queue);
-static DEFINE_PER_CPU(struct event *, dummy_event);
+static DEFINE_PER_CPU(struct event *, dummy_event) = NULL;
+static DEFINE_PER_CPU(struct event *, sched_event) = NULL;
 
 static void __event_insert(struct event *evt);
 static void __event_schedule(struct event *evt);
@@ -61,6 +62,7 @@ static void event_process(struct event *evt)
 {
 	switch (evt->type) {
 	case EVENT_SCHED:
+		this_cpu_write(sched_event, NULL);
 		schedule(0);
 		break;
 	case EVENT_SLEEP:
@@ -298,7 +300,37 @@ int sched_event_add(uint64_t timestamp)
 	evt->flags = 0;
 
 	__event_add(evt);
+	this_cpu_write(sched_event, evt);
+
 	return 0;
+}
+
+/*
+ * sched_event_del:
+ * Delete the active scheduler event.
+ */
+void sched_event_del(void)
+{
+	struct list *eventq;
+	struct event *evt;
+
+	evt = this_cpu_read(sched_event);
+	if (!evt)
+		return;
+
+	eventq = this_cpu_ptr(&event_queue);
+
+	/* sched event was first in queue; must schedule next event */
+	if (evt->list.prev == eventq) {
+		if (list_empty(eventq))
+			schedule_timer_irq(0);
+		else
+			__event_schedule(list_first_entry(eventq, struct event, list));
+	}
+
+	list_del(&evt->list);
+	this_cpu_write(sched_event, NULL);
+	event_free(evt);
 }
 
 /*
