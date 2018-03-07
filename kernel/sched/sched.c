@@ -85,7 +85,7 @@ int sched_init(void)
 	int i;
 
 	for (i = 0; i < SCHED_PRIO_LEVELS; ++i)
-		list_init(this_cpu_ptr(&prio_queues[i]));
+		list_init(raw_cpu_ptr(&prio_queues[i]));
 
 	if (idle_task_init() != 0)
 		return 1;
@@ -138,6 +138,7 @@ int sched_add(struct task *t)
 		return 1;
 
 	t->prio_level = 0;
+	t->sched_ts = 0;
 	t->remaining_time = __prio_timeslice(t->prio_level);
 	list_ins(cpu_ptr(&prio_queues[t->prio_level], cpu), &t->queue);
 
@@ -205,7 +206,7 @@ static void __handle_outgoing_task(struct task *outgoing, uint64_t now)
 		 * The task has used up its alloted time at this
 		 * priority, move it down to the next level.
 		 */
-		outgoing->prio_level = max(outgoing->prio_level - 1,
+		outgoing->prio_level = min(outgoing->prio_level + 1,
 		                           SCHED_PRIO_LEVELS - 1);
 		outgoing->remaining_time =
 		        __prio_timeslice(outgoing->prio_level);
@@ -232,7 +233,7 @@ static void __prepare_next_task(struct task *next, uint64_t now)
 
 	next->state = TASK_RUNNING;
 	next->cpu_affinity |= CPUMASK_SELF;
-	next->sched_ts = now + MIN_EVENT_DELTA;
+	next->sched_ts = now;
 
 	cpu_set_kernel_stack(next->stack_base);
 	this_cpu_write(current_task, next);
@@ -256,10 +257,13 @@ void schedule(int preempt)
 	if (curr && curr != this_cpu_read(idle_task))
 		__handle_outgoing_task(curr, now);
 
+	if (preempt)
+		sched_event_del();
+
 	next = __select_next_task();
 	__prepare_next_task(next, now);
 
-	if (preempt)
+	if (preempt && curr != next)
 		switch_task(curr, next);
 }
 
@@ -275,17 +279,18 @@ static __always_inline void __prio_boost_queue(struct list *queue,
 	struct list *l, *tmp, *top;
 	struct task *t;
 	spinlock_t *sl;
-	uint64_t run;
+	unsigned long irqstate;
 
-	top = this_cpu_ptr(&prio_queues[0]);
-	sl = this_cpu_ptr(&queue_locks[0]);
+	if (list_empty(queue))
+		return;
 
-	spin_lock(lock);
+	top = raw_cpu_ptr(&prio_queues[0]);
+	sl = raw_cpu_ptr(&queue_locks[0]);
+
+	spin_lock_irq(lock, &irqstate);
 	list_for_each_safe(l, tmp, queue) {
 		t = list_entry(l, struct task, queue);
-
-		run = t->sched_ts + __prio_timeslice(t->prio_level);
-		if (now - run < PRIO_BOOST_PERIOD)
+		if (t->sched_ts == 0 || now - t->sched_ts < PRIO_BOOST_PERIOD)
 			continue;
 
 		list_del(&t->queue);
@@ -296,7 +301,7 @@ static __always_inline void __prio_boost_queue(struct list *queue,
 		list_ins(top, &t->queue);
 		spin_unlock(sl);
 	}
-	spin_unlock(lock);
+	spin_unlock_irq(lock, irqstate);
 }
 
 static __noreturn void __prio_boost(void *p)
@@ -305,17 +310,17 @@ static __noreturn void __prio_boost(void *p)
 	uint64_t now;
 	int prio;
 
-	this = current_task();
-
 	while (1) {
+		this = current_task();
 		now = time_ns();
 
 		for (prio = 1; prio < SCHED_PRIO_LEVELS; ++prio)
-			__prio_boost_queue(this_cpu_ptr(&prio_queues[prio]),
-					   this_cpu_ptr(&queue_locks[prio]),
+			__prio_boost_queue(raw_cpu_ptr(&prio_queues[prio]),
+					   raw_cpu_ptr(&queue_locks[prio]),
 					   now);
 
 		/* reset timeslice so that task's prio_level is never dropped */
+		this->prio_level = 0;
 		this->remaining_time = __prio_timeslice(0);
 
 		/* TODO: replace this with a sleep until the next boost check */
@@ -325,7 +330,9 @@ static __noreturn void __prio_boost(void *p)
 	(void)p;
 }
 
+/* TODO: implement */
 void sched_unblock(struct task *t)
 {
-	(void)t;
+	/* temporary code so that mutexes work */
+	list_ins(cpu_ptr(&prio_queues[t->prio_level], 0), &t->queue);
 }
