@@ -23,6 +23,7 @@
 
 #include <radix/cpumask.h>
 
+#define send_panic_ipi __arch_send_panic_ipi
 #define send_timer_ipi __arch_send_timer_ipi
 
 void ipi_init(void);

@@ -23,13 +23,20 @@
 #include <radix/smp.h>
 #include <radix/timer.h>
 
+void panic_shutdown(void);
 void tlb_shootdown(void);
 void timer_action(void);
 
 void arch_ipi_init(void)
 {
+	idt_set(IPI_VEC_PANIC, panic_shutdown, 0x08, 0x8E);
 	idt_set(IPI_VEC_TLB_SHOOTDOWN, tlb_shootdown, 0x08, 0x8E);
 	idt_set(IPI_VEC_TIMER_ACTION, timer_action, 0x08, 0x8E);
+}
+
+void i386_send_panic_ipi(void)
+{
+	system_pic->send_ipi(IPI_VEC_PANIC, CPUMASK_ALL_OTHER);
 }
 
 void i386_send_timer_ipi(void)

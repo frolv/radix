@@ -19,11 +19,14 @@
 #ifndef ARCH_I386_RADIX_IPI_H
 #define ARCH_I386_RADIX_IPI_H
 
-#define IPI_VEC_TLB_SHOOTDOWN   0xF0
-#define IPI_VEC_TIMER_ACTION    0xF1
+#define IPI_VEC_PANIC           0xF0
+#define IPI_VEC_TLB_SHOOTDOWN   0xF1
+#define IPI_VEC_TIMER_ACTION    0xF2
 
+#define __arch_send_panic_ipi i386_send_panic_ipi
 #define __arch_send_timer_ipi i386_send_timer_ipi
 
+void i386_send_panic_ipi(void);
 void i386_send_timer_ipi(void);
 
 #endif /* ARCH_I386_RADIX_IPI_H */

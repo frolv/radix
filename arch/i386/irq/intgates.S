@@ -344,6 +344,11 @@ irq_noargs_common:
 
 # IPI vectors
 
+BEGIN_FUNC(panic_shutdown)
+	hlt
+	jmp panic_shutdown
+END_FUNC(panic_shutdown)
+
 # TLB shootdown gate
 BEGIN_FUNC(tlb_shootdown)
 	cli

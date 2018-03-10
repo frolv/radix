@@ -16,28 +16,55 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/atomic.h>
+#include <radix/console.h>
+#include <radix/list.h>
+#include <radix/ipi.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
-#include <radix/tty.h>
+
 #include <rlibc/stdio.h>
+#include <rlibc/string.h>
+
+#define PANIC "kernel panic: "
+
+static void raw_write(const char *s, size_t len)
+{
+	if (!active_console || !s)
+		return;
+
+	atomic_write(&active_console->lock.count, 0);
+	list_init(&active_console->lock.queue);
+	active_console->actions->write(active_console, s, len);
+}
 
 /*
  * panic:
  * Print error message and halt the system.
- * This function never returns.
  */
 __noreturn void panic(const char *err, ...)
 {
+	char buf[1024];
 	va_list ap;
+	char *s;
 
-	/* disable interrupts */
 	irq_disable();
 
-	printf("kernel panic: ");
+	/*
+	 * TODO:
+	 * stack trace
+	 * register dump
+	 */
+	send_panic_ipi();
+
+	strcpy(buf, PANIC);
+	s = buf + sizeof PANIC - 1;
+
 	va_start(ap, err);
-	vprintf(err, ap);
+	s += vsprintf(s, err, ap);
 	va_end(ap);
-	tty_flush();
+
+	raw_write(buf, s - buf);
 
 	DIE();
 	__builtin_unreachable();
