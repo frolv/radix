@@ -38,7 +38,6 @@ enum event_type {
 
 struct event {
 	uint64_t                time;
-	int                     type;
 	unsigned long           flags;
 	union {
 		uint64_t        tk_period;
@@ -47,7 +46,9 @@ struct event {
 	struct list             list;
 };
 
-#define EVENT_STATIC (1 << 0)
+#define EVENT_STATIC (1 << 2)
+
+#define EVENT_TYPE(evt) ((evt)->flags & 0x3)
 
 static struct slab_cache *event_cache;
 
@@ -60,7 +61,7 @@ static void __event_schedule(struct event *evt);
 
 static void event_process(struct event *evt)
 {
-	switch (evt->type) {
+	switch (EVENT_TYPE(evt)) {
 	case EVENT_SCHED:
 		this_cpu_write(sched_event, NULL);
 		schedule(0);
@@ -92,14 +93,10 @@ void event_handler(void)
 	uint64_t now;
 
 	eventq = this_cpu_ptr(&event_queue);
-	evt = list_first_entry(eventq, struct event, list);
-	list_del(&evt->list);
-	event_process(evt);
-	event_free(evt);
 
 	/*
-	 * Keep processing events in the queue until the next occurs
-	 * at least MIN_EVENT_DELTA after the end of the current.
+	 * Process events in the queue until the next occurs at
+	 * least MIN_EVENT_DELTA after the end of the current.
 	 */
 	while (!list_empty(eventq)) {
 		evt = list_first_entry(eventq, struct event, list);
@@ -160,7 +157,7 @@ static void __event_insert(struct event *evt)
 	list_for_each_entry(curr, eventq, list) {
 		if (curr->time > evt->time) {
 			list_ins(&curr->list, &evt->list);
-			if (curr->type == EVENT_DUMMY)
+			if (EVENT_TYPE(curr) == EVENT_DUMMY)
 				list_del(&curr->list);
 			goto check_prev;
 		}
@@ -170,7 +167,7 @@ static void __event_insert(struct event *evt)
 check_prev:
 	if (evt->list.prev != eventq) {
 		prev = list_prev_entry(evt, list);
-		if (prev->type == EVENT_DUMMY)
+		if (EVENT_TYPE(prev) == EVENT_DUMMY)
 			list_del(&prev->list);
 	}
 }
@@ -236,7 +233,7 @@ static void __event_remove(struct event *evt)
 		sched = 1;
 	} else {
 		prev = list_prev_entry(evt, list);
-		if (prev->type == EVENT_DUMMY) {
+		if (EVENT_TYPE(prev) == EVENT_DUMMY) {
 			list_del(&prev->list);
 			sched = 1;
 		}
@@ -261,8 +258,7 @@ static void timekeeping_event_init(uint64_t period, uint64_t initial)
 		panic("could not initialize kernel timekeeping event\n");
 
 	tk_event->time = time_ns() + initial;
-	tk_event->type = EVENT_TIME;
-	tk_event->flags = EVENT_STATIC;
+	tk_event->flags = EVENT_STATIC | EVENT_TIME;
 	tk_event->tk_period = period;
 
 	__event_add(tk_event);
@@ -296,8 +292,7 @@ int sched_event_add(uint64_t timestamp)
 		return ERR_VAL(evt);
 
 	evt->time = timestamp;
-	evt->type = EVENT_SCHED;
-	evt->flags = 0;
+	evt->flags = EVENT_SCHED;
 
 	__event_add(evt);
 	this_cpu_write(sched_event, evt);
@@ -349,7 +344,6 @@ void cpu_event_init(void)
 		      processor_id());
 
 	dummy->time = 0;
-	dummy->type = EVENT_DUMMY;
-	dummy->flags = EVENT_STATIC;
+	dummy->flags = EVENT_STATIC | EVENT_DUMMY;
 	this_cpu_write(dummy_event, dummy);
 }
