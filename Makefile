@@ -53,6 +53,13 @@ CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS)
 LDFLAGS := $(LDFLAGS) $(KERNEL_ARCH_LDFLAGS)
 LIBS := $(LIBS) $(KERNEL_ARCH_LIBS)
 
+# This is pretty hacky, but it works.
+DEBUG_PATTERN := '^\#define CONFIG_DEBUG$$'
+DEBUG_KERNEL := $(shell grep -q $(DEBUG_PATTERN) $(CONFIG_H) 2>/dev/null; echo $$?)
+ifeq ($(DEBUG_KERNEL), 0)
+	CFLAGS := $(CFLAGS) -fno-omit-frame-pointer -g
+endif
+
 KERNEL_OBJS := $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*.c))
 KERNEL_OBJS += $(patsubst %.c,%.o,$(wildcard $(KERNELDIR)/*/*.c))
 KERNEL_OBJS += $(KERNEL_ARCH_OBJS)

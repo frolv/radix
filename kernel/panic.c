@@ -1,6 +1,6 @@
 /*
  * kernel/panic.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2016-2018 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,14 @@
 #include <radix/ipi.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
+#include <radix/stacktrace.h>
 
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
-#define PANIC "kernel panic: "
+#define PANIC           "kernel panic: "
+#define PANIC_BUFSIZE   8192
+#define PANIC_TRACESIZE (PANIC_BUFSIZE - 1024)
 
 static void raw_write(const char *s, size_t len)
 {
@@ -44,21 +47,24 @@ static void raw_write(const char *s, size_t len)
  */
 __noreturn void panic(const char *err, ...)
 {
-	char buf[1024];
+	char buf[PANIC_BUFSIZE];
 	va_list ap;
 	char *s;
 
 	irq_disable();
 
-	/*
-	 * TODO:
-	 * stack trace
-	 * register dump
-	 */
 	send_panic_ipi();
 
-	strcpy(buf, PANIC);
-	s = buf + sizeof PANIC - 1;
+	s = buf;
+
+#ifdef DEBUG_STACKTRACE
+	s += stack_trace(buf, PANIC_TRACESIZE);
+#endif
+
+	/* TODO: register dump */
+
+	strcpy(s, PANIC);
+	s += sizeof PANIC - 1;
 
 	va_start(ap, err);
 	s += vsprintf(s, err, ap);
@@ -67,5 +73,4 @@ __noreturn void panic(const char *err, ...)
 	raw_write(buf, s - buf);
 
 	DIE();
-	__builtin_unreachable();
 }

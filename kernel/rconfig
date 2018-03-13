@@ -25,3 +25,17 @@ config KLOG_SHIFT
 	option 18 " 256 KiB"
 	option 19 " 512 KiB"
 	option 20 "1024 KiB"
+
+
+section Debug
+
+config DEBUG_STACKTRACE
+	type bool
+	default false
+	desc "Print stack trace in a kernel panic"
+
+config STACKTRACE_DEPTH
+	type int
+	range 0 128
+	default 5
+	desc "Maximum depth of stack trace (0 = full)"
