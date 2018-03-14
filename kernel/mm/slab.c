@@ -511,12 +511,15 @@ static __always_inline struct slab_cache *kmalloc_get_cache(size_t sz)
 void *kmalloc(size_t size)
 {
 	struct slab_cache *cache;
+	void *ptr;
 
 	if (unlikely(!size || size > KMALLOC_MAX_SIZE))
 		return NULL;
 
 	cache = kmalloc_get_cache(size);
-	return alloc_cache(cache);
+	ptr = alloc_cache(cache);
+
+	return IS_ERR(ptr) ? NULL : ptr;
 }
 
 void kfree(void *ptr)
