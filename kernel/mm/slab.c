@@ -279,6 +279,9 @@ int shrink_cache(struct slab_cache *cache)
 {
 	int ret;
 
+	if (unlikely(!cache))
+		return 0;
+
 	spin_lock(&cache->lock);
 	ret = __shrink_cache_unlocked(cache);
 	spin_unlock(&cache->lock);
