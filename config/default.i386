@@ -11,6 +11,7 @@
 
 # section Debugging
 CONFIG_DEBUG=false
+CONFIG_ASSERT=false
 
 
 #

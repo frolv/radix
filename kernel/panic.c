@@ -74,3 +74,8 @@ __noreturn void panic(const char *err, ...)
 
 	DIE();
 }
+
+void __assert_fail(const char *cond, const char *file, int line)
+{
+	panic("%s:%d: assertion failed: %s", file, line, cond);
+}
