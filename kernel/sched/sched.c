@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/assert.h>
 #include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/event.h>
@@ -261,6 +262,7 @@ void schedule(int preempt)
 		sched_event_del();
 
 	next = __select_next_task();
+	assert(next);
 	__prepare_next_task(next, now);
 
 	if (preempt && curr != next)
@@ -312,6 +314,7 @@ static __noreturn void __prio_boost(void *p)
 
 	while (1) {
 		this = current_task();
+		assert(this);
 		now = time_ns();
 
 		for (prio = 1; prio < SCHED_PRIO_LEVELS; ++prio)
@@ -333,6 +336,7 @@ static __noreturn void __prio_boost(void *p)
 /* TODO: implement */
 void sched_unblock(struct task *t)
 {
+	assert(t);
 	/* temporary code so that mutexes work */
 	list_ins(cpu_ptr(&prio_queues[t->prio_level], 0), &t->queue);
 }

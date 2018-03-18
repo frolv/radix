@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/assert.h>
 #include <radix/compiler.h>
 #include <radix/error.h>
 #include <radix/event.h>
@@ -148,6 +149,7 @@ static void __event_insert(struct event *evt)
 	struct list *eventq;
 	struct event *curr, *prev;
 
+	assert(evt);
 	eventq = this_cpu_ptr(&event_queue);
 	if (list_empty(eventq)) {
 		list_add(eventq, &evt->list);
@@ -194,6 +196,7 @@ static void __event_schedule(struct event *evt)
 {
 	uint64_t now, delta, max_ns;
 
+	assert(evt);
 	now = time_ns();
 	delta = max(evt->time - now, MIN_EVENT_DELTA);
 	max_ns = irq_timer_max_ns();
@@ -226,6 +229,7 @@ static void __event_remove(struct event *evt)
 	struct list *eventq;
 	int sched;
 
+	assert(evt);
 	eventq = this_cpu_ptr(&event_queue);
 	sched = 0;
 
@@ -240,8 +244,14 @@ static void __event_remove(struct event *evt)
 	}
 
 	list_del(&evt->list);
-	if (sched)
-		__event_schedule(list_first_entry(eventq, struct event, list));
+	if (sched) {
+		if (list_empty(eventq)) {
+			schedule_timer_irq(0);
+		} else {
+			evt = list_first_entry(eventq, struct event, list);
+			__event_schedule(evt);
+		}
+	}
 }
 
 static struct event *tk_event = NULL;
