@@ -151,7 +151,7 @@ struct page *alloc_pages(unsigned int flags, size_t ord)
 	spin_lock(&zone->lock);
 
 	/* TODO: if zone is full, allocate from another */
-	if (zone->alloc_pages == zone->total_pages)
+	if (ord > zone->max_ord || zone->alloc_pages == zone->total_pages)
 		ret = ERR_PTR(ENOMEM);
 	else
 		ret = __alloc_pages(zone, flags, ord);
@@ -219,9 +219,6 @@ static struct page *__alloc_pages(struct buddy *zone,
 	addr_t virt;
 	int npages, prot;
 
-	if (unlikely(ord > zone->max_ord))
-		return ERR_PTR(ENOMEM);
-
 	/* split larger blocks until one of the requested order exists */
 	if (!zone->len[ord])
 		buddy_split(zone, ord);
@@ -229,7 +226,7 @@ static struct page *__alloc_pages(struct buddy *zone,
 	p = list_first_entry(&zone->ord[ord], struct page, list);
 	list_del(&p->list);
 	zone->len[ord]--;
-	if (ord == zone->max_ord) {
+	if (zone->max_ord && ord == zone->max_ord) {
 		while (!zone->len[zone->max_ord])
 			zone->max_ord--;
 	}
