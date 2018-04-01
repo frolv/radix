@@ -41,7 +41,7 @@ struct task *kthread_create(void (*func)(void *), void *arg,
 	struct task *thread;
 	va_list ap;
 
-	if (unlikely(!name))
+	if (unlikely(!func || !name))
 		return ERR_PTR(EINVAL);
 
 	thread = __kthread_create(func, arg, page_order);
@@ -94,6 +94,10 @@ __noreturn void kthread_exit(void)
 
 	irq_disable();
 	thread = current_task();
+	/*
+	 * TODO: the stack shouldn't be freed yet, as the following code is
+	 * still using it. A job should be created to free it at a later time.
+	 */
 	free_pages(thread->stack_base);
 
 	for (s = thread->cmdline; *s; ++s)

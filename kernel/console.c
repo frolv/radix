@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/assert.h>
 #include <radix/console.h>
 
 #include <rlibc/string.h>
@@ -26,6 +27,8 @@ static struct list console_list = LIST_INIT(console_list);
 void console_register(struct console *console, const char *name,
                       struct consfn *console_func, int active)
 {
+	assert(console);
+
 	console->name[0] = '\0';
 	strncat(console->name, name, 15);
 	console->actions = console_func;

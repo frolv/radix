@@ -18,6 +18,7 @@
 
 #include <radix/atomic.h>
 #include <radix/irq.h>
+#include <radix/kernel.h>
 #include <radix/mutex.h>
 #include <radix/sched.h>
 #include <radix/tasking.h>
@@ -39,9 +40,6 @@ void mutex_lock(struct mutex *m)
 	struct task *curr;
 	unsigned long irqstate;
 
-	if (unlikely(in_irq()))
-		return;
-
 	while (atomic_swap(&m->count, 1) != 0) {
 		curr = current_task();
 		/* if there is no current task, functions as a spinlock */
@@ -60,9 +58,6 @@ void mutex_unlock(struct mutex *m)
 {
 	struct task *next;
 	unsigned long irqstate;
-
-	if (unlikely(in_irq()))
-		return;
 
 	m->count = 0;
 
