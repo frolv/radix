@@ -22,5 +22,6 @@
 DECLARE_PER_CPU(struct task *, idle_task);
 
 int idle_task_init(void);
+int is_idle(int cpu);
 
 #endif /* KERNEL_SCHED_IDLE_H */

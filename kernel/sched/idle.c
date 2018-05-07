@@ -55,3 +55,9 @@ int idle_task_init(void)
 
 	return 0;
 }
+
+/* is_idle: check if `cpu` is currently idling */
+int is_idle(int cpu)
+{
+	return cpu_var(current_task, cpu) == cpu_var(idle_task, cpu);
+}

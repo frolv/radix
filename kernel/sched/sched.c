@@ -146,6 +146,10 @@ int sched_add(struct task *t)
 	active = cpu_ptr(&active_tasks, cpu);
 	++*active;
 
+	if (is_idle(cpu)) {
+		/* TODO: send an IPI to wake the CPU */
+	}
+
 	return 0;
 }
 
