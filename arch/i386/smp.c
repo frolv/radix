@@ -55,7 +55,7 @@ static uint64_t ap_gdt[] = {
 };
 
 static struct {
-	int     cpu_number;
+	int cpu_number;
 } ap_boot_info;
 
 /*
@@ -130,8 +130,8 @@ void ap_entry(void)
 	this_cpu_write(processor_id, cpu);
 	this_cpu_write(__this_cpu_offset, offset);
 
-	p = alloc_pages(PA_STANDARD, 2);
-	stack_top = p->mem + 4 * PAGE_SIZE;
+	p = alloc_page(PA_STANDARD);
+	stack_top = p->mem + PAGE_SIZE;
 	this_cpu_write(cpu_stack, stack_top);
 
 	ap_switch_stack(stack_top);
