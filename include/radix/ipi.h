@@ -23,8 +23,9 @@
 
 #include <radix/cpumask.h>
 
-#define send_panic_ipi __arch_send_panic_ipi
-#define send_timer_ipi __arch_send_timer_ipi
+#define send_panic_ipi       __arch_send_panic_ipi
+#define send_timer_ipi       __arch_send_timer_ipi
+#define send_sched_wake(cpu) __arch_send_sched_wake(cpu)
 
 void ipi_init(void);
 void arch_ipi_init(void);

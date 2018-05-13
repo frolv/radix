@@ -20,6 +20,7 @@
 #include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/event.h>
+#include <radix/ipi.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
@@ -146,9 +147,8 @@ int sched_add(struct task *t)
 	active = cpu_ptr(&active_tasks, cpu);
 	++*active;
 
-	if (is_idle(cpu)) {
-		/* TODO: send an IPI to wake the CPU */
-	}
+	if (is_idle(cpu))
+		send_sched_wake(cpu);
 
 	return 0;
 }

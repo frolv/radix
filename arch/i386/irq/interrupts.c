@@ -255,8 +255,10 @@ void interrupt_init(void)
 	irq_descriptors[APIC_VEC_CMCI].flags |= IRQ_RESERVED;
 	irq_descriptors[APIC_VEC_SPURIOUS].flags |= IRQ_RESERVED;
 
+	irq_descriptors[IPI_VEC_PANIC].flags |= IRQ_RESERVED;
 	irq_descriptors[IPI_VEC_TLB_SHOOTDOWN].flags |= IRQ_RESERVED;
 	irq_descriptors[IPI_VEC_TIMER_ACTION].flags |= IRQ_RESERVED;
+	irq_descriptors[IPI_VEC_SCHED_WAKE].flags |= IRQ_RESERVED;
 
 	next_shared_vector = IRQ_BASE + system_pic->irq_count;
 }

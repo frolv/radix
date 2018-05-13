@@ -374,3 +374,15 @@ BEGIN_FUNC(timer_action)
 	pushl $timer_action_handler
 	jmp irq_noargs_common
 END_FUNC(timer_action)
+
+BEGIN_FUNC(sched_wake)
+	incl THIS_CPU_VAR(interrupt_depth)
+	BUILD_STRUCT_REGS 0
+	pushl %esp
+	cld
+	call sched_wake_handler
+	addl $4, %esp
+	POP_STRUCT_REGS
+	decl THIS_CPU_VAR(interrupt_depth)
+	iret
+END_FUNC(sched_wake)
