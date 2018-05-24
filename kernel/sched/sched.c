@@ -111,16 +111,13 @@ static __always_inline uint64_t __prio_timeslice(int prio)
 static int __find_best_cpu(struct task *t)
 {
 	int cpu, best, min_tasks, curr_tasks;
-	cpumask_t online;
+	cpumask_t potential;
 
-	online = cpumask_online();
+	potential = cpumask_online() & t->cpu_restrict;
 	min_tasks = INT_MAX;
 	best = -1;
 
-	for_each_cpu(cpu, online) {
-		if (!(t->cpu_restrict & CPUMASK_CPU(cpu)))
-			continue;
-
+	for_each_cpu(cpu, potential) {
 		curr_tasks = cpu_var(active_tasks, cpu);
 		if (curr_tasks < min_tasks) {
 			min_tasks = curr_tasks;
