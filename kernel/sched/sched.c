@@ -119,6 +119,10 @@ static int __find_best_cpu(struct task *t)
 
 	for_each_cpu(cpu, potential) {
 		curr_tasks = cpu_var(active_tasks, cpu);
+		/* If the CPU is idle, choose it. */
+		if (!curr_tasks)
+			return cpu;
+
 		if (curr_tasks < min_tasks) {
 			min_tasks = curr_tasks;
 			best = cpu;
