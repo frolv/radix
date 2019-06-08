@@ -24,7 +24,7 @@ CFLAGS ?= -O2
 LDFLAGS ?=
 LIBS ?=
 
-CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra -D__KERNEL__
+CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra -D__KERNEL__ -MMD
 ASFLAGS := $(ASFLAGS) -D__ASSEMBLY__
 LIBS := $(LIBS) -nostdlib -lgcc
 
@@ -70,6 +70,10 @@ GLOBAL_INCLUDES := $(patsubst %,-include %,$(_GLOBAL_INCLUDES))
 
 _INCLUDE := $(shell realpath $(INCLUDEDIRS))
 INCLUDE := $(patsubst %,-I%,$(_INCLUDE)) $(GLOBAL_INCLUDES)
+
+KERNEL_DEPS := $(KERNEL_OBJS:%.o=%.d)
+DRIVER_DEPS := $(DRIVER_OBJS:%.o=%.d)
+LIBK_DEPS := $(LIBK_OBJS:%.o=%.d)
 
 .SUFFIXES: .o .c .S
 
@@ -121,6 +125,10 @@ rconfig-gen-default: rconfig
 .PHONY: rconfig-lint
 rconfig-lint: rconfig
 	$(RCONFIG) --arch=$(HOSTARCH) --lint
+
+-include $(LIBK_DEPS)
+-include $(KERNEL_DEPS)
+-include $(DRIVER_DEPS)
 
 $(KERNEL_NAME): $(CONFIG_H) $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) \
 	$(ARCHDIR)/linker.ld
