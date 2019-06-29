@@ -150,7 +150,7 @@ int verify_config(struct rconfig_file *file, struct rconfig_config *conf)
 	char *s;
 
 	status = 0;
-	for (s = conf->identifier; *s && (isupper(*s) || *s == '_'); ++s)
+	for (s = conf->identifier; *s && (isupper(*s) || isdigit(*s) || *s == '_'); ++s)
 		;
 	if (*s) {
 		if (is_linting)
