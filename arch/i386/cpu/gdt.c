@@ -33,6 +33,8 @@ DEFINE_PER_CPU(uint32_t, tss[26]);
 extern void gdt_load(void *base, size_t s);
 extern void tss_load(uintptr_t gdt_offset);
 
+extern uint32_t bsp_stack_top;
+
 static void tss_init(uint32_t *tss_ptr, uint32_t esp0, uint32_t ss0);
 
 /*
@@ -72,7 +74,7 @@ static void __gdt_init(uint64_t *gdt_ptr, uint32_t *tss_ptr, uint32_t fsbase)
 
 	tss_base = (uintptr_t)tss_ptr;
 
-	tss_init(tss_ptr, 0x0, GDT_OFFSET(GDT_KERNEL_DATA));
+	tss_init(tss_ptr, bsp_stack_top, GDT_OFFSET(GDT_KERNEL_DATA));
 
 	gdt_ptr[GDT_NULL] = gdt_entry(0, 0, 0, 0);
 	gdt_ptr[GDT_KERNEL_CODE] = gdt_entry(0, 0xFFFFFFFF, 0x9A, 0x0C);
