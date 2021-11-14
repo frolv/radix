@@ -1,6 +1,6 @@
 #
 # arch/i386/irq/intgates.S
-# Copyright (C) 2017 Alexei Frolov
+# Copyright (C) 2021 Alexei Frolov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#include <radix/asm/regs_asm.h>
 #include <radix/assembler.h>
 #include <radix/irq.h>
 
@@ -24,8 +25,8 @@
 	iret
 .endm
 
-# per-CPU variable to track number of unhandled exceptions
-# TODO: when APs come online, they should reset this to zero
+# Per-CPU variable to track the number of unhandled exceptions.
+# TODO(frolv): when APs come online, they should reset this to zero.
 DEFINE_PER_CPU(unhandled_exceptions)
 	.long 0
 DEFINE_PER_CPU_END()
@@ -34,7 +35,7 @@ DEFINE_PER_CPU(interrupt_depth)
 	.long 0
 DEFINE_PER_CPU_END()
 
-# function for unimplemented exception handlers
+# Function for unimplemented exception handlers.
 exception_unhandled:
 	incl THIS_CPU_VAR(unhandled_exceptions)
 	ret
@@ -122,26 +123,11 @@ BEGIN_FUNC(security_exception)
 	UNHANDLED_EXCEPTION
 END_FUNC(security_exception)
 
-#define REGS_DI(base)           (base)
-#define REGS_SI(base)          4(base)
-#define REGS_SP(base)          8(base)
-#define REGS_BP(base)         12(base)
-#define REGS_BX(base)         16(base)
-#define REGS_DX(base)         20(base)
-#define REGS_CX(base)         24(base)
-#define REGS_AX(base)         28(base)
-#define REGS_GS(base)         32(base)
-#define REGS_FS(base)         36(base)
-#define REGS_ES(base)         40(base)
-#define REGS_DS(base)         44(base)
-#define REGS_CS(base)         48(base)
-#define REGS_SS(base)         52(base)
-#define REGS_IP(base)         56(base)
-#define REGS_FLAGS(base)      60(base)
-
 # Build a struct regs from an interrupt context.
 # `pushed_bytes` is the number of bytes already pushed
 # onto the stack since the interrupt.
+#
+# TODO(frolv): This is wrong and should be removed in favor of PUSH_STRUCT_REGS.
 .macro BUILD_STRUCT_REGS pushed_bytes
 	# space for eflags and eip
 	subl $8, %esp
@@ -173,6 +159,42 @@ END_FUNC(security_exception)
 	movl %eax, REGS_IP(%esp)
 .endm
 
+# Creates a `struct regs` on the stack with the values of the current registers
+# and the context pushed at the start of an interrupt.
+#
+# This assumes a 5-byte interrupt context: ss, sp, flags, cs, ip. In x86, this
+# only occurs automatically when an interrupt occurs at a lower privilige level.
+# To use this for interrupts at CPL 0, a "stack fixup" must first be performed.
+.macro PUSH_STRUCT_REGS pushed_bytes
+	# Reserve space for eflags, eip, ss, and cs.
+	subl $16, %esp
+	push %ds
+	push %es
+	push %fs
+	push %gs
+	pushl %eax
+	pushl %ecx
+	pushl %edx
+	pushl %ebx
+	pushl %ebp
+	# Reserve space for esp.
+	subl $4, %esp
+	pushl %esi
+	pushl %edi
+
+	# Copy the five values from the interrupt context into the struct.
+	movl (80 + \pushed_bytes)(%esp), %eax
+	movl %eax, REGS_SS(%esp)
+	movl (76 + \pushed_bytes)(%esp), %eax
+	movl %eax, REGS_SP(%esp)
+	movl (72 + \pushed_bytes)(%esp), %eax
+	movl %eax, REGS_FLAGS(%esp)
+	movl (68 + \pushed_bytes)(%esp), %eax
+	movl %eax, REGS_CS(%esp)
+	movl (64 + \pushed_bytes)(%esp), %eax
+	movl %eax, REGS_IP(%esp)
+.endm
+
 .macro POP_STRUCT_REGS
 	popl %edi
 	popl %esi
@@ -183,15 +205,12 @@ END_FUNC(security_exception)
 	popl %edx
 	popl %ecx
 	popl %eax
-	# skip fs and gs
+	# Skip fs and gs -- these are specific to the CPU.
 	addl $8, %esp
 	pop %es
 	pop %ds
-	# skip cs
-	addl $4, %esp
-	pop %ss
-	# skip eip and eflags
-	addl $8, %esp
+	# Skip cs, ss, eip, and eflags, as they'll be handled by the iret.
+	addl $16, %esp
 .endm
 
 # store GPRs, call exception handler function, and restore context
@@ -251,12 +270,61 @@ interrupt_common:
 BEGIN_FUNC(event_irq)
 	incl THIS_CPU_VAR(interrupt_depth)
 
-	# check if the interrupt occurred from user mode
+	# Check if the interrupt occurred from user mode (ring 3).
 	testw $0x3, 4(%esp)
 	jnz .Lpush_regs
 
-	# When an interrupt occurs in ring 0, ss and esp are not pushed.
-	# Move the stack down by 8 bytes and manually insert them.
+	# Interrupts occuring in ring 0 do not push ss and esp to the stack like
+	# ring 3 interrupts.
+	#
+	# To support uniform handling for both kernel and user threads, ring 0
+	# interrupts imitate the ring 3 stack by inserting the additional
+	# registers where they would have appeared.
+	#
+	# Ring 0 interrupt transformation:
+	#
+	#   1. Initial stack on interrupt entry.
+	#
+	#          +--------+--------+--------+
+	#          | eflags |   cs   |   ip   |
+	#          +--------+--------+--------+
+	#      ESP          8        4        0
+	#                                     ^
+	#
+	#   2. Shift everything downwards by 8 bytes to make space for the two
+	#      registers. This requires stashing eax at the bottom of the stack
+	#      as it will be clobbered.
+	#
+	#          +--------+--------+--------+--------+--------+--------+
+	#          |        |        | eflags |   cs   |   ip   |   ax   |
+	#          +--------+--------+--------+--------+--------+--------+
+	#      ESP          8        4        0       -4       -8       -12
+	#                                     ^
+	#
+	#   3. Insert ss and esp into the new spaces. 12 bytes are added to the
+	#      stored esp's value so that it points to where it was before the
+	#      interrupt was triggered.
+	#
+	#          +--------+--------+--------+--------+--------+--------+
+	#          |   ss   |   sp   | eflags |   cs   |   ip   |   ax   |
+	#          +--------+--------+--------+--------+--------+--------+
+	#      ESP          8        4        0       -4       -8       -12
+	#                                     ^
+	#
+	#   4. Advance the active esp into to its new position and restore the
+	#      stashed eax. The stack now mimics that of a ring 3 interrupt.
+	#
+	#          +--------+--------+--------+--------+--------+
+	#          |   ss   |   sp   | eflags |   cs   |   ip   |
+	#          +--------+--------+--------+--------+--------+
+	#      ESP         16       12        8        4        0
+	#                                                       ^
+	#
+	#   5. From here, continue into the main interrupt handler, which will
+	#      save and potentially modify these stored values.
+	#
+
+	# Stash eax and shift everything down.
 	movl %eax, -12(%esp)
 	movl (%esp), %eax
 	movl %eax, -8(%esp)
@@ -265,57 +333,66 @@ BEGIN_FUNC(event_irq)
 	movl 8(%esp), %eax
 	movl %eax, (%esp)
 
-	# Insert ss and esp.
+	# Insert esp and ss.
 	movl %esp, %eax
 	addl $12, %eax
 	movl %eax, 4(%esp)
 	movl %ss, %eax
 	movl %eax, 8(%esp)
+
+	# Restore eax and move esp to its final position.
 	movl -12(%esp), %eax
 	subl $8, %esp
 
 .Lpush_regs:
-	BUILD_STRUCT_REGS 0
+	PUSH_STRUCT_REGS 0
 	pushl %esp
 	cld
 	call arch_event_handler
 	addl $4, %esp
 	POP_STRUCT_REGS
 
+	# Check the cs on the stack to see if returning to a ring 3 or ring 0
+	# context. For ring 3, there is nothing to do, as the stack is already
+	# correctly set up.
 	testw $0x3, 4(%esp)
 	jnz .Lfinish_irq
 
-	# When returning from a ring 0 interrupt, the new ss and esp need to be
-	# loaded and the stack restored to a valid iret state. This is done by
-	# copying the stored eip, cs and eflags onto the new stack and then
-	# switching over to it.
-	movl %eax, -4(%esp)
-	movl %ebx, -8(%esp)
-	movl %edx, -12(%esp)
+	# When returning into a ring 0 context, we may be switching onto a
+	# different stack and must handle this manually. Copy the three pushed
+	# interrupt context values (flags, cs, ip) below the new stack pointer
+	# (which may be the current stack) and switch to it.
+	#
+	# TODO(frolv): This operation requires 5 words of temporary space on the
+	# new stack and 2 on the current stack. This should be checked first.
 
-	# Load the new stack and copy values over.
-	movl 12(%esp), %ebx
-	subl $12, %ebx
-	movw 16(%esp), %dx
-	movl -4(%esp), %eax
+	# Stash ebx and eax.
+	push %ebx
+	push %eax
+
+	# Load the new thread's stack pointer into ebx.
+	movl 20(%esp), %ebx
+
+	# Copy over the context from the current stack onto the new stack.
+	# This MUST be done from top-to-bottom, as the two stacks may be the
+	# same, in which case the values are simply being shifted up by 2 bytes.
+	movl 16(%esp), %eax  # eflags
+	movl %eax, -4(%ebx)
+	movl 12(%esp), %eax  # cs
+	movl %eax, -8(%ebx)
+	movl 8(%esp), %eax   # eip
 	movl %eax, -12(%ebx)
-	movl -8(%esp), %eax
-	movl %eax, -16(%ebx)
-	movl -12(%esp), %eax
-	movl %eax, -20(%ebx)
-	movl 8(%esp), %eax
-	movl %eax, 8(%ebx)
-	movl 4(%esp), %eax
-	movl %eax, 4(%ebx)
-	movl (%esp), %eax
-	movl %eax, (%ebx)
 
-	# Switch to the new stack.
-	mov %dx, %ss
+	# Load the kernel's ss.
+	mov $0x10, %ax
+	mov %ax, %ss
+
+	# Finally, switch over to the new stack and restore eax and ebx.
+	movl %esp, %eax
+	subl $12, %ebx
 	movl %ebx, %esp
-	movl -12(%esp), %eax
-	movl -16(%esp), %ebx
-	movl -20(%esp), %edx
+	movl 4(%eax), %ebx
+	movl (%eax), %eax
 
 .Lfinish_irq:
 	decl THIS_CPU_VAR(interrupt_depth)

@@ -1,6 +1,6 @@
 #
 # arch/i386/cpu/task.S
-# Copyright (C) 2016-2018 Alexei Frolov
+# Copyright (C) 2021 Alexei Frolov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,97 +16,109 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#include <radix/asm/regs_asm.h>
+
 .section .text
 .align 4
 
 .global switch_task
 .type switch_task, @function
 
-# switch_task(struct task *old, struct task *new)
+# The offset of a regs struct within a task struct.
+# If radix/task.h is ever modified, this should be updated.
+#define REGS_OFFSET 32
+
+# void switch_task(struct task *old, struct task *new);
+#
 # Switches the system from running task `old` to task `new`.
-# Saves current registers from `old` loads and loads those from `new`.
+# Saves current registers from `old` and loads those from `new`.
 # Starts executing at the new eip after returning.
-# The struct regs within the struct task must begin at an offset of 32.
 switch_task:
 	push %ebp
 	movl %esp, %ebp
 
 	pushf
+	cli
 
+	# Load old into eax, storing its original value for later use.
 	push %eax
 	movl 8(%ebp), %eax
+
 	# Check if old is NULL. If it is, skip register saving.
 	test %eax, %eax
-	je load_registers
+	je .Lload_registers
 
 	# Store registers into old's struct regs.
-	# Struct regs starts at offset of 32.
-	movl %edi, 32(%eax)
-	movl %esi, 36(%eax)
+	movl %edi, REGS_DI(%eax, REGS_OFFSET)
+	movl %esi, REGS_SI(%eax, REGS_OFFSET)
+
 	# Value of esp before this function was called.
 	# +8 for ebp and eip.
 	movl %ebp, %edi
 	addl $8, %edi
-	movl %edi, 40(%eax)
-	# Old value of ebp.
-	movl 0(%ebp), %edi
-	movl %edi, 44(%eax)
-	movl %ebx, 48(%eax)
-	movl %edx, 52(%eax)
-	movl %ecx, 56(%eax)
-	# eax that we saved on stack.
-	movl 0(%esp), %edi
-	movl %edi, 60(%eax)
+	movl %edi, REGS_SP(%eax, REGS_OFFSET)
 
-	mov %gs, 64(%eax)
-	mov %fs, 68(%eax)
-	mov %es, 72(%eax)
-	mov %ds, 76(%eax)
-	mov %cs, 80(%eax)
-	mov %ss, 84(%eax)
+	# Old value of ebp.
+	movl (%ebp), %edi
+	movl %edi, REGS_BP(%eax, REGS_OFFSET)
+
+	movl %ebx, REGS_BX(%eax, REGS_OFFSET)
+	movl %edx, REGS_DX(%eax, REGS_OFFSET)
+	movl %ecx, REGS_CX(%eax, REGS_OFFSET)
+
+	# eax that we saved on the stack.
+	movl (%esp), %edi
+	movl %edi, REGS_AX(%eax, REGS_OFFSET)
+
+	mov %gs, REGS_GS(%eax, REGS_OFFSET)
+	mov %fs, REGS_FS(%eax, REGS_OFFSET)
+	mov %es, REGS_ES(%eax, REGS_OFFSET)
+	mov %ds, REGS_DS(%eax, REGS_OFFSET)
+	mov %cs, REGS_CS(%eax, REGS_OFFSET)
+	mov %ss, REGS_SS(%eax, REGS_OFFSET)
 
 	# eip return address on stack.
 	movl 4(%ebp), %edi
-	movl %edi, 88(%eax)
-	# EFLAGS
-	movl 4(%esp), %edi
-	movl %edi, 92(%eax)
+	movl %edi, REGS_IP(%eax, REGS_OFFSET)
+	# Pushed eflags value.
+	movl -4(%ebp), %edi
+	movl %edi, REGS_FLAGS(%eax, REGS_OFFSET)
 
-# Load the new task struct.
-load_registers:
+.Lload_registers:
+	# Load the new task.
 	movl 12(%ebp), %eax
 
 	# Switch over to the new thread's stack.
 	# Make space for to store EFLAGS and EIP.
-	movl 40(%eax), %ecx
+	movl REGS_SP(%eax, REGS_OFFSET), %ecx
 	subl $8, %ecx
 	movl %ecx, %esp
 
 	# Store ecx and eax of new task on stack.
-	movl 56(%eax), %ecx
+	movl REGS_CX(%eax, REGS_OFFSET), %ecx
 	push %ecx
-	movl 60(%eax), %ecx
+	movl REGS_AX(%eax, REGS_OFFSET), %ecx
 	push %ecx
 
 	# Load registers from new task struct.
-	movl 36(%eax), %edi
-	movl 36(%eax), %esi
-	movl 44(%eax), %ebp
-	movl 48(%eax), %ebx
-	movl 52(%eax), %edx
+	movl REGS_DI(%eax, REGS_OFFSET), %edi
+	movl REGS_SI(%eax, REGS_OFFSET), %esi
+	movl REGS_BP(%eax, REGS_OFFSET), %ebp
+	movl REGS_BX(%eax, REGS_OFFSET), %ebx
+	movl REGS_DX(%eax, REGS_OFFSET), %edx
 
-	mov 64(%eax), %gs
-	# skip fs
-	mov 72(%eax), %es
-	mov 76(%eax), %ds
-	mov 84(%eax), %ss
+	# Load the segment registers, skipping fs as it's set per CPU.
+	mov REGS_GS(%eax, REGS_OFFSET), %gs
+	mov REGS_ES(%eax, REGS_OFFSET), %es
+	mov REGS_DS(%eax, REGS_OFFSET), %ds
+	mov REGS_SS(%eax, REGS_OFFSET), %ss
 
 	# Store task's EIP on the stack so that `ret` pops it and begins
 	# executing where the task left off.
-	movl 88(%eax), %ecx
+	movl REGS_IP(%eax, REGS_OFFSET), %ecx
 	movl %ecx, 12(%esp)
 	# Store task's EFLAGS register on the stack.
-	movl 92(%eax), %ecx
+	movl REGS_FLAGS(%eax, REGS_OFFSET), %ecx
 	movl %ecx, 8(%esp)
 
 	pop %eax

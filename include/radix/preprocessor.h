@@ -22,7 +22,7 @@
 // Returns the number of arguments in a preprocessor __VA_ARGS__ list.
 // https://stackoverflow.com/questions/11317474/macro-to-count-number-of-arguments
 #define ARG_COUNT(...)                                   \
-	__ARG_COUNT_EVAL0(                                   \
+	__ARG_COUNT_EVAL0(                               \
 		__HAS_COMMA(__VA_ARGS__),                \
 		__HAS_COMMA(__ARG_COMMA __VA_ARGS__ ()), \
 		__ARG_COUNT(__VA_ARGS__, __ARG_INDEX()))
@@ -35,7 +35,7 @@
 #define __ARG_COUNT_COMMA_11(N) N
 
 
-#define __LAST_ARG( \
+#define __LAST_ARG(                                       \
 	 _1,  _2,  _3,  _4,  _5,  _6,  _7,  _8,  _9, _10, \
 	_11, _12, _13, _14, _15, _16, _17, _18, _19, _20, \
 	_21, _22, _23, _24, _25, _26, _27, _28, _29, _30, \
@@ -53,7 +53,7 @@
 	19, 18, 17, 16, 15, 14, 13, 12, 11, 10, \
 	 9,  8,  7,  6,  5,  4,  3,  2,  1,  0
 
-#define __COMMA_SEQUENCE()               \
+#define __COMMA_SEQUENCE()            \
 	1, 1, 1, 1,                   \
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, \
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, \
