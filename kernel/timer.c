@@ -1,6 +1,6 @@
 /*
  * kernel/timer.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -332,7 +332,7 @@ static int update_system_timer(struct timer *timer)
 		else
 			timer_disable(system_timer);
 
-		timekeeping_event_update(timer->max_ns / 2);
+		timekeeping_event_set_period(timer->max_ns / 2);
 	}
 
 	system_timer = timer;
@@ -400,10 +400,7 @@ static uint64_t __irq_timer_max_ns_normal(void)
 void (*schedule_timer_irq)(uint64_t ns) = NULL;
 uint64_t (*irq_timer_max_ns)(void) = NULL;
 
-/*
- * set_irq_timer:
- * Set the specified IRQ timer as the active system IRQ timer.
- */
+// Sets the specified IRQ timer as the active system IRQ timer.
 int set_irq_timer(struct irq_timer *irqt)
 {
 	uint64_t max_ticks;
@@ -445,6 +442,7 @@ int set_irq_timer(struct irq_timer *irqt)
 		irq_timer_max_ns = __irq_timer_max_ns_normal;
 	}
 
+	klog(KLOG_INFO, TIMER "IRQ timer set to %s", irqt->name);
 	return 0;
 }
 

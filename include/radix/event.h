@@ -1,6 +1,6 @@
 /*
  * include/radix/event.h
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ void event_start(void);
 void cpu_event_init(void);
 void event_handler(void);
 
-void timekeeping_event_update(uint64_t period);
+void timekeeping_event_set_period(uint64_t period);
 
 int sched_event_add(uint64_t timestamp);
 void sched_event_del(void);

@@ -1,6 +1,6 @@
 /*
  * kernel/event.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,11 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
+
 #include <radix/assert.h>
 #include <radix/compiler.h>
 #include <radix/error.h>
 #include <radix/event.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/list.h>
 #include <radix/percpu.h>
 #include <radix/sched.h>
@@ -34,32 +37,41 @@ enum event_type {
 	EVENT_SCHED,
 	EVENT_SLEEP,
 	EVENT_TIME,
-	EVENT_DUMMY
+	EVENT_DUMMY,
 };
 
 struct event {
-	uint64_t                time;
+	uint64_t                timestamp;
 	unsigned long           flags;
+
 	union {
+		// Period for a timekeeping event.
 		uint64_t        tk_period;
+
+		// Task to wake for a sleep event.
 		struct task     *sl_task;
 	};
+
 	struct list             list;
 };
 
 #define EVENT_STATIC (1 << 2)
-
 #define EVENT_TYPE(evt) ((evt)->flags & 0x3)
 
 static struct slab_cache *event_cache;
 
+// A linked list of time-based events to run, ordered by increasing timestamp.
+// TODO(frolv): This is not scalable.
 static DEFINE_PER_CPU(struct list, event_queue);
+static DEFINE_PER_CPU(spinlock_t, event_lock);
+
 static DEFINE_PER_CPU(struct event *, dummy_event) = NULL;
 static DEFINE_PER_CPU(struct event *, sched_event) = NULL;
 
 static void __event_insert(struct event *evt);
 static void __event_schedule(struct event *evt);
 
+// Processes a single event.
 static void event_process(struct event *evt)
 {
 	switch (EVENT_TYPE(evt)) {
@@ -67,53 +79,63 @@ static void event_process(struct event *evt)
 		this_cpu_write(sched_event, NULL);
 		schedule(0);
 		break;
+
 	case EVENT_SLEEP:
+		// TODO(frolv): Implement this.
 		break;
+
 	case EVENT_TIME:
 		timer_accumulate();
-		evt->time += evt->tk_period;
+		evt->timestamp += evt->tk_period;
 		__event_insert(evt);
 		break;
+
 	case EVENT_DUMMY:
+		// Nothing to do here.
 		break;
 	}
 }
 
-#define event_alloc() alloc_cache(event_cache)
+static __always_inline struct event *event_alloc() {
+	return alloc_cache(event_cache);
+}
 
 static __always_inline void event_free(struct event *evt)
 {
-	if (!(evt->flags & EVENT_STATIC))
+	if (!(evt->flags & EVENT_STATIC)) {
 		free_cache(event_cache, evt);
+	}
 }
 
+// Main handler function called when an event interrupt occurs.
 void event_handler(void)
 {
-	struct list *eventq;
+	unsigned long irqstate;
+	irq_save(irqstate);
+
+	struct list *eventq = raw_cpu_ptr(&event_queue);
+
+	// Process events in the queue until the next occurs at least
+	// MIN_EVENT_DELTA after the end of the current.
 	struct event *evt;
-	uint64_t now;
-
-	eventq = this_cpu_ptr(&event_queue);
-
-	/*
-	 * Process events in the queue until the next occurs at
-	 * least MIN_EVENT_DELTA after the end of the current.
-	 */
 	while (!list_empty(eventq)) {
 		evt = list_first_entry(eventq, struct event, list);
-		now = time_ns();
-		if (now < evt->time && evt->time - now > MIN_EVENT_DELTA)
+		uint64_t now = time_ns();
+		if (now < evt->timestamp && evt->timestamp - now > MIN_EVENT_DELTA) {
 			break;
+		}
 
 		list_del(&evt->list);
 		event_process(evt);
 		event_free(evt);
 	}
 
-	if (list_empty(eventq))
-		return;
+	// If there are more events to run, schedule the first.
+	if (!list_empty(eventq)) {
+		__event_schedule(evt);
+	}
 
-	__event_schedule(evt);
+	irq_restore(irqstate);
 }
 
 static void timekeeping_event_init(uint64_t period, uint64_t initial);
@@ -138,29 +160,27 @@ void event_start(void)
 	                       system_timer->max_ns / 4);
 }
 
-/*
- * __event_insert:
- * Insert the specified event into the event queue. If it gets inserted
- * at the front of the queue and a dummy event exists, remove the dummy
- * event.
- */
+// Inserts an event into the event queue. If it is inserted at the front of the
+// and a dummy event exists, replace the dummy event.
+//
+// Precondition: This function must be called with the event lock held.
 static void __event_insert(struct event *evt)
 {
-	struct list *eventq;
-	struct event *curr, *prev;
-
 	assert(evt);
-	eventq = this_cpu_ptr(&event_queue);
+
+	struct list *eventq = raw_cpu_ptr(&event_queue);
 	if (list_empty(eventq)) {
 		list_add(eventq, &evt->list);
 		return;
 	}
 
+	struct event *curr;
 	list_for_each_entry(curr, eventq, list) {
-		if (curr->time > evt->time) {
+		if (curr->timestamp > evt->timestamp) {
 			list_ins(&curr->list, &evt->list);
-			if (EVENT_TYPE(curr) == EVENT_DUMMY)
+			if (EVENT_TYPE(curr) == EVENT_DUMMY) {
 				list_del(&curr->list);
+			}
 			goto check_prev;
 		}
 	}
@@ -168,25 +188,22 @@ static void __event_insert(struct event *evt)
 
 check_prev:
 	if (evt->list.prev != eventq) {
-		prev = list_prev_entry(evt, list);
-		if (EVENT_TYPE(prev) == EVENT_DUMMY)
+		struct event *prev = list_prev_entry(evt, list);
+		if (EVENT_TYPE(prev) == EVENT_DUMMY) {
 			list_del(&prev->list);
+		}
 	}
 }
 
-/*
- * __dummy_event:
- * Schedule a dummy event to occur after the specified period.
- * Dummy events don't do anything; they are used when the next real
- * event occurs after a period longer than the IRQ timer's max_ns.
- */
-static void __dummy_event(uint64_t delta)
+// Schedules a dummy event to occur after the specified period. Dummy events
+// don't do anything; they are used as placeholderswhen the next real event
+// occurs after a period longer than the IRQ timer's max_ns.
+//
+// Precondition: This is called with event_lock held.
+static void __schdule_dummy_event(uint64_t delta)
 {
-	struct event *dummy;
-	struct list *eventq;
-
-	dummy = this_cpu_read(dummy_event);
-	eventq = this_cpu_ptr(&event_queue);
+	struct event *dummy = raw_cpu_read(dummy_event);
+	struct list *eventq = raw_cpu_ptr(&event_queue);
 
 	list_add(eventq, &dummy->list);
 	schedule_timer_irq(delta);
@@ -194,57 +211,61 @@ static void __dummy_event(uint64_t delta)
 
 static void __event_schedule(struct event *evt)
 {
-	uint64_t now, delta, max_ns;
-
 	assert(evt);
-	now = time_ns();
-	delta = max(evt->time - now, MIN_EVENT_DELTA);
-	max_ns = irq_timer_max_ns();
 
-	if (delta > max_ns)
-		__dummy_event(max_ns - NSEC_PER_USEC);
-	else
+	uint64_t now = time_ns();
+	uint64_t delta = max(evt->timestamp - now, MIN_EVENT_DELTA);
+	uint64_t max_ns = irq_timer_max_ns();
+
+	if (delta > max_ns) {
+		__schdule_dummy_event(max_ns - NSEC_PER_USEC);
+	} else {
 		schedule_timer_irq(delta);
+	}
 }
 
-/*
- * __event_add:
- * Insert an event into the event queue and schedule it if it is first.
- */
+// Inserts an event into the event queue, scheduling it if it is first.
 static void __event_add(struct event *evt)
 {
+	unsigned long irqstate;
+	spin_lock_irq(&event_lock, &irqstate);
+
 	__event_insert(evt);
-	if (evt->list.prev == this_cpu_ptr(&event_queue))
+	if (evt->list.prev == this_cpu_ptr(&event_queue)) {
 		__event_schedule(evt);
+	}
+
+	spin_unlock_irq(&event_lock, irqstate);
 }
 
-/*
- * __event_remove:
- * Remove the specified event from the event queue,
- * rescheduling the timer IRQ if necessary.
- */
+// Removes the specified event from the event queue. If the event was first in
+// line, reschedules the timer IRQ for the next event.
 static void __event_remove(struct event *evt)
 {
-	struct event *prev;
-	struct list *eventq;
-	int sched;
-
 	assert(evt);
-	eventq = this_cpu_ptr(&event_queue);
-	sched = 0;
+
+	bool reschedule = false;
+	unsigned long irqstate;
+
+	spin_lock_irq(this_cpu_ptr(&event_lock), &irqstate);
+	struct list *eventq = raw_cpu_ptr(&event_queue);
 
 	if (evt->list.prev == eventq) {
-		sched = 1;
+		// This is the first event in the queue. Must reschedule timer.
+		reschedule = true;
 	} else {
-		prev = list_prev_entry(evt, list);
+		// Check if the previous event was a dummy for this event. If it
+		// was, remove the dummy and reschedule for the next event.
+		struct event *prev = list_prev_entry(evt, list);
 		if (EVENT_TYPE(prev) == EVENT_DUMMY) {
 			list_del(&prev->list);
-			sched = 1;
+			reschedule = true;
 		}
 	}
 
 	list_del(&evt->list);
-	if (sched) {
+
+	if (reschedule) {
 		if (list_empty(eventq)) {
 			schedule_timer_irq(0);
 		} else {
@@ -252,56 +273,58 @@ static void __event_remove(struct event *evt)
 			__event_schedule(evt);
 		}
 	}
+
+	spin_unlock_irq(this_cpu_ptr(&event_lock), irqstate);
 }
 
 static struct event *tk_event = NULL;
 
-/*
- * timekeeping_event_init:
- * Launch the timekeeping event, running with the specified period,
- * with the given initial delta until the first event occurs.
- */
+// Launch the timekeeping event, running with the specified period and a given
+// initial delta until the first event occurs. This should only be called once.
 static void timekeeping_event_init(uint64_t period, uint64_t initial)
 {
-	tk_event = event_alloc();
-	if (IS_ERR(tk_event))
-		panic("could not initialize kernel timekeeping event\n");
+	assert(!tk_event);
 
-	tk_event->time = time_ns() + initial;
+	tk_event = event_alloc();
+	if (IS_ERR(tk_event)) {
+		panic("Failed to allocate kernel timekeeping event");
+	}
+
+	tk_event->timestamp = time_ns() + initial;
 	tk_event->flags = EVENT_STATIC | EVENT_TIME;
 	tk_event->tk_period = period;
 
+	klog(KLOG_INFO, "Initializing kernel timekeeping event");
 	__event_add(tk_event);
 }
 
-/*
- * timekeeping_event_update:
- * Change the period of the timekeeping event to the specified value.
- */
-void timekeeping_event_update(uint64_t period)
+// Changes the period of the timekeeping event to the specified value.
+void timekeeping_event_set_period(uint64_t period)
 {
-	if (!tk_event)
+	if (!tk_event) {
 		return;
+	}
 
 	__event_remove(tk_event);
-	tk_event->time = time_ns() + period;
+	tk_event->timestamp = time_ns() + period;
 	tk_event->tk_period = period;
 	__event_add(tk_event);
 }
 
-/*
- * sched_event_add:
- * Insert a scheduler event to occur at the specified timestamp.
- */
+// Inserts a scheduler event at the specified timestamp.
 int sched_event_add(uint64_t timestamp)
 {
-	struct event *evt;
+	// Remove an existing scheduler event, as there can only be one.
+	if (this_cpu_read(sched_event) != NULL) {
+		sched_event_del();
+	}
 
-	evt = event_alloc();
-	if (IS_ERR(evt))
+	struct event *evt = event_alloc();
+	if (IS_ERR(evt)) {
 		return ERR_VAL(evt);
+	}
 
-	evt->time = timestamp;
+	evt->timestamp = timestamp;
 	evt->flags = EVENT_SCHED;
 
 	__event_add(evt);
@@ -310,38 +333,22 @@ int sched_event_add(uint64_t timestamp)
 	return 0;
 }
 
-/*
- * sched_event_del:
- * Delete the active scheduler event.
- */
+// Deletes an active scheduler event, if any.
 void sched_event_del(void)
 {
-	struct list *eventq;
-	struct event *evt;
-
-	evt = this_cpu_read(sched_event);
-	if (!evt)
+	struct event *evt = this_cpu_read(sched_event);
+	if (!evt) {
 		return;
-
-	eventq = this_cpu_ptr(&event_queue);
-
-	/* sched event was first in queue; must schedule next event */
-	if (evt->list.prev == eventq) {
-		if (list_empty(eventq))
-			schedule_timer_irq(0);
-		else
-			__event_schedule(list_first_entry(eventq, struct event, list));
 	}
 
-	list_del(&evt->list);
+	__event_remove(evt);
+
 	this_cpu_write(sched_event, NULL);
 	event_free(evt);
 }
 
-/*
- * cpu_event_init:
- * Initialize the per-CPU structures required for each CPU.
- */
+// Initialize per-CPU event structures and data. Must be run by each CPU in the
+// system separately.
 void cpu_event_init(void)
 {
 	struct event *dummy;
@@ -349,11 +356,12 @@ void cpu_event_init(void)
 	list_init(this_cpu_ptr(&event_queue));
 
 	dummy = event_alloc();
-	if (IS_ERR(dummy))
-		panic("could not allocate dummy event for CPU %d\n",
+	if (IS_ERR(dummy)) {
+		panic("Failed to allocate dummy event for CPU %d",
 		      processor_id());
+	}
 
-	dummy->time = 0;
+	dummy->timestamp = 0;
 	dummy->flags = EVENT_STATIC | EVENT_DUMMY;
 	this_cpu_write(dummy_event, dummy);
 }
