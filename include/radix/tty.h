@@ -1,6 +1,6 @@
 /*
  * include/radix/tty.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,16 @@
 
 #define TTY_TAB_STOP 8
 
-void tty_putchar(int c);
+// Writes a string to the TTY. Null terminators within the string are ignored;
+// the size argument determines the number of bytes that will be written.
 void tty_write(const char *data, size_t size);
+
+static inline void tty_putchar(int c)
+{
+	char ch = c;
+	tty_write(&ch, sizeof ch);
+}
+
 void tty_flush(void);
 
 #endif /* RADIX_TTY_H */
