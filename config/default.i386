@@ -5,25 +5,18 @@
 
 
 #
-# rconfig radix
-# rconfig
-#
-
-# section Debugging
-CONFIG_DEBUG=false
-CONFIG_ASSERT=false
-
-
-#
 # rconfig i386
 # arch/i386/rconfig
 #
 
+# section Architecture
+CONFIG_X86_64=false
+
 # section Memory
-CONFIG_PAE=true
+CONFIG_X86_PAE=true
 
 # section Interrupts
-CONFIG_MAX_IOAPICS=8
+CONFIG_X86_MAX_IOAPICS=8
 
 
 #
@@ -41,3 +34,13 @@ CONFIG_KLOG_SHIFT=19
 # section Debug
 CONFIG_DEBUG_STACKTRACE=false
 CONFIG_STACKTRACE_DEPTH=5
+
+
+#
+# rconfig radix
+# rconfig
+#
+
+# section Debugging
+CONFIG_DEBUG=false
+CONFIG_ASSERT=false

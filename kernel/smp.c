@@ -1,6 +1,6 @@
 /*
  * kernel/smp.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #include <radix/ipi.h>
 #include <radix/smp.h>
 
-#ifdef CONFIG_SMP
+#if CONFIG(SMP)
 
 void smp_init(void)
 {
@@ -27,4 +27,4 @@ void smp_init(void)
 	arch_smp_boot();
 }
 
-#endif /* CONFIG_SMP */
+#endif  // CONFIG(SMP)

@@ -1,6 +1,6 @@
 /*
  * include/radix/stacktrace.h
- * Copyright (C) 2018 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,21 +19,23 @@
 #ifndef RADIX_STACKTRACE_H
 #define RADIX_STACKTRACE_H
 
-#if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_STACKTRACE)
+#include <radix/config.h>
+
+#if CONFIG(DEBUG) && CONFIG(DEBUG_STACKTRACE)
 
 #include <radix/limits.h>
 #include <radix/types.h>
 
 #define DEBUG_STACKTRACE
 
-#if CONFIG_STACKTRACE_DEPTH == 0
+#if CONFIG(STACKTRACE_DEPTH) == 0
 #define STACKTRACE_DEPTH INT_MAX
 #else
-#define STACKTRACE_DEPTH CONFIG_STACKTRACE_DEPTH
-#endif
+#define STACKTRACE_DEPTH CONFIG(STACKTRACE_DEPTH)
+#endif  // CONFIG(STACKTRACE_DEPTH) == 0
 
 int stack_trace(char *buf, size_t size);
 
-#endif /* CONFIG_DEBUG && CONFIG_DEBUG_STACKTRACE */
+#endif  // CONFIG(DEBUG) && CONFIG(DEBUG_STACKTRACE)
 
-#endif /* RADIX_STACKTRACE_H */
+#endif  // RADIX_STACKTRACE_H

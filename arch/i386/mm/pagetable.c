@@ -1,6 +1,6 @@
 /*
  * arch/i386/mm/pagetable.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/config.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
@@ -94,7 +95,8 @@ int __unmap_pages(pde_t *pgdir, size_t pdi, pte_t *pgtbl, addr_t virt, size_t n)
 	return unmapped;
 }
 
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
+
 #define pgdir_base(n)           (addr_t)(0xFF800000 + (n) * MIB(2))
 #define get_page_table(ind, n)  (pte_t *)(pgdir_base(ind) + (n) * PAGE_SIZE)
 #define get_page_dir(pdpti)     (pde_t *)(0xFFFFC000 + (pdpti) * PAGE_SIZE)
@@ -192,7 +194,7 @@ int i386_unmap_pages(addr_t virt, size_t n)
 	return 0;
 }
 
-#else
+#else  // CONFIG(X86_PAE)
 
 #define get_page_table(n) (pte_t *)(PAGING_BASE + ((n) * PAGE_SIZE))
 
@@ -277,7 +279,7 @@ int i386_unmap_pages(addr_t virt, size_t n)
 	return 0;
 }
 
-#endif /* CONFIG_PAE */
+#endif  // CONFIG(X86_PAE)
 
 /*
  * i386_virt_to_phys:

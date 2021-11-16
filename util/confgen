@@ -1,6 +1,7 @@
 #!/bin/sh
+# Generates a C header file with radix configuration options defined.
 
-printf "/* genconfig.h for radix kernel; automatically generated */\n"
+printf "// genconfig.h for radix kernel; automatically generated\n"
 echo
 
 printf "#ifndef RADIX_GENCONFIG_H\n"
@@ -12,11 +13,13 @@ while read line; do
 	config=`echo $line | cut -d= -f1 -`
 	value=`echo $line | cut -d= -f2 -`
 	if [ $value = "true" ]; then
-		printf "#define %s\n" $config
-	elif [ $value != "false" ]; then
-		printf "#define %s %s\n" $config $value
+		printf "#define __%s() 1\n" $config
+	elif [ $value = "false" ]; then
+		printf "#define __%s() 0\n" $config
+	else
+		printf "#define __%s() %s\n" $config $value
 	fi
 done
 
 echo
-printf "#endif /* RADIX_GENCONFIG_H */\n"
+printf "#endif // RADIX_GENCONFIG_H\n"

@@ -1,6 +1,6 @@
 /*
  * include/radix/smp.h
- * Copyright (C) 2017-2018 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +22,17 @@
 #include <radix/asm/smp.h>
 
 #include <radix/bits.h>
+#include <radix/config.h>
 #include <radix/cpumask.h>
 #include <radix/percpu.h>
 
 DECLARE_PER_CPU(int, processor_id);
 
-#ifdef CONFIG_SMP
+#if CONFIG(SMP)
 #define processor_id() (this_cpu_read(processor_id))
 #else
 #define processor_id() 0
-#endif
+#endif  // CONFIG(SMP)
 
 #define CPUMASK_CPU(cpu)                ((cpumask_t)(1 << (cpu)))
 
@@ -44,14 +45,14 @@ DECLARE_PER_CPU(int, processor_id);
 cpumask_t cpumask_online(void);
 void set_cpu_online(int cpu);
 
-#define cpumask_first(cpumask)          (ffs(cpumask) - 1)
+#define cpumask_first(cpumask) (ffs(cpumask) - 1)
 
 static __always_inline int cpumask_next(cpumask_t cpumask, int cpu)
 {
-	if (cpu == -1)
+	if (cpu == -1) {
 		return cpumask_first(cpumask);
-	else
-		return fns(cpumask, cpu + 1) - 1;
+	}
+	return fns(cpumask, cpu + 1) - 1;
 }
 
 #define for_each_cpu(cpu, cpumask)                      \
@@ -59,11 +60,11 @@ static __always_inline int cpumask_next(cpumask_t cpumask, int cpu)
 	     (cpu) = cpumask_next((cpumask), (cpu)),    \
 	     (cpu) != -1 && (cpu) < MAX_CPUS; )
 
-#ifdef CONFIG_SMP
+#if CONFIG(SMP)
 void smp_init(void);
 void arch_smp_boot(void);
 #else
 #define smp_init()
-#endif /* CONFIG_SMP */
+#endif  // CONFIG(SMP)
 
-#endif /* RADIX_SMP_H */
+#endif  // RADIX_SMP_H

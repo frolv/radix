@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/bits.h
- * Copyright (C) 2016-2018 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #error only <radix/bits.h> can be included directly
 #endif
 
+#include <radix/config.h>
 #include <radix/compiler.h>
 #include <radix/types.h>
 
@@ -39,8 +40,10 @@
 	__fop_ret;                                                      \
 })
 
+// The generic versions of bit functions can be evaluated at compile time, so
+// use them for constant expressions.
 #define __fop(name, x) \
-	(!is_immediate(x) ? __##name##_generic(x) : __fop_size(name, x))
+	(is_immediate(x) ? __##name##_generic(x) : __fop_size(name, x))
 
 #define ffs(x) __fop(ffs, x)
 #define fls(x) __fop(fls, x)
@@ -54,15 +57,14 @@ static __always_inline unsigned int __ffs_32(uint32_t x)
 	             "movl $-1, %0\n"
 	             "1:"
 	             : "=r"(r)
-	             : "rm"(x)
-	            );
+	             : "rm"(x));
 
 	return r + 1;
 }
 
 static __always_inline unsigned int __ffs_64(uint32_t x)
 {
-#ifdef CONFIG_X86_64
+#if CONFIG(X86_64)
 	int pos = -1;
 
 	asm volatile("bsfq %1, %q0"
@@ -71,7 +73,7 @@ static __always_inline unsigned int __ffs_64(uint32_t x)
 	return pos + 1;
 #else
 	return __ffs_generic(x);
-#endif /* CONFIG_X86_64 */
+#endif  // CONFIG(X86_64)
 }
 
 static __always_inline unsigned int __fls_32(uint32_t x)
@@ -91,7 +93,7 @@ static __always_inline unsigned int __fls_32(uint32_t x)
 
 static __always_inline unsigned int __fls_64(uint64_t x)
 {
-#ifdef CONFIG_X86_64
+#if CONFIG(X86_64)
 	int pos = -1;
 
 	asm volatile("bsrq %1, %q0"
@@ -100,7 +102,7 @@ static __always_inline unsigned int __fls_64(uint64_t x)
 	return pos + 1;
 #else
 	return __fls_generic(x);
-#endif /* CONFIG_X86_64 */
+#endif  // CONFIG(X86_64)
 }
 
-#endif /* ARCH_I386_RADIX_BITS_H */
+#endif  // ARCH_I386_RADIX_BITS_H

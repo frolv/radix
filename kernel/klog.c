@@ -1,6 +1,6 @@
 /*
  * kernel/klog.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdarg.h>
+
+#include <radix/config.h>
 #include <radix/compiler.h>
+#include <radix/console.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/spinlock.h>
@@ -26,14 +30,7 @@
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
-#include <stdarg.h>
-
-#ifdef CONFIG_KLOG_SHIFT
-#define KLOG_SHIFT CONFIG_KLOG_SHIFT
-#else
-#define KLOG_SHIFT 19
-#endif
-
+#define KLOG_SHIFT CONFIG(KLOG_SHIFT)
 #define KLOG_MAX_MSG_LEN 256
 #define KLOG_WRAPAROUND  0xFFFF
 
@@ -144,13 +141,14 @@ static int vklog(int level, const char *format, va_list ap)
 {
 	char buf[KLOG_MAX_MSG_LEN];
 	struct klog_entry *entry;
+	unsigned long irqstate;
 	int len;
 
 	len = vsnprintf(buf, sizeof buf, format, ap);
 	if (buf[len - 1] == '\n')
 		--len;
 
-	spin_lock(&klog_lock);
+	spin_lock_irq(&klog_lock, &irqstate);
 	if (!klog_has_space(len)) {
 		/* wraparound to the start of the buffer */
 		next_entry->msg_len = KLOG_WRAPAROUND;
@@ -172,7 +170,7 @@ static int vklog(int level, const char *format, va_list ap)
 	entry->seqno = klog_sequence_number++;
 	memcpy(entry->message, buf, len);
 
-	spin_unlock(&klog_lock);
+	spin_unlock_irq(&klog_lock, irqstate);
 
 	if (klog_console)
 		klog_console_write(entry);

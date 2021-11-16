@@ -1,6 +1,6 @@
 #
 # arch/i386/smpboot.S
-# Copyright (C) 2017 Alexei Frolov
+# Copyright (C) 2021 Alexei Frolov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,10 +16,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-#include <radix/assembler.h>
 #include <radix/asm/page_defs.h>
+#include <radix/assembler.h>
+#include <radix/config.h>
 
-#ifdef CONFIG_SMP
+#if CONFIG(SMP)
 
 .set KERNEL_VIRTUAL_BASE, 0xC0000000
 
@@ -64,7 +65,7 @@ BEGIN_FUNC(ap_boot)
 	mov %ax, %gs
 	mov %ax, %ss
 
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 	# enable PAE
 	movl %cr4, %eax
 	orl $0x00000020, %eax
@@ -74,7 +75,7 @@ BEGIN_FUNC(ap_boot)
 
 #else
 	movl $(kernel_pgdir - KERNEL_VIRTUAL_BASE), %ecx
-#endif
+#endif  // CONFIG(X86_PAE)
 
 	movl %ecx, %cr3
 
@@ -129,4 +130,4 @@ BEGIN_FUNC(ap_stop)
 	hlt
 END_FUNC(ap_stop)
 
-#endif /* CONFIG_SMP */
+#endif  // CONFIG(SMP)

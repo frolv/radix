@@ -1,6 +1,6 @@
 /*
  * arch/i386/timers/hpet.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include <acpi/acpi.h>
 #include <acpi/tables/hpet.h>
 
+#include <radix/config.h>
 #include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/time.h>
@@ -89,7 +90,7 @@ static __always_inline void hpet_reg_write(int reg, uint64_t val)
 	*(uint64_t *)(hpet_virt + reg) = val;
 }
 
-#ifdef CONFIG_X86_64
+#if CONFIG(X86_64)
 /*
  * hpet_read_64_native:
  * On systems that support atomic 64-bit reads, the HPET counter can be
@@ -99,7 +100,9 @@ static uint64_t hpet_read_64_native(void)
 {
 	return hpet_reg_read_64(HPET_REG_COUNTER);
 }
-#else
+
+#else  // CONFIG(X86_64)
+
 /*
  * hpet_read_64_mult:
  * If a system does not support atomic 64-bit reads, the HPET counter must
@@ -120,7 +123,7 @@ static uint64_t hpet_read_64_mult(void)
 
 	return ((uint64_t)hi << 32) | lo;
 }
-#endif /* CONFIG_X86_64 */
+#endif  // CONFIG(X86_64)
 
 static uint64_t hpet_read_32(void)
 {
@@ -188,11 +191,11 @@ static void hpet_init(void)
 	hpet.frequency = NSEC_PER_SEC / period_ns;
 	if (hpet_id & HPET_COUNT_SIZE_CAP) {
 		/* 64 bit counter */
-#ifdef CONFIG_X86_64
+#if CONFIG(X86_64)
 		hpet_readfn = hpet_read_64_native;
 #else
 		hpet_readfn = hpet_read_64_mult;
-#endif
+#endif  // CONFIG(X86_64)
 	} else {
 		/* 32 bit counter */
 		hpet_readfn = hpet_read_32;

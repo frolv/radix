@@ -1,6 +1,6 @@
 #
 # arch/i386/boot.S
-# Copyright (C) 2016-2017 Alexei Frolov
+# Copyright (C) 2021 Alexei Frolov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <radix/assembler.h>
 #include <radix/asm/page_defs.h>
+#include <radix/config.h>
 
 # Constants for multiboot header.
 .set ALIGN,	1 << 0
@@ -47,7 +48,7 @@ bsp_stack_top:
 #define PHYS(x) (x - KERNEL_VIRTUAL_BASE)
 
 .section .bss, "aw", @nobits
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 
 # Top-level page directory pointer table.
 # Only takes up 32 bytes, but a whole physical page is
@@ -83,10 +84,10 @@ kernel_pgdir:
 kernel_pgtbl:
 	.fill PTRS_PER_PGTBL, 4, 0x0
 
-#endif /* CONFIG_PAE */
+#endif  // CONFIG(X86_PAE)
 
 .section .text
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 
 paging_init:
 	movl %eax, %edi
@@ -186,7 +187,7 @@ paging_init:
 .Lno_pae_support:
 #else
 paging_init:
-#endif /* CONFIG_PAE */
+#endif  // CONFIG(X86_PAE)
 
 	# Populate the kernel page table.
 	movl $(PHYS(kernel_pgtbl)), %edi
@@ -245,12 +246,13 @@ paging_init:
 	orl $0x80010000, %ecx
 	movl %ecx, %cr0
 
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 	leal .Lno_pae_panic, %ecx
 #else
 	# Jump to the higher half addresses.
 	leal higher_half_start, %ecx
-#endif
+#endif  // CONFIG(X86_PAE)
+
 	jmp *%ecx
 
 .Lno_pae_panic:
@@ -265,8 +267,8 @@ paging_init:
 
 .section .rodata
 .Lpae_panic_msg:
-.ascii "improper kernel configuration for hardware\n"
-.ascii "Kernel was compiled with CONFIG_PAE, but this system does not support PAE.\n"
+.ascii "Improper kernel configuration for hardware\n"
+.ascii "Kernel was compiled with CONFIG(X86_PAE), but this system does not support PAE.\n"
 .asciz "Please run a non-PAE x86 radix kernel.\n"
 
 .section .text
@@ -277,7 +279,7 @@ BEGIN_FUNC(_start)
 
 higher_half_start:
 	# Remove the identity mapped-page and flush the TLB.
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 	movl $0, pgdir_0
 #else
 	movl $0, kernel_pgdir

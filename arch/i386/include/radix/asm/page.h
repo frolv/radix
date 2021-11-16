@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/page.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,16 +23,18 @@
 #error <radix/asm/page.h> cannot be included directly
 #endif
 
-#include <radix/compiler.h>
 #include <radix/asm/mm_types.h>
 #include <radix/asm/mm_limits.h>
 #include <radix/asm/page_defs.h>
+#include <radix/compiler.h>
+#include <radix/config.h>
 
 #define PDE(x) ((x).pde)
 #define PTE(x) ((x).pte)
-#ifdef CONFIG_PAE
+
+#if CONFIG(X86_PAE)
 #define PDPTE(x) ((x).pdpte)
-#endif
+#endif  // CONFIG(X86_PAE)
 
 static __always_inline pde_t make_pde(pdeval_t val)
 {
@@ -44,12 +46,12 @@ static __always_inline pte_t make_pte(pteval_t val)
 	return (pte_t){ val };
 }
 
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 static __always_inline pdpte_t make_pdpte(pdpteval_t val)
 {
 	return (pdpte_t){ val };
 }
-#endif
+#endif  // CONFIG(X86_PAE)
 
 #include <radix/types.h>
 

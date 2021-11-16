@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/page_defs.h
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,14 +19,20 @@
 #ifndef ARCH_I386_RADIX_PAGE_DEFS_H
 #define ARCH_I386_RADIX_PAGE_DEFS_H
 
-#ifdef CONFIG_PAE
-#define PTRS_PER_PDPT           0x004
-#define PTRS_PER_PGDIR          0x200
-#define PTRS_PER_PGTBL          0x200
-#else
-#define PTRS_PER_PGDIR          0x400
-#define PTRS_PER_PGTBL          0x400
-#endif
+#include <radix/config.h>
+
+#if CONFIG(X86_PAE)
+
+#define PTRS_PER_PDPT  0x004
+#define PTRS_PER_PGDIR 0x200
+#define PTRS_PER_PGTBL 0x200
+
+#else  // CONFIG(X86_PAE)
+
+#define PTRS_PER_PGDIR 0x400
+#define PTRS_PER_PGTBL 0x400
+
+#endif  // CONFIG(X86_PAE)
 
 #define PGDIR_SIZE              (PTRS_PER_PGDIR * sizeof (pde_t))
 #define PGTBL_SIZE              (PTRS_PER_PGTBL * sizeof (pte_t))
@@ -35,19 +41,21 @@
 #define PAGE_SIZE               (1U << PAGE_SHIFT)
 #define PAGE_MASK               (~(PAGE_SIZE - 1))
 
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
+
 #define PDPT_SHIFT              30
 #define PGDIR_SHIFT             21
-
 #define PDPT_INDEX(x)           ((x) >> PDPT_SHIFT)
 #define PGDIR_INDEX(x)          (((x) >> PGDIR_SHIFT) & 0x1FF)
 #define PGTBL_INDEX(x)          (((x) >> PAGE_SHIFT) & 0x1FF)
-#else
-#define PGDIR_SHIFT             22
 
+#else  // CONFIG(X86_PAE)
+
+#define PGDIR_SHIFT             22
 #define PGDIR_INDEX(x)          ((x) >> PGDIR_SHIFT)
 #define PGTBL_INDEX(x)          (((x) >> PAGE_SHIFT) & 0x3FF)
-#endif /* CONFIG_PAE */
+
+#endif  // CONFIG(X86_PAE)
 
 #define _PAGE_BIT_PRESENT       0
 #define _PAGE_BIT_RW            1
@@ -58,9 +66,10 @@
 #define _PAGE_BIT_DIRTY         6
 #define _PAGE_BIT_PAT           7
 #define _PAGE_BIT_GLOBAL        8
-#ifdef CONFIG_PAE
+
+#if CONFIG(X86_PAE)
 #define _PAGE_BIT_NX            63
-#endif
+#endif  // CONFIG(X86_PAE)
 
 #define PAGE_PRESENT            (((pteval_t)1) << _PAGE_BIT_PRESENT)
 #define PAGE_RW                 (((pteval_t)1) << _PAGE_BIT_RW)
@@ -71,8 +80,9 @@
 #define PAGE_DIRTY              (((pteval_t)1) << _PAGE_BIT_DIRTY)
 #define PAGE_PAT                (((pteval_t)1) << _PAGE_BIT_PAT)
 #define PAGE_GLOBAL             (((pteval_t)1) << _PAGE_BIT_GLOBAL)
-#ifdef CONFIG_PAE
-#define PAGE_NX                 (((pteval_t)1) << _PAGE_BIT_NX)
-#endif
 
-#endif /* ARCH_I386_RADIX_PAGE_DEFS_H */
+#if CONFIG(X86_PAE)
+#define PAGE_NX                 (((pteval_t)1) << _PAGE_BIT_NX)
+#endif  // CONFIG(X86_PAE)
+
+#endif  // ARCH_I386_RADIX_PAGE_DEFS_H

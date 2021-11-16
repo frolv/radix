@@ -1,6 +1,6 @@
 /*
  * include/radix/compiler.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 
 #ifndef RADIX_COMPILER_H
 #define RADIX_COMPILER_H
+
+#if defined(__GNUC__) && !defined(__clang__)
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -45,4 +47,10 @@
 
 #define barrier() asm volatile("" : : : "memory")
 
-#endif /* RADIX_COMPILER_H */
+#else
+
+#error Only gcc is supported at this time
+
+#endif  // defined(__GNUC__) && !defined(__clang__)
+
+#endif  // RADIX_COMPILER_H

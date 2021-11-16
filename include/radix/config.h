@@ -1,5 +1,5 @@
 /*
- * include/radix/assert.h
+ * include/radix/config.h
  * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,22 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_ASSERT_H
-#define RADIX_ASSERT_H
+#ifndef RADIX_CONFIG_H
+#define RADIX_CONFIG_H
 
-#include <radix/compiler.h>
-#include <radix/config.h>
+#define CONFIG(name) __CONFIG_##name()
 
-#if CONFIG(DEBUG) && CONFIG(ASSERT)
-
-#define assert(x) ((void)((x) || (__assert_fail(#x, __FILE__, __LINE__),0)))
-
-__noreturn void __assert_fail(const char *, const char *, int);
-
-#else
-
-#define assert(x) ((void)0)
-
-#endif  // CONFIG(DEBUG) && CONFIG(ASSERT)
-
-#endif  // RADIX_ASSERT_H
+#endif  // RADIX_CONFIG_H

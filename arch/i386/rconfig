@@ -1,15 +1,22 @@
 configfile i386
 
+section Architecture
+
+config X86_64
+	type bool
+	default false
+	desc "Compile for x86_64 (not yet supported)"
+
 section Memory
 
-config PAE
+config X86_PAE
 	type bool
 	default true
 	desc "Enable physical address extension (PAE)"
 
 section Interrupts
 
-config MAX_IOAPICS
+config X86_MAX_IOAPICS
 	type int
 	range 1 16
 	default 8

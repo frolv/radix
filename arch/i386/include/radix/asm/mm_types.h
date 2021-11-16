@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/mm_types.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,10 @@
 #error only <radix/mm_types.h> can be included directly
 #endif
 
+#include <radix/config.h>
 #include <radix/types.h>
 
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 
 typedef unsigned long addr_t;
 typedef uint64_t paddr_t;
@@ -34,7 +35,7 @@ typedef uint64_t pdeval_t;
 typedef uint64_t pteval_t;
 typedef uint64_t pdpteval_t;
 
-#else
+#else  // CONFIG(X86_PAE)
 
 typedef unsigned long addr_t;
 typedef unsigned long paddr_t;
@@ -42,7 +43,7 @@ typedef unsigned long paddr_t;
 typedef unsigned long pdeval_t;
 typedef unsigned long pteval_t;
 
-#endif /* CONFIG_PAE */
+#endif  // CONFIG(X86_PAE)
 
 typedef struct {
 	pdeval_t pde;
@@ -52,12 +53,12 @@ typedef struct {
 	pteval_t pte;
 } pte_t;
 
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 
 typedef struct {
 	pdpteval_t pdpte;
 } pdpte_t;
 
-#endif
+#endif  // CONFIG(X86_PAE)
 
-#endif /* ARCH_I386_RADIX_MM_TYPES_H */
+#endif  // ARCH_I386_RADIX_MM_TYPES_H

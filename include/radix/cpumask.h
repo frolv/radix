@@ -1,6 +1,6 @@
 /*
  * include/radix/cpumask.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,13 +19,10 @@
 #ifndef RADIX_CPUMASK_H
 #define RADIX_CPUMASK_H
 
-#ifdef CONFIG_MAX_CPUS
-#define MAX_CPUS CONFIG_MAX_CPUS
-#else
-#define MAX_CPUS 16
-#endif
-
+#include <radix/config.h>
 #include <radix/types.h>
+
+#define MAX_CPUS CONFIG(MAX_CPUS)
 
 #if MAX_CPUS > 32
 typedef uint64_t cpumask_t;
@@ -33,4 +30,4 @@ typedef uint64_t cpumask_t;
 typedef uint32_t cpumask_t;
 #endif
 
-#endif /* RADIX_CPUMASK_H */
+#endif  // RADIX_CPUMASK_H

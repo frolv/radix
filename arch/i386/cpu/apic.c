@@ -1,6 +1,6 @@
 /*
  * arch/i386/cpu/apic.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
+
 #include <acpi/tables/madt.h>
 
 #include <radix/asm/acpi.h>
@@ -26,6 +28,7 @@
 #include <radix/asm/msr.h>
 #include <radix/asm/pic.h>
 
+#include <radix/config.h>
 #include <radix/cpu.h>
 #include <radix/cpumask.h>
 #include <radix/irq.h>
@@ -45,11 +48,7 @@
 #define APIC "APIC: "
 #define SMP  "SMP: "
 
-#ifdef CONFIG_MAX_IOAPICS
-#define MAX_IOAPICS CONFIG_MAX_IOAPICS
-#else
-#define MAX_IOAPICS 8
-#endif
+#define MAX_IOAPICS CONFIG(X86_MAX_IOAPICS)
 
 static struct ioapic ioapic_list[MAX_IOAPICS];
 unsigned int ioapics_available = 0;
@@ -196,7 +195,7 @@ static struct lapic_lvt lapic_lvt_default[] = {
 static struct lapic lapic_list[MAX_CPUS];
 static unsigned int cpus_available = 0;
 
-DEFINE_PER_CPU(struct lapic *, local_apic);
+DEFINE_PER_CPU(struct lapic *, local_apic) = NULL;
 
 static struct pic apic;
 
@@ -546,11 +545,11 @@ static void lapic_enable(paddr_t base)
 	int eax, edx;
 
 	eax = (base & PAGE_MASK) | IA32_APIC_BASE_ENABLE;
-#ifdef CONFIG_PAE
+#if CONFIG(X86_PAE)
 	edx = (base >> 32) & 0x0F;
 #else
 	edx = 0;
-#endif
+#endif  // CONFIG(X86_PAE)
 
 	wrmsr(IA32_APIC_BASE, eax, edx);
 }
@@ -781,12 +780,9 @@ static void __lapic_send_ipi(uint8_t vec, uint8_t dest, uint32_t destmode,
 	lapic_reg_write(APIC_REG_ICR_LO, lo);
 }
 
-/*
- * lapic_send_ipi:
- * Issue an interprocessor interrupt with the specified interrupt vector to
- * the set of processors addressed by dest, or the given shorthand, and the
- * specified interrupt delivery mode.
- */
+// Issues an interprocessor interrupt with the specified interrupt vector to
+// the set of processors addressed by dest or the given shorthand, with the
+// specified interrupt delivery mode.
 static void lapic_send_ipi(uint8_t vec, uint8_t dest,
                            uint32_t shorthand, uint8_t mode)
 {
@@ -794,16 +790,17 @@ static void lapic_send_ipi(uint8_t vec, uint8_t dest,
                          shorthand, mode);
 }
 
-/*
- * lapic_send_ipi_phys:
- * Issue an interprocessor interrupt with the specified vector to a single
- * processor identified by `lapic_id`.
- */
+#if CONFIG(SMP)
+
+// Issues an interprocessor interrupt with the specified vector to a single
+// processor identified by `lapic_id`.
 static void lapic_send_ipi_phys(uint8_t vec, uint8_t lapic_id,
                                 uint32_t shorthand, uint8_t mode)
 {
 	__lapic_send_ipi(vec, lapic_id, 0, shorthand, mode);
 }
+
+#endif  // CONFIG(SMP)
 
 static int lapic_send_ipi_flat(unsigned int vec, cpumask_t cpumask)
 {
@@ -1122,66 +1119,62 @@ int bsp_apic_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_SMP
+#if CONFIG(SMP)
 
-/* system_smp_capable: return whether the system can run SMP */
+// Returns whether the system can run in an SMP configuration.
 int system_smp_capable(void)
 {
-	return this_cpu_read(local_apic) && cpus_available > 1;
+	return this_cpu_read(local_apic) != NULL && cpus_available > 1;
 }
 
-static int ap_active;
+static bool ap_active;
 
+// Function called by individual application processors as they come online to
+// inform the bootstrap processor that they have successfully started.
 void set_ap_active(void)
 {
-	ap_active = 1;
+	ap_active = true;
 }
 
-/*
- * apic_start_smp:
- * Initialize all application processors in the system, one by one.
- */
+// Initializes all application processors in the system, one by one.
 void apic_start_smp(unsigned int vector)
 {
-	unsigned int apic, cpu_number;
-	uint64_t start, timeout;
-	int retry;
-
 	klog(KLOG_INFO, SMP "starting smp boot sequence");
 	lapic_send_ipi(0, 0, APIC_ICR_LO_SHORTHAND_OTHER, APIC_INT_MODE_INIT);
-	timeout = NSEC_PER_MSEC;
 
-	start = time_ns();
-	while (time_ns() - start < 10 * NSEC_PER_MSEC)
-		;
+	// How long to wait for a processor to come online.
+	const uint64_t timeout = NSEC_PER_MSEC;
+	uint64_t start = time_ns();
 
-	cpu_number = 1;
-	for (apic = 1; apic < cpus_available; ++apic) {
-		ap_active = 0;
-		retry = 1;
-		prepare_ap_boot(cpu_number);
+	while (time_ns() - start < 10 * NSEC_PER_MSEC) {
+		// Wait for the INIT IPI to arrive.
+	}
+
+	unsigned int next_processor_id = 1;
+	for (unsigned apic = 1; apic < cpus_available; ++apic) {
+		ap_active = false;
+		prepare_ap_boot(next_processor_id);
 		start = time_ns();
 
-send_sipi:
-		lapic_send_ipi_phys(vector, lapic_list[apic].id, 0,
-		                    APIC_INT_MODE_STARTUP);
+		int retries = 3;
+		while (!ap_active && retries > 0) {
+			--retries;
+			lapic_send_ipi_phys(vector, lapic_list[apic].id, 0,
+					    APIC_INT_MODE_STARTUP);
 
-		while (!ap_active && time_ns() - start < timeout)
-			;
+			while (!ap_active && time_ns() - start < timeout) {
+				// Wait for the processor to come online.
+			}
+		}
 
 		if (!ap_active) {
-			if (retry) {
-				retry = 0;
-				goto send_sipi;
-			} else {
-				klog(KLOG_ERROR,
-				     SMP "failed to start cpu with apic id %u",
-				     lapic_list[apic].id);
-			}
+			klog(KLOG_ERROR,
+			     SMP "failed to start cpu with apic id %u",
+			     lapic_list[apic].id);
 		} else {
-			++cpu_number;
+			++next_processor_id;
 		}
 	}
 }
 
-#endif /* CONFIG_SMP */
+#endif  // CONFIG(SMP)
