@@ -1,6 +1,6 @@
 /*
  * kernel/panic.c
- * Copyright (C) 2016-2018 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,10 +36,12 @@ static void raw_write(const char *s, size_t len)
 	if (!active_console || !s)
 		return;
 
-	atomic_write(&active_console->lock.count, 0);
+	atomic_write(&active_console->lock.owner, 0);
 	list_init(&active_console->lock.queue);
 	active_console->actions->write(active_console, s, len);
 }
+
+static char panic_buffer[PANIC_BUFSIZE];
 
 /*
  * panic:
@@ -47,18 +49,16 @@ static void raw_write(const char *s, size_t len)
  */
 __noreturn void panic(const char *err, ...)
 {
-	char buf[PANIC_BUFSIZE];
 	va_list ap;
 	char *s;
 
 	irq_disable();
-
 	send_panic_ipi();
 
-	s = buf;
+	s = panic_buffer;
 
 #ifdef DEBUG_STACKTRACE
-	s += stack_trace(buf, PANIC_TRACESIZE);
+	s += stack_trace(panic_buffer, PANIC_TRACESIZE);
 #endif
 
 	/* TODO: register dump */
@@ -70,7 +70,7 @@ __noreturn void panic(const char *err, ...)
 	s += vsprintf(s, err, ap);
 	va_end(ap);
 
-	raw_write(buf, s - buf);
+	raw_write(panic_buffer, s - panic_buffer);
 
 	DIE();
 }

@@ -1,6 +1,6 @@
 /*
  * include/radix/mutex.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +22,16 @@
 #include <radix/list.h>
 #include <radix/spinlock.h>
 
-#define MUTEX_INIT(name) { 0, LIST_INIT((name).queue), SPINLOCK_INIT }
+#define MUTEX_INIT(name) { 0, SPINLOCK_INIT, LIST_INIT((name).queue) }
 
 struct mutex {
-	unsigned long   count;
-	struct list     queue;
-	spinlock_t      lock;
+	uintptr_t   owner;
+	spinlock_t  lock;
+	struct list queue;
 };
 
 void mutex_init(struct mutex *m);
 void mutex_lock(struct mutex *m);
 void mutex_unlock(struct mutex *m);
 
-#endif /* RADIX_MUTEX_H */
+#endif  // RADIX_MUTEX_H

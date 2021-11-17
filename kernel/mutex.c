@@ -1,6 +1,6 @@
 /*
  * kernel/mutex.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,47 +25,68 @@
 
 void mutex_init(struct mutex *m)
 {
-	m->count = 0;
-	list_init(&m->queue);
+	m->owner = 0;
 	spin_init(&m->lock);
+	list_init(&m->queue);
 }
 
-/*
- * mutex_lock:
- * Attempt to lock mutex `m`. If it is already locked,
- * put thread into a wait and yield CPU.
- */
+// Attempts to lock the mutex `m`. If it is already locked, puts the running
+// thread into a wait and yields the CPU.
 void mutex_lock(struct mutex *m)
 {
-	struct task *curr;
-	unsigned long irqstate;
+	struct task *curr = current_task();
 
-	while (atomic_swap(&m->count, 1) != 0) {
-		curr = current_task();
-		/* if there is no current task, functions as a spinlock */
-		if (curr) {
-			curr->state = TASK_BLOCKED;
-			spin_lock_irq(&m->lock, &irqstate);
-			list_ins(&m->queue, &curr->queue);
-			spin_unlock_irq(&m->lock, irqstate);
-			schedule(1);
+	unsigned long irqstate;
+	irq_save(irqstate);
+
+	while (1) {
+		// Attempt to acquire the mutex. There are two acquisition
+		// possibilities: either there is no owner (i.e. owner == 0), or
+		// this thread had been waiting for the mutex and the previous
+		// owner handed it over by setting this thread as the new owner.
+		uintptr_t owner = atomic_cmpxchg(&m->owner, 0, (uintptr_t)curr);
+		if (owner == 0 || owner == (uintptr_t)curr) {
+			break;
 		}
+
+		// Block the task and add it to the mutex's list.
+		spin_lock(&m->lock);
+		assert(list_empty(&curr->queue));
+		curr->state = TASK_BLOCKED;
+		list_ins(&m->queue, &curr->queue);
+		spin_unlock(&m->lock);
+
+		schedule(1);
 	}
+
+	irq_restore(irqstate);
 }
 
-/* mutex_unlock: unlock mutex `m` and wake a waiting thread */
+// Unlocks mutex `m` and wakes a waiting thread, if any.
+// This must be called by the thread that holds the mutex.
 void mutex_unlock(struct mutex *m)
 {
-	struct task *next;
+	struct task *curr = current_task();
+
+	uintptr_t owner = atomic_read(&m->owner);
+	assert(owner == (uintptr_t)curr);
+
+	struct task *next = NULL;
 	unsigned long irqstate;
 
-	m->count = 0;
-
+	// Hand the mutex over to the first waiter, if one exists, and notify
+	// the scheduler.
 	spin_lock_irq(&m->lock, &irqstate);
 	if (!list_empty(&m->queue)) {
 		next = list_first_entry(&m->queue, struct task, queue);
 		list_del(&next->queue);
+	}
+	spin_unlock(&m->lock);
+
+	atomic_swap(&m->owner, (uintptr_t)next);
+	irq_restore(irqstate);
+
+	if (next != NULL) {
 		sched_unblock(next);
 	}
-	spin_unlock_irq(&m->lock, irqstate);
 }
