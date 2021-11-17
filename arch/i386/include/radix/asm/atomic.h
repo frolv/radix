@@ -38,6 +38,8 @@ do {                                                   \
 	irq_restore(__aog_irqstate);                   \
 } while (0)
 
+#define __X86_LOCK "lock; "
+
 #define __X86_UINTTYPE_1 uint8_t
 #define __X86_UINTTYPE_2 uint16_t
 #define __X86_UINTTYPE_4 uint32_t
@@ -81,32 +83,35 @@ do {                                                   \
 #define atomic_read_2(p) __x86_atomic_read(p)
 #define atomic_read_4(p) __x86_atomic_read(p)
 
-#define __x86_atomic_swap(p, val, size)                   \
-({                                                        \
-	typeof(p) __as_p = p;                             \
-	typeof(val) __as_v = val;                         \
-	asm volatile("xchg" __X86_SUFFIX_##size " %0, %1" \
-		     : "=r"(__as_v), "=m"(*__as_p)        \
-		     : "0"(__as_v)                        \
-		     : "memory");                         \
-	__as_v;                                           \
+#define __x86_atomic_xchg(inst, p, val, size, lock)              \
+({                                                               \
+	typeof(p) __ax_p = p;                                    \
+	typeof(*(p)) __ax_v = val;                               \
+	asm volatile(lock inst __X86_SUFFIX_##size " %0, %1"     \
+		     : "+r"(__ax_v), "+m"(*__ax_p)               \
+		     :                                           \
+		     : "memory");                                \
+	__ax_v;                                                  \
 })
 
-#define atomic_swap_2(p, val) __x86_atomic_swap(p, val, 2)
-#define atomic_swap_4(p, val) __x86_atomic_swap(p, val, 4)
+#define atomic_swap_2(p, val) __x86_atomic_xchg("xchg", p, val, 2, "")
+#define atomic_swap_4(p, val) __x86_atomic_xchg("xchg", p, val, 4, "")
 
-#define __x86_atomic_cmpxchg(p, old, new, size)                    \
-({                                                                 \
-	typeof(*(p)) __ac_ret;                                     \
-	typeof(*(p)) __ac_old = old;                               \
-	typeof(*(p)) __ac_new = new;                               \
-        volatile __X86_UINTTYPE_##size *__ac_p =                   \
-		(volatile __X86_UINTTYPE_##size *)(p);             \
-        asm volatile("lock; cmpxchg" __X86_SUFFIX_##size " %2, %1" \
-                     : "=a"(__ac_ret), "+m"(*__ac_p)               \
-                     : "r"(__ac_new), "0"(__ac_old)                \
-                     : "memory");                                  \
-        __ac_ret;                                                  \
+#define atomic_fetch_add_2(p, val) __x86_atomic_xchg("xadd", p, val, 2, __X86_LOCK)
+#define atomic_fetch_add_4(p, val) __x86_atomic_xchg("xadd", p, val, 4, __X86_LOCK)
+
+#define __x86_atomic_cmpxchg(p, old, new, size)                         \
+({                                                                      \
+	typeof(*(p)) __ac_ret;                                          \
+	typeof(*(p)) __ac_old = old;                                    \
+	typeof(*(p)) __ac_new = new;                                    \
+        volatile __X86_UINTTYPE_##size *__ac_p =                        \
+		(volatile __X86_UINTTYPE_##size *)(p);                  \
+        asm volatile(__X86_LOCK "cmpxchg" __X86_SUFFIX_##size " %2, %1" \
+                     : "=a"(__ac_ret), "+m"(*__ac_p)                    \
+                     : "r"(__ac_new), "0"(__ac_old)                     \
+                     : "memory");                                       \
+        __ac_ret;                                                       \
 })
 
 #define atomic_cmpxchg_2(p, old, new) __x86_atomic_cmpxchg(p, old, new, 2)
@@ -115,6 +120,7 @@ do {                                                   \
 extern void __read_not_implemented_for_size(void);
 extern void __swap_not_implemented_for_size(void);
 extern void __cmpxchg_not_implemented_for_size(void);
+extern void __fetch_add_not_implemented_for_size(void);
 
 // TODO(frolv): Implement these.
 #define atomic_read_8(p)                   \
@@ -134,6 +140,12 @@ extern void __cmpxchg_not_implemented_for_size(void);
 ({                                            \
 	__cmpxchg_not_implemented_for_size(); \
 	old;                                  \
+})
+
+#define atomic_fetch_add_8(p, val)              \
+({                                              \
+	__fetch_add_not_implemented_for_size(); \
+	val;                                    \
 })
 
 #endif  // ARCH_I386_RADIX_ATOMIC_H

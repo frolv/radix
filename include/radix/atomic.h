@@ -24,14 +24,19 @@
 
 #define atomic_swap(p, val)         __atomic_by_size_ret(swap, p, val)
 #define atomic_cmpxchg(p, old, new) __atomic_by_size_ret(cmpxchg, p, old, new)
+
 #define atomic_write(p, val)        __atomic_by_size(write, p, val)
 #define atomic_read(p)              __atomic_by_size_ret(read, p)
+
 #define atomic_or(p, val)           __atomic_by_size(or, p, val)
 #define atomic_and(p, val)          __atomic_by_size(and, p, val)
 #define atomic_add(p, val)          __atomic_by_size(add, p, val)
 #define atomic_sub(p, val)          __atomic_by_size(sub, p, val)
 #define atomic_inc(p)               atomic_add(p, 1)
 #define atomic_dec(p)               atomic_sub(p, 1)
+
+#define atomic_fetch_add(p, val)    __atomic_by_size_ret(fetch_add, p, val)
+#define atomic_fetch_inc(p)         atomic_fetch_add(p, 1)
 
 void atomic_bad_size_call();
 
