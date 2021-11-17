@@ -1,6 +1,6 @@
 /*
  * arch/i386/smp.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 
 #include <rlibc/string.h>
 
-#ifdef CONFIG_SMP
+#if CONFIG(SMP)
 
 #define SMPBOOT "smpboot: "
 
@@ -141,6 +141,8 @@ void ap_entry(void)
 static void ap_shutdown(void)
 {
 	klog(KLOG_ERROR, SMPBOOT "shutting down processor %d", processor_id());
+
+	set_cpu_offline(processor_id());
 	ap_stop();
 }
 
@@ -169,4 +171,4 @@ void ap_init(void)
 	idt_init();
 }
 
-#endif /* CONFIG_SMP */
+#endif  // CONFIG(SMP)

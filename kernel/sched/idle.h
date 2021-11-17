@@ -1,6 +1,6 @@
 /*
  * kernel/sched/idle.h
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,5 @@
 DECLARE_PER_CPU(struct task *, idle_task);
 
 int idle_task_init(void);
-int is_idle(int cpu);
 
-#endif /* KERNEL_SCHED_IDLE_H */
+#endif  // KERNEL_SCHED_IDLE_H

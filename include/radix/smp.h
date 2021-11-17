@@ -19,6 +19,8 @@
 #ifndef RADIX_SMP_H
 #define RADIX_SMP_H
 
+#include <stdbool.h>
+
 #include <radix/asm/smp.h>
 
 #include <radix/bits.h>
@@ -43,7 +45,17 @@ DECLARE_PER_CPU(int, processor_id);
 #define CPUMASK_SELF                    CPUMASK_CPU(processor_id())
 
 cpumask_t cpumask_online(void);
+cpumask_t cpumask_idle(void);
+
 void set_cpu_online(int cpu);
+void set_cpu_offline(int cpu);
+void set_cpu_idle(int cpu);
+void set_cpu_active(int cpu);
+
+static inline bool is_idle(int cpu)
+{
+	return (cpumask_idle() & CPUMASK_CPU(cpu)) != 0;
+}
 
 #define cpumask_first(cpumask) (ffs(cpumask) - 1)
 
