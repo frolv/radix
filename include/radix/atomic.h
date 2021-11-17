@@ -1,6 +1,6 @@
 /*
  * include/radix/atomic.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,41 @@
 #define RADIX_ATOMIC_H
 
 #include <radix/asm/atomic.h>
+#include <radix/irqstate.h>
 
-#define atomic_swap(p, val)     __arch_atomic_swap(p, val)
-#define atomic_write(p, val)    __arch_atomic_write(p, val)
+#define atomic_swap(p, val)         __atomic_by_size_ret(swap, p, val)
+#define atomic_cmpxchg(p, old, new) __atomic_by_size_ret(cmpxchg, p, old, new)
+#define atomic_write(p, val)        __atomic_by_size(write, p, val)
+#define atomic_read(p)              __atomic_by_size_ret(read, p)
+#define atomic_or(p, val)           __atomic_by_size(or, p, val)
+#define atomic_and(p, val)          __atomic_by_size(and, p, val)
+#define atomic_add(p, val)          __atomic_by_size(add, p, val)
+#define atomic_sub(p, val)          __atomic_by_size(sub, p, val)
+#define atomic_inc(p)               atomic_add(p, 1)
+#define atomic_dec(p)               atomic_sub(p, 1)
 
-#endif /* RADIX_ATOMIC_H */
+void atomic_bad_size_call();
+
+#define __atomic_by_size_ret(op, p, ...)                              \
+({                                                                    \
+	typeof(*(p)) __abs_ret;                                       \
+	switch (sizeof (*(p))) {                                      \
+	case 2: __abs_ret = atomic_##op##_2(p, ##__VA_ARGS__); break; \
+	case 4: __abs_ret = atomic_##op##_4(p, ##__VA_ARGS__); break; \
+	case 8: __abs_ret = atomic_##op##_8(p, ##__VA_ARGS__); break; \
+	default: atomic_bad_size_call(); break;                       \
+	}                                                             \
+	__abs_ret;                                                    \
+})
+
+#define __atomic_by_size(op, p, ...)                      \
+do {                                                      \
+	switch (sizeof (*(p))) {                          \
+	case 2: atomic_##op##_2(p, ##__VA_ARGS__); break; \
+	case 4: atomic_##op##_4(p, ##__VA_ARGS__); break; \
+	case 8: atomic_##op##_8(p, ##__VA_ARGS__); break; \
+	default: atomic_bad_size_call(); break;           \
+	}                                                 \
+} while (0)
+
+#endif  // RADIX_ATOMIC_H

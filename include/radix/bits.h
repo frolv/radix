@@ -34,7 +34,7 @@
 #define fls(x) __fls_generic(x)
 #endif
 
-static __always_inline unsigned int fns(uint64_t x, unsigned int bit)
+static __always_inline unsigned int fns(uint32_t x, unsigned int bit)
 {
 	int ret;
 
