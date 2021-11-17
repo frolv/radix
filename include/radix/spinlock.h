@@ -1,6 +1,6 @@
 /*
  * include/radix/spinlock.h
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,14 @@ typedef unsigned long spinlock_t;
 
 #define SPINLOCK_INIT 0
 
+static __always_inline int __spinlock_try_acquire(spinlock_t *lock)
+{
+	return atomic_swap(lock, 1) == 0;
+}
+
 static __always_inline void __spinlock_acquire(spinlock_t *lock)
 {
-	while (atomic_swap(lock, 1) != 0)
+	while (!__spinlock_try_acquire(lock))
 		;
 }
 
@@ -48,9 +53,27 @@ static __always_inline void spin_lock(spinlock_t *lock)
 	__spinlock_acquire(lock);
 }
 
+static __always_inline int spin_try_lock(spinlock_t *lock)
+{
+	return __spinlock_try_acquire(lock);
+}
+
 static __always_inline void spin_unlock(spinlock_t *lock)
 {
 	__spinlock_release(lock);
+}
+
+// Attempts to acquire a spinlock with interrupts disabled. If the acquisition
+// fails, restores the original interrupt state.
+static __always_inline int spin_try_lock_irq(spinlock_t *lock,
+                                             unsigned long *irqstate)
+{
+	irq_save(*irqstate);
+	if (__spinlock_try_acquire(lock)) {
+		return 1;
+	}
+	irq_restore(*irqstate);
+	return 0;
 }
 
 static __always_inline void spin_lock_irq(spinlock_t *lock,
@@ -67,4 +90,4 @@ static __always_inline void spin_unlock_irq(spinlock_t *lock,
 	irq_restore(irqstate);
 }
 
-#endif /* RADIX_SPINLOCK_H */
+#endif  // RADIX_SPINLOCK_H
