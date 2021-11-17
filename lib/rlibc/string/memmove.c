@@ -18,6 +18,7 @@
 
 #include <rlibc/string.h>
 
+#ifndef __ARCH_HAS_MEMMOVE
 void *memmove(void *dst, const void *src, size_t n)
 {
 	size_t i;
@@ -34,3 +35,4 @@ void *memmove(void *dst, const void *src, size_t n)
 
 	return dst;
 }
+#endif /* !__ARCH_HAS_MEMMOVE */
