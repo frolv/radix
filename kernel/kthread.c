@@ -1,6 +1,6 @@
 /*
  * kernel/kthread.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/assert.h>
 #include <radix/bits.h>
 #include <radix/irq.h>
 #include <radix/kthread.h>
@@ -30,11 +31,10 @@ static struct task *__kthread_create(void (*func)(void *), void *arg,
                                      int page_order);
 static void kthread_set_name(struct task *thread, char *name, va_list ap);
 
-/*
- * kthread_create:
- * Create a kernel thread to run function `func` with argument `arg`,
- * and a kernel stack size specified by `page_order`.
- */
+// Creates a kernel thread to run function `func` with argument `arg`,
+// and a kernel stack with size specified by `page_order`.
+//
+// The thread is not run automatically; kthread_start must be called first.
 struct task *kthread_create(void (*func)(void *), void *arg,
                             int page_order, char *name, ...)
 {
@@ -55,7 +55,7 @@ struct task *kthread_create(void (*func)(void *), void *arg,
 	return thread;
 }
 
-/* kthread_run: create a kernel thread and immediately start running it */
+// Creates a kernel thread and immediately starts running it.
 struct task *kthread_run(void (*func)(void *), void *arg,
                          int page_order, char *name, ...)
 {
@@ -82,31 +82,16 @@ void kthread_start(struct task *thread)
 	sched_add(thread);
 }
 
-/*
- * kthread_exit: clean up resources and destroy the current thread.
- * This function is called from within a thread to request termination.
- * All created threads set this function as their base return address.
- */
+// Exits the running kthread.
+// All created kthreads set this function as their base return address.
 __noreturn void kthread_exit(void)
 {
-	struct task *thread;
-	char **s;
-
 	irq_disable();
-	thread = current_task();
-	/*
-	 * TODO: the stack shouldn't be freed yet, as the following code is
-	 * still using it. A job should be created to free it at a later time.
-	 */
-	free_pages(thread->stack_base);
 
-	for (s = thread->cmdline; *s; ++s)
-		kfree(s);
-	kfree(thread->cmdline);
+	struct task *thread = current_task();
+	assert(thread);
+	task_exit(thread, 0);
 
-	task_free(thread);
-	this_cpu_write(current_task, NULL);
-	schedule(1);
 	__builtin_unreachable();
 }
 
@@ -117,9 +102,10 @@ static struct task *__kthread_create(void (*func)(void *), void *arg,
 	struct page *p;
 	addr_t stack_top;
 
-	thread = kthread_task();
-	if (IS_ERR(thread))
+	thread = task_alloc();
+	if (IS_ERR(thread)) {
 		return thread;
+	}
 
 	p = alloc_pages(PA_STANDARD, page_order);
 	if (IS_ERR(p)) {
@@ -127,9 +113,10 @@ static struct task *__kthread_create(void (*func)(void *), void *arg,
 		return (void *)p;
 	}
 
-	stack_top = (addr_t)p->mem + pow2(page_order) * PAGE_SIZE;
+	thread->stack_size = pow2(page_order) * PAGE_SIZE;
+	stack_top = (addr_t)p->mem + thread->stack_size;
 	kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
-	thread->stack_base = p->mem;
+	thread->stack_top = (void *)stack_top;
 
 	return thread;
 }

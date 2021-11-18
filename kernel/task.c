@@ -1,6 +1,6 @@
 /*
  * kernel/task.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,11 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/assert.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
 #include <radix/kthread.h>
+#include <radix/mm.h>
 #include <radix/sched.h>
 #include <radix/slab.h>
+#include <radix/smp.h>
 #include <radix/tasking.h>
 
 #include <rlibc/string.h>
@@ -31,49 +35,55 @@ static void task_init(void *t);
 
 void tasking_init(void)
 {
-	struct task *curr;
-
 	task_cache = create_cache("task_cache", sizeof (struct task),
 	                          SLAB_MIN_ALIGN,
 	                          SLAB_HW_CACHE_ALIGN | SLAB_PANIC,
 	                          task_init);
-	sched_init();
-
-	/*
-	 * Create a task stub for the currently running kernel boot and save it
-	 * as the current task. When the first context switch occurs, registers
-	 * will be saved to turn the stub into a proper task.
-	 */
-	curr = alloc_cache(task_cache);
-	if (IS_ERR(curr)) {
-		panic("failed to allocate task for main kernel thread: %s\n",
-		      strerror(ERR_VAL(curr)));
-	}
-	curr->state = TASK_RUNNING;
-	curr->cmdline = kmalloc(sizeof (*curr->cmdline) << 1);
-	curr->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
-	strcpy(curr->cmdline[0], "kernel_boot_thread");
-	curr->cmdline[1] = NULL;
-
-	this_cpu_write(current_task, curr);
 }
 
-/* Allocate and initialize a new task struct for a kthread. */
-struct task *kthread_task(void)
+void task_exit(struct task *task, int status)
+{
+	assert(task && task->state == TASK_RUNNING);
+
+	task->state = TASK_FINISHED;
+	task->exit_status = status;
+
+	schedule(1);
+	__builtin_unreachable();
+}
+
+struct task *task_alloc(void)
 {
 	return alloc_cache(task_cache);
 }
 
 void task_free(struct task *task)
 {
+	if (task->stack_top != NULL) {
+		uintptr_t stack_base =
+			(uintptr_t)task->stack_top - task->stack_size;
+		free_pages(virt_to_page((void *)stack_base));
+	}
+
+	if (task->cmdline != NULL) {
+		for (char **s = task->cmdline; *s; ++s) {
+			kfree(*s);
+		}
+		kfree(task->cmdline);
+	}
+
 	free_cache(task_cache, task);
 }
 
+// TODO(frolv): Try something more sophisticated.
+static uint32_t next_pid = 1;
+
 static void task_init(void *t)
 {
-	struct task *task;
-
-	task = t;
+	struct task *task = t;
 	memset(task, 0, sizeof *task);
+
 	list_init(&task->queue);
+	task->cpu_restrict = CPUMASK_ALL;
+	task->pid = atomic_fetch_inc(&next_pid);
 }

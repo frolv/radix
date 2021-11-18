@@ -1,6 +1,6 @@
 /*
  * include/radix/task.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,43 +29,43 @@
 
 struct vmm_space;
 
-/*
- * A single task (process/kthread) in the system.
- *
- * Rearranging the members of this struct requires changes
- * to be made to the switch_task function.
- */
-struct task {
-	int                     state;
-	int                     priority;
-	int                     exit_status;
-	int                     errno;
-	pid_t                   pid;
-	uid_t                   uid;
-	gid_t                   gid;
-	mode_t                  umask;
-	struct regs             regs;
-	struct list             queue;
-	struct vmm_space        *vmm;
-	void                    *stack_base;
-	cpumask_t               cpu_affinity;
-	cpumask_t               cpu_restrict;
-	uint64_t                sched_ts;
-	uint64_t                remaining_time;
-	char                    **cmdline;
-	char                    *cwd;
-	int                     prio_level;
+enum task_state {
+	TASK_READY,
+	TASK_RUNNING,
+	TASK_BLOCKED,
+	TASK_FINISHED,
+	TASK_ZOMBIE,
 };
 
-enum task_state {
-	TASK_STOPPED,
-	TASK_READY,
-	TASK_BLOCKED,
-	TASK_RUNNING,
-	TASK_ZOMBIE
+// A single task (process/kthread) in the system.
+//
+// Rearranging the members of this struct requires changes to be made to the
+// switch_task function for every supported architecture.
+struct task {
+	enum task_state  state;
+	int              priority;
+	int              prio_level;
+	int              errno;
+	pid_t            pid;
+	uid_t            uid;
+	gid_t            gid;
+	mode_t           umask;
+	struct regs      regs;
+	struct list      queue;
+	struct vmm_space *vmm;
+	void             *stack_top;
+	size_t           stack_size;
+	struct task      *parent;
+	cpumask_t        cpu_affinity;
+	cpumask_t        cpu_restrict;
+	char             **cmdline;
+	char             *cwd;
+	uint64_t         sched_ts;
+	uint64_t         remaining_time;
+	int              exit_status;
 };
 
 DECLARE_PER_CPU(struct task *, current_task);
 #define current_task() (this_cpu_read(current_task))
 
-#endif /* RADIX_TASK_H */
+#endif  // RADIX_TASK_H

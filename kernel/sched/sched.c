@@ -241,7 +241,7 @@ static void __prepare_next_task(struct task *next, uint64_t now)
 	next->cpu_affinity |= CPUMASK_SELF;
 	next->sched_ts = now;
 
-	cpu_set_kernel_stack(next->stack_base);
+	cpu_set_kernel_stack(next->stack_top);
 	this_cpu_write(current_task, next);
 
 	switch_address_space(next->vmm);

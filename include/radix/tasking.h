@@ -1,6 +1,6 @@
 /*
  * include/radix/tasking.h
- * Copyright (C) 2016-2018 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,11 @@
 #include <radix/task.h>
 
 void tasking_init(void);
-struct task *kthread_task(void);
+struct task *task_alloc(void);
 void task_free(struct task *task);
+
+void task_exit(struct task *task, int status);
 
 void switch_task(struct task *old, struct task *new);
 
-#endif /* RADIX_TASKING_H */
+#endif  // RADIX_TASKING_H
