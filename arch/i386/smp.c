@@ -26,6 +26,7 @@
 #include <radix/klog.h>
 #include <radix/mm.h>
 #include <radix/percpu.h>
+#include <radix/sched.h>
 #include <radix/smp.h>
 
 #include <rlibc/string.h>
@@ -169,6 +170,10 @@ void ap_init(void)
 		ap_shutdown();
 
 	idt_init();
+	sched_init();
+
+	// Hop over to the first task on this processor.
+	schedule(SCHED_REPLACE);
 }
 
 #endif  // CONFIG(SMP)

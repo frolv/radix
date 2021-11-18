@@ -48,7 +48,7 @@ void task_exit(struct task *task, int status)
 	task->state = TASK_FINISHED;
 	task->exit_status = status;
 
-	schedule(1);
+	schedule(SCHED_REPLACE);
 	__builtin_unreachable();
 }
 

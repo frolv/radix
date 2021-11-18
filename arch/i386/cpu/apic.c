@@ -1140,6 +1140,9 @@ void set_ap_active(void)
 void apic_start_smp(unsigned int vector)
 {
 	klog(KLOG_INFO, SMP "starting smp boot sequence");
+	klog(KLOG_INFO, SMP "%d application processors available",
+	     cpus_available - 1);
+
 	lapic_send_ipi(0, 0, APIC_ICR_LO_SHORTHAND_OTHER, APIC_INT_MODE_INIT);
 
 	// How long to wait for a processor to come online.

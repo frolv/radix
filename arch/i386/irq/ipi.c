@@ -63,8 +63,9 @@ void timer_action_handler(void)
 void sched_wake_handler(struct interrupt_context *intctx)
 {
 	system_pic->eoi(IPI_VEC_SCHED_WAKE);
+
 	memcpy(&current_task()->regs, &intctx->regs, sizeof intctx->regs);
-	schedule(0);
+	schedule(SCHED_SELECT);
 	memcpy(&intctx->regs, &current_task()->regs, sizeof intctx->regs);
 
 	intctx->ip = intctx->regs.ip;

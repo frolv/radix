@@ -1,6 +1,6 @@
 /*
  * kernel/kernel.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,14 +17,17 @@
  */
 
 #include <radix/boot.h>
+#include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/event.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
+#include <radix/kthread.h>
 #include <radix/mm.h>
 #include <radix/multiboot.h>
 #include <radix/percpu.h>
+#include <radix/sched.h>
 #include <radix/smp.h>
 #include <radix/tasking.h>
 #include <radix/version.h>
@@ -32,7 +35,19 @@
 
 #include "mm/slab.h"
 
-/* kernel entry point */
+static void kernel_boot_thread(__unused void *p)
+{
+	klog(KLOG_INFO, "Post-scheduler boot starting");
+
+	event_start();
+	smp_init();
+
+	while (1) {
+		HALT();
+	}
+}
+
+// Kernel entry point.
 int kmain(struct multiboot_info *mbt)
 {
 	klog(KLOG_INFO, KERNEL_NAME " " KERNEL_VERSION);
@@ -45,19 +60,19 @@ int kmain(struct multiboot_info *mbt)
 	irq_init();
 	event_init();
 	percpu_area_setup();
-	event_start();
 
 	tasking_init();
 	irq_enable();
 
-	smp_init();
+	sched_init();
 
-	/* temporary stuff below */
-	extern void kbd_install(void);
-	kbd_install();
+	// Create a task to continue the boot sequence, then hand over to the
+	// scheduler.
+	struct task *boot = kthread_create(kernel_boot_thread, NULL, 0,
+	                                   "kernel_boot_task");
+	boot->cpu_restrict = CPUMASK_SELF;
+	kthread_start(boot);
 
-	while (1)
-		HALT();
-
+	sched_yield();
 	return 0;
 }

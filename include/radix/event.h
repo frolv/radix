@@ -21,7 +21,7 @@
 
 #include <radix/time.h>
 
-#define MIN_EVENT_DELTA (25 * NSEC_PER_USEC)
+#define MIN_EVENT_DELTA (50 * NSEC_PER_USEC)
 
 void event_init(void);
 void event_start(void);

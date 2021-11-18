@@ -56,7 +56,7 @@ void mutex_lock(struct mutex *m)
 		list_ins(&m->queue, &curr->queue);
 		spin_unlock(&m->lock);
 
-		schedule(1);
+		schedule(SCHED_REPLACE);
 	}
 
 	irq_restore(irqstate);
@@ -84,9 +84,12 @@ void mutex_unlock(struct mutex *m)
 	spin_unlock(&m->lock);
 
 	atomic_swap(&m->owner, (uintptr_t)next);
-	irq_restore(irqstate);
 
+	// Add the unblocked back into the scheduler before disabling interrupts
+	// to ensure that it doesn't get lost if the current task is preempted.
 	if (next != NULL) {
 		sched_unblock(next);
 	}
+
+	irq_restore(irqstate);
 }

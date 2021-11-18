@@ -33,6 +33,8 @@
 #include <radix/timer.h>
 #include <radix/time.h>
 
+#define EVENT "event: "
+
 enum event_type {
 	EVENT_SCHED,
 	EVENT_SLEEP,
@@ -77,7 +79,7 @@ static void event_process(struct event *evt)
 	switch (EVENT_TYPE(evt)) {
 	case EVENT_SCHED:
 		this_cpu_write(sched_event, NULL);
-		schedule(0);
+		schedule(SCHED_SELECT);
 		break;
 
 	case EVENT_SLEEP:
@@ -294,7 +296,7 @@ static void timekeeping_event_init(uint64_t period, uint64_t initial)
 	tk_event->flags = EVENT_STATIC | EVENT_TIME;
 	tk_event->tk_period = period;
 
-	klog(KLOG_INFO, "Initializing kernel timekeeping event");
+	klog(KLOG_INFO, EVENT "initializing kernel timekeeping event");
 	__event_add(tk_event);
 }
 
