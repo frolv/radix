@@ -24,7 +24,7 @@ CFLAGS ?= -O2
 LDFLAGS ?=
 LIBS ?=
 
-CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra -D__KERNEL__ -MMD
+CFLAGS := $(CFLAGS) -ffreestanding -Wall -Wextra -Werror -D__KERNEL__ -MMD
 ASFLAGS := $(ASFLAGS) -D__ASSEMBLY__
 LIBS := $(LIBS) -nostdlib -lgcc
 

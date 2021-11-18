@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/assembler.h
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,35 @@
 
 #define THIS_CPU_VAR(var) __PERCPU_SEGMENT:var
 
-#endif /* __ASSEMBLY__ */
+#endif  // __ASSEMBLY__
 
-#endif /* ARCH_I386_RADIX_ASSEMBLER_H */
+#ifdef __KERNEL__
+
+// Helpers for writing inline assembly.
+
+#define __X86_LOCK "lock; "
+
+#define __X86_UINTTYPE_1 uint8_t
+#define __X86_UINTTYPE_2 uint16_t
+#define __X86_UINTTYPE_4 uint32_t
+
+#define __X86_SUFFIX_1 "b"
+#define __X86_SUFFIX_2 "w"
+#define __X86_SUFFIX_4 "l"
+
+#define __X86_CAST_TO_1(val) ((__X86_UINTTYPE_1)(((unsigned long)val) & 0xff))
+#define __X86_CAST_TO_2(val) ((__X86_UINTTYPE_2)(((unsigned long)val) & 0xffff))
+#define __X86_CAST_TO_4(val) \
+	((__X86_UINTTYPE_4)(((unsigned long)val) & 0xffffffff))
+
+#define __X86_REG_1(val) "q"(val)
+#define __X86_REG_2(val) "r"(val)
+#define __X86_REG_4(val) "r"(val)
+
+#define __X86_REG_IMM_1(val) "qi"(val)
+#define __X86_REG_IMM_2(val) "ri"(val)
+#define __X86_REG_IMM_4(val) "ri"(val)
+
+#endif  // __KERNEL__
+
+#endif  // ARCH_I386_RADIX_ASSEMBLER_H

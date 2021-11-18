@@ -24,6 +24,7 @@
 #error only <radix/atomic.h> can be included directly
 #endif
 
+#include <radix/asm/assembler.h>
 #include <radix/assert.h>
 #include <radix/compiler.h>
 #include <radix/kernel.h>
@@ -37,16 +38,6 @@ do {                                                   \
 	*((volatile typeof(p))p) op val;               \
 	irq_restore(__aog_irqstate);                   \
 } while (0)
-
-#define __X86_LOCK "lock; "
-
-#define __X86_UINTTYPE_1 uint8_t
-#define __X86_UINTTYPE_2 uint16_t
-#define __X86_UINTTYPE_4 uint32_t
-
-#define __X86_SUFFIX_1 "b"
-#define __X86_SUFFIX_2 "w"
-#define __X86_SUFFIX_4 "l"
 
 #define __x86_atomic_inst(p, val, inst, size)           \
 	asm volatile(inst __X86_SUFFIX_##size " %1, %0" \

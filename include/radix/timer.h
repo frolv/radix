@@ -65,8 +65,8 @@ struct irq_timer {
 	const char      *name;
 };
 
-void (*schedule_timer_irq)(uint64_t ns);
-uint64_t (*irq_timer_max_ns)(void);
+extern void (*schedule_timer_irq)(uint64_t ns);
+extern uint64_t (*irq_timer_max_ns)(void);
 int set_irq_timer(struct irq_timer *irqt);
 
 
