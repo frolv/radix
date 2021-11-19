@@ -22,11 +22,11 @@
 #include <radix/types.h>
 
 struct acpi_generic_address {
-	uint8_t         address_space;
-	uint8_t         bit_width;
-	uint8_t         bit_offset;
-	uint8_t         access_size;
-	uint64_t        address;
+    uint8_t address_space;
+    uint8_t bit_width;
+    uint8_t bit_offset;
+    uint8_t access_size;
+    uint64_t address;
 };
 
 #endif /* ACPI_TABLES_GAS_H */

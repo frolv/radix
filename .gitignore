@@ -12,3 +12,5 @@ config/.rconfig.*
 config/config
 config/genconfig.h
 config/*.dev
+
+bochsout.txt

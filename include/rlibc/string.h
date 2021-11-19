@@ -20,6 +20,7 @@
 #define RLIBC_STRING_H
 
 #include <radix/types.h>
+
 #include <rlibc/asm/string.h>
 
 #ifndef __ARCH_HAS_MEMCMP

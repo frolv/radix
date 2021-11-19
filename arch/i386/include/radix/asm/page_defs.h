@@ -34,55 +34,55 @@
 
 #endif  // CONFIG(X86_PAE)
 
-#define PGDIR_SIZE              (PTRS_PER_PGDIR * sizeof (pde_t))
-#define PGTBL_SIZE              (PTRS_PER_PGTBL * sizeof (pte_t))
+#define PGDIR_SIZE (PTRS_PER_PGDIR * sizeof(pde_t))
+#define PGTBL_SIZE (PTRS_PER_PGTBL * sizeof(pte_t))
 
-#define PAGE_SHIFT              12
-#define PAGE_SIZE               (1U << PAGE_SHIFT)
-#define PAGE_MASK               (~(PAGE_SIZE - 1))
+#define PAGE_SHIFT 12
+#define PAGE_SIZE  (1U << PAGE_SHIFT)
+#define PAGE_MASK  (~(PAGE_SIZE - 1))
 
 #if CONFIG(X86_PAE)
 
-#define PDPT_SHIFT              30
-#define PGDIR_SHIFT             21
-#define PDPT_INDEX(x)           ((x) >> PDPT_SHIFT)
-#define PGDIR_INDEX(x)          (((x) >> PGDIR_SHIFT) & 0x1FF)
-#define PGTBL_INDEX(x)          (((x) >> PAGE_SHIFT) & 0x1FF)
+#define PDPT_SHIFT     30
+#define PGDIR_SHIFT    21
+#define PDPT_INDEX(x)  ((x) >> PDPT_SHIFT)
+#define PGDIR_INDEX(x) (((x) >> PGDIR_SHIFT) & 0x1FF)
+#define PGTBL_INDEX(x) (((x) >> PAGE_SHIFT) & 0x1FF)
 
 #else  // CONFIG(X86_PAE)
 
-#define PGDIR_SHIFT             22
-#define PGDIR_INDEX(x)          ((x) >> PGDIR_SHIFT)
-#define PGTBL_INDEX(x)          (((x) >> PAGE_SHIFT) & 0x3FF)
+#define PGDIR_SHIFT    22
+#define PGDIR_INDEX(x) ((x) >> PGDIR_SHIFT)
+#define PGTBL_INDEX(x) (((x) >> PAGE_SHIFT) & 0x3FF)
 
 #endif  // CONFIG(X86_PAE)
 
-#define _PAGE_BIT_PRESENT       0
-#define _PAGE_BIT_RW            1
-#define _PAGE_BIT_USER          2
-#define _PAGE_BIT_PWT           3
-#define _PAGE_BIT_PCD           4
-#define _PAGE_BIT_ACCESSED      5
-#define _PAGE_BIT_DIRTY         6
-#define _PAGE_BIT_PAT           7
-#define _PAGE_BIT_GLOBAL        8
+#define _PAGE_BIT_PRESENT  0
+#define _PAGE_BIT_RW       1
+#define _PAGE_BIT_USER     2
+#define _PAGE_BIT_PWT      3
+#define _PAGE_BIT_PCD      4
+#define _PAGE_BIT_ACCESSED 5
+#define _PAGE_BIT_DIRTY    6
+#define _PAGE_BIT_PAT      7
+#define _PAGE_BIT_GLOBAL   8
 
 #if CONFIG(X86_PAE)
-#define _PAGE_BIT_NX            63
+#define _PAGE_BIT_NX 63
 #endif  // CONFIG(X86_PAE)
 
-#define PAGE_PRESENT            (((pteval_t)1) << _PAGE_BIT_PRESENT)
-#define PAGE_RW                 (((pteval_t)1) << _PAGE_BIT_RW)
-#define PAGE_USER               (((pteval_t)1) << _PAGE_BIT_USER)
-#define PAGE_PWT                (((pteval_t)1) << _PAGE_BIT_PWT)
-#define PAGE_PCD                (((pteval_t)1) << _PAGE_BIT_PCD)
-#define PAGE_ACCESSED           (((pteval_t)1) << _PAGE_BIT_ACCESSED)
-#define PAGE_DIRTY              (((pteval_t)1) << _PAGE_BIT_DIRTY)
-#define PAGE_PAT                (((pteval_t)1) << _PAGE_BIT_PAT)
-#define PAGE_GLOBAL             (((pteval_t)1) << _PAGE_BIT_GLOBAL)
+#define PAGE_PRESENT  (((pteval_t)1) << _PAGE_BIT_PRESENT)
+#define PAGE_RW       (((pteval_t)1) << _PAGE_BIT_RW)
+#define PAGE_USER     (((pteval_t)1) << _PAGE_BIT_USER)
+#define PAGE_PWT      (((pteval_t)1) << _PAGE_BIT_PWT)
+#define PAGE_PCD      (((pteval_t)1) << _PAGE_BIT_PCD)
+#define PAGE_ACCESSED (((pteval_t)1) << _PAGE_BIT_ACCESSED)
+#define PAGE_DIRTY    (((pteval_t)1) << _PAGE_BIT_DIRTY)
+#define PAGE_PAT      (((pteval_t)1) << _PAGE_BIT_PAT)
+#define PAGE_GLOBAL   (((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
 #if CONFIG(X86_PAE)
-#define PAGE_NX                 (((pteval_t)1) << _PAGE_BIT_NX)
+#define PAGE_NX (((pteval_t)1) << _PAGE_BIT_NX)
 #endif  // CONFIG(X86_PAE)
 
 #endif  // ARCH_I386_RADIX_PAGE_DEFS_H

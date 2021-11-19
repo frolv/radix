@@ -28,25 +28,25 @@
 #include <radix/types.h>
 
 struct vmm_area {
-	addr_t          base;
-	size_t          size;
-	struct list     list;
+    addr_t base;
+    size_t size;
+    struct list list;
 };
 
 struct vmm_structures {
-	struct list    block_list;      /* all blocks in address space */
-	struct list    alloc_list;      /* allocated blocks in address space */
-	struct rb_root addr_tree;       /* unallocated blocks by address */
-	struct rb_root size_tree;       /* unallocated blocks by size */
-	struct rb_root alloc_tree;      /* allocated blocks by address */
+    struct list block_list;    /* all blocks in address space */
+    struct list alloc_list;    /* allocated blocks in address space */
+    struct rb_root addr_tree;  /* unallocated blocks by address */
+    struct rb_root size_tree;  /* unallocated blocks by size */
+    struct rb_root alloc_tree; /* allocated blocks by address */
 };
 
 struct vmm_space {
-	struct vmm_structures   structures;
-	struct list             vmm_list;
-	spinlock_t              structures_lock;
-	paddr_t                 paging_base;
-	int                     pages;
+    struct vmm_structures structures;
+    struct list vmm_list;
+    spinlock_t structures_lock;
+    paddr_t paging_base;
+    int pages;
 };
 
 void vmm_init(void);
@@ -55,7 +55,8 @@ void vmm_init(void);
 
 #define VMM_ALLOC_UPFRONT (1 << 0)
 
-struct vmm_area *vmm_alloc_size(struct vmm_space *vmm, size_t size,
+struct vmm_area *vmm_alloc_size(struct vmm_space *vmm,
+                                size_t size,
                                 unsigned long flags);
 void vmm_free(struct vmm_area *area);
 

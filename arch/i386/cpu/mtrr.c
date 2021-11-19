@@ -18,15 +18,15 @@
 
 #include <radix/asm/msr.h>
 
-#define IA32_MTRRCAP_VCNT 0xFF          /* variable MTRR count */
-#define IA32_MTRRCAP_FIX  (1 << 8)      /* fixed range registers */
-#define IA32_MTRRCAP_WC   (1 << 10)     /* write-combining memory */
-#define IA32_MTRRCAP_SMRR (1 << 11)     /* SMRR interface */
+#define IA32_MTRRCAP_VCNT 0xFF      /* variable MTRR count */
+#define IA32_MTRRCAP_FIX  (1 << 8)  /* fixed range registers */
+#define IA32_MTRRCAP_WC   (1 << 10) /* write-combining memory */
+#define IA32_MTRRCAP_SMRR (1 << 11) /* SMRR interface */
 
 int mtrr_variable_range_count(void)
 {
-	uint32_t lo, hi;
+    uint32_t lo, hi;
 
-	rdmsr(IA32_MTRRCAP, &lo, &hi);
-	return lo & IA32_MTRRCAP_VCNT;
+    rdmsr(IA32_MTRRCAP, &lo, &hi);
+    return lo & IA32_MTRRCAP_VCNT;
 }

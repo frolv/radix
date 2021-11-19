@@ -17,40 +17,41 @@
  */
 
 #include <radix/kernel.h>
+
 #include <rlibc/string.h>
 
 #ifndef __ARCH_HAS_MEMSET
 
 void *memset(void *s, int c, size_t n)
 {
-	unsigned char *p = s;
+    unsigned char *p = s;
 #if __WORDSIZE == 32 || __WORDSIZE == 64
-	unsigned long *dest;
-	unsigned long val, count;
+    unsigned long *dest;
+    unsigned long val, count;
 
-	while (n && !ALIGNED((unsigned long)p, sizeof (unsigned long))) {
-		*p++ = c;
-		--n;
-	}
+    while (n && !ALIGNED((unsigned long)p, sizeof(unsigned long))) {
+        *p++ = c;
+        --n;
+    }
 
 #if __WORDSIZE == 32
-	val = 0x01010101 * (unsigned char)c;
+    val = 0x01010101 * (unsigned char)c;
 #else
-	val = 0x0101010101010101 * (unsigned char)c;
+    val = 0x0101010101010101 * (unsigned char)c;
 #endif
 
-	dest = (unsigned long *)p;
-	count = n / sizeof *dest;
-	p += count * sizeof *dest;
-	n -= count * sizeof *dest;
+    dest = (unsigned long *)p;
+    count = n / sizeof *dest;
+    p += count * sizeof *dest;
+    n -= count * sizeof *dest;
 
-	while (count--)
-		*dest++ = val;
+    while (count--)
+        *dest++ = val;
 #endif
-	while (n--)
-		*p++ = c;
+    while (n--)
+        *p++ = c;
 
-	return s;
+    return s;
 }
 
 #endif /* !__ARCH_HAS_MEMSET */

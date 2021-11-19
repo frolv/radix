@@ -20,7 +20,6 @@
 #define RADIX_TASK_H
 
 #include <radix/asm/regs.h>
-
 #include <radix/cpumask.h>
 #include <radix/list.h>
 #include <radix/mm_types.h>
@@ -30,11 +29,11 @@
 struct vmm_space;
 
 enum task_state {
-	TASK_READY,
-	TASK_RUNNING,
-	TASK_BLOCKED,
-	TASK_FINISHED,
-	TASK_ZOMBIE,
+    TASK_READY,
+    TASK_RUNNING,
+    TASK_BLOCKED,
+    TASK_FINISHED,
+    TASK_ZOMBIE,
 };
 
 // A single task (process/kthread) in the system.
@@ -42,27 +41,27 @@ enum task_state {
 // Rearranging the members of this struct requires changes to be made to the
 // switch_task function for every supported architecture.
 struct task {
-	enum task_state  state;
-	int              priority;
-	int              prio_level;
-	int              errno;
-	pid_t            pid;
-	uid_t            uid;
-	gid_t            gid;
-	mode_t           umask;
-	struct regs      regs;
-	struct list      queue;
-	struct vmm_space *vmm;
-	void             *stack_top;
-	size_t           stack_size;
-	struct task      *parent;
-	cpumask_t        cpu_affinity;
-	cpumask_t        cpu_restrict;
-	char             **cmdline;
-	char             *cwd;
-	uint64_t         sched_ts;
-	uint64_t         remaining_time;
-	int              exit_status;
+    enum task_state state;
+    int priority;
+    int prio_level;
+    int errno;
+    pid_t pid;
+    uid_t uid;
+    gid_t gid;
+    mode_t umask;
+    struct regs regs;
+    struct list queue;
+    struct vmm_space *vmm;
+    void *stack_top;
+    size_t stack_size;
+    struct task *parent;
+    cpumask_t cpu_affinity;
+    cpumask_t cpu_restrict;
+    char **cmdline;
+    char *cwd;
+    uint64_t sched_ts;
+    uint64_t remaining_time;
+    int exit_status;
 };
 
 DECLARE_PER_CPU(struct task *, current_task);

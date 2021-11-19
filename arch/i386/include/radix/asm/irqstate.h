@@ -27,10 +27,10 @@
 
 #define __arch_irq_state_save() (cpu_read_flags() & EFLAGS_IF)
 #define __arch_irq_state_restore(state) \
-	cpu_update_flags(EFLAGS_IF, (state) & EFLAGS_IF)
+    cpu_update_flags(EFLAGS_IF, (state)&EFLAGS_IF)
 
-#define __arch_irq_active       (!!(cpu_read_flags() & EFLAGS_IF))
-#define __arch_irq_disable()    asm volatile("cli")
-#define __arch_irq_enable()     asm volatile("sti")
+#define __arch_irq_active    (!!(cpu_read_flags() & EFLAGS_IF))
+#define __arch_irq_disable() asm volatile("cli")
+#define __arch_irq_enable()  asm volatile("sti")
 
 #endif /* ARCH_I386_RADIX_IRQSTATE_H */

@@ -17,7 +17,6 @@
  */
 
 #include <radix/asm/idt.h>
-
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/percpu.h>
@@ -32,28 +31,25 @@ extern void idt_load(void *base, size_t s);
 
 static uint64_t idt_pack(uintptr_t intfn, uint16_t sel, uint8_t flags)
 {
-	uint64_t ret;
+    uint64_t ret;
 
-	ret = intfn & 0xFFFF0000;
-	ret |= ((uint16_t)flags << 8) & 0xFF00;
+    ret = intfn & 0xFFFF0000;
+    ret |= ((uint16_t)flags << 8) & 0xFF00;
 
-	ret <<= 32;
-	ret |= (uint32_t)sel << 16;
-	ret |= intfn & 0x0000FFFF;
+    ret <<= 32;
+    ret |= (uint32_t)sel << 16;
+    ret |= intfn & 0x0000FFFF;
 
-	return ret;
+    return ret;
 }
 
 /* idt_set: load a single entry into the IDT */
 void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags)
 {
-	idt[intno] = idt_pack((uintptr_t)intfn, sel, flags);
+    idt[intno] = idt_pack((uintptr_t)intfn, sel, flags);
 }
 
-void idt_init(void)
-{
-	idt_load(idt, sizeof idt);
-}
+void idt_init(void) { idt_load(idt, sizeof idt); }
 
 /*
  * idt_init_early:
@@ -62,34 +58,34 @@ void idt_init(void)
  */
 void idt_init_early(void)
 {
-	size_t i;
+    size_t i;
 
-	idt_set(X86_EXCEPTION_DE, div_error, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_DB, debug, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_BP, breakpoint, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_OF, overflow, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_BR, bound_range, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_UD, invalid_opcode, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_NM, device_not_available, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_DF, double_fault, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_CP, coprocessor_segment, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_TS, invalid_tss, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_NP, segment_not_present, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_SS, stack_segment, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_GP, general_protection_fault, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_PF, page_fault, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_MF, x87_floating_point, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_AC, alignment_check, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_MC, machine_check, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_XM, simd_floating_point, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_VE, virtualization_exception, 0x08, 0x8E);
-	idt_set(X86_EXCEPTION_SX, security_exception, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_DE, div_error, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_DB, debug, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_BP, breakpoint, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_OF, overflow, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_BR, bound_range, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_UD, invalid_opcode, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_NM, device_not_available, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_DF, double_fault, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_CP, coprocessor_segment, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_TS, invalid_tss, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_NP, segment_not_present, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_SS, stack_segment, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_GP, general_protection_fault, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_PF, page_fault, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_MF, x87_floating_point, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_AC, alignment_check, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_MC, machine_check, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_XM, simd_floating_point, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_VE, virtualization_exception, 0x08, 0x8E);
+    idt_set(X86_EXCEPTION_SX, security_exception, 0x08, 0x8E);
 
-	for (i = 0; i < ARRAY_SIZE(irq_fn); ++i)
-		idt[i + IRQ_BASE] = idt_pack((uintptr_t)&irq_fn[i], 0x08, 0x8E);
+    for (i = 0; i < ARRAY_SIZE(irq_fn); ++i)
+        idt[i + IRQ_BASE] = idt_pack((uintptr_t)&irq_fn[i], 0x08, 0x8E);
 
-	pic8259_init();
-	pic8259_disable();
+    pic8259_init();
+    pic8259_disable();
 
-	idt_load(idt, sizeof idt);
+    idt_load(idt, sizeof idt);
 }

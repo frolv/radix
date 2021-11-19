@@ -20,13 +20,13 @@
 
 char *strncat(char *__restrict dst, const char *__restrict src, size_t n)
 {
-	char *start = dst;
+    char *start = dst;
 
-	while (*dst)
-		++dst;
-	while (n-- && *src)
-		*dst++ = *src++;
-	*dst = '\0';
+    while (*dst)
+        ++dst;
+    while (n-- && *src)
+        *dst++ = *src++;
+    *dst = '\0';
 
-	return start;
+    return start;
 }

@@ -16,21 +16,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "exceptions.h"
+
 #include <radix/asm/gdt.h>
 #include <radix/asm/regs.h>
-
 #include <radix/compiler.h>
 #include <radix/kernel.h>
-
-#include "exceptions.h"
 
 #define user_mode(regs) ((regs)->cs == GDT_OFFSET(GDT_USER_CODE))
 
 void div_error_handler(struct regs *regs, __unused int error)
 {
-	if (user_mode(regs)) {
-		/* TODO: terminate process */
-	} else {
-		panic("division error at eip %p", regs->ip);
-	}
+    if (user_mode(regs)) {
+        /* TODO: terminate process */
+    } else {
+        panic("division error at eip %p", regs->ip);
+    }
 }

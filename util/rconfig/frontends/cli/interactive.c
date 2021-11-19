@@ -16,122 +16,123 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "interactive.h"
+
+#include <rconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <rconfig.h>
-
-#include "interactive.h"
-
 static void interactive_bool(struct rconfig_config *conf)
 {
-	char buf[256];
+    char buf[256];
 
-	printf("%s? (y/n) [%c] ", conf->desc, conf->default_val ? 'y' : 'n');
+    printf("%s? (y/n) [%c] ", conf->desc, conf->default_val ? 'y' : 'n');
 
-	if (!fgets(buf, sizeof buf, stdin)) {
-		putchar('\n');
-		conf->selection = conf->default_val;
-		return;
-	} else if (buf[0] == '\n') {
-		conf->selection = conf->default_val;
-		return;
-	}
+    if (!fgets(buf, sizeof buf, stdin)) {
+        putchar('\n');
+        conf->selection = conf->default_val;
+        return;
+    } else if (buf[0] == '\n') {
+        conf->selection = conf->default_val;
+        return;
+    }
 
-	while (strcmp(buf, "y\n") != 0 && strcmp(buf, "n\n") != 0) {
-		printf("invalid input, type `y' or `n': ");
-		if (!fgets(buf, sizeof buf, stdin))
-			putchar('\n');
-	}
+    while (strcmp(buf, "y\n") != 0 && strcmp(buf, "n\n") != 0) {
+        printf("invalid input, type `y' or `n': ");
+        if (!fgets(buf, sizeof buf, stdin))
+            putchar('\n');
+    }
 
-	conf->selection = (buf[0] == 'y');
+    conf->selection = (buf[0] == 'y');
 }
 
 static int valid_number(const char *buf, int *num, int min, int max)
 {
-	int neg = 0;
+    int neg = 0;
 
+    if (*buf == '-') {
+        ++buf;
+        neg = 1;
+    } else if (*buf == '\n') {
+        printf("no number entered, try again: ");
+        return 0;
+    }
 
-	if (*buf == '-') {
-		++buf;
-		neg = 1;
-	} else if (*buf == '\n') {
-		printf("no number entered, try again: ");
-		return 0;
-	}
+    *num = 0;
+    for (; *buf && *buf != '\n'; ++buf) {
+        if (*buf < '0' || *buf > '9') {
+            printf("invalid number, try again: ");
+            return 0;
+        }
 
-	*num = 0;
-	for (; *buf && *buf != '\n'; ++buf) {
-		if (*buf < '0' || *buf > '9') {
-			printf("invalid number, try again: ");
-			return 0;
-		}
+        *num *= 10;
+        *num += *buf - '0';
+    }
 
-		*num *= 10;
-		*num += *buf - '0';
-	}
+    *num = neg ? -(*num) : *num;
 
-	*num = neg ? -(*num) : *num;
+    if (*num < min || *num > max) {
+        printf("number out of range, try again: ");
+        return 0;
+    }
 
-	if (*num < min || *num > max) {
-		printf("number out of range, try again: ");
-		return 0;
-	}
-
-	return 1;
+    return 1;
 }
 
 static void interactive_int(struct rconfig_config *conf)
 {
-	char buf[256];
-	int num;
+    char buf[256];
+    int num;
 
-	printf("%s (%d-%d) [%d] ", conf->desc, conf->lim.min,
-	       conf->lim.max, conf->default_val);
+    printf("%s (%d-%d) [%d] ",
+           conf->desc,
+           conf->lim.min,
+           conf->lim.max,
+           conf->default_val);
 
-	if (!fgets(buf, sizeof buf, stdin)) {
-		putchar('\n');
-		conf->selection = conf->default_val;
-		return;
-	} else if (buf[0] == '\n') {
-		conf->selection = conf->default_val;
-		return;
-	}
+    if (!fgets(buf, sizeof buf, stdin)) {
+        putchar('\n');
+        conf->selection = conf->default_val;
+        return;
+    } else if (buf[0] == '\n') {
+        conf->selection = conf->default_val;
+        return;
+    }
 
-	while (!valid_number(buf, &num, conf->lim.min, conf->lim.max)) {
-		if (!fgets(buf, sizeof buf, stdin))
-			putchar('\n');
-	}
+    while (!valid_number(buf, &num, conf->lim.min, conf->lim.max)) {
+        if (!fgets(buf, sizeof buf, stdin))
+            putchar('\n');
+    }
 
-	conf->selection = num;
+    conf->selection = num;
 }
 
 static void interactive_options(struct rconfig_config *conf)
 {
-	char buf[256];
-	int choice;
-	size_t i;
+    char buf[256];
+    int choice;
+    size_t i;
 
-	printf("%s [%d]\n", conf->desc, conf->default_val);
-	for (i = 0; i < conf->opts.num_options; ++i)
-		printf("(%lu) %s\n", i + 1, conf->opts.options[i].desc);
+    printf("%s [%d]\n", conf->desc, conf->default_val);
+    for (i = 0; i < conf->opts.num_options; ++i)
+        printf("(%lu) %s\n", i + 1, conf->opts.options[i].desc);
 
-	if (!fgets(buf, sizeof buf, stdin)) {
-		putchar('\n');
-		conf->selection = conf->default_val;
-		return;
-	} else if (buf[0] == '\n') {
-		conf->selection = conf->default_val;
-		return;
-	}
+    if (!fgets(buf, sizeof buf, stdin)) {
+        putchar('\n');
+        conf->selection = conf->default_val;
+        return;
+    } else if (buf[0] == '\n') {
+        conf->selection = conf->default_val;
+        return;
+    }
 
-	while (!valid_number(buf, &choice, 1, conf->opts.num_options)) {
-		if (!fgets(buf, sizeof buf, stdin))
-			putchar('\n');
-	}
+    while (!valid_number(buf, &choice, 1, conf->opts.num_options)) {
+        if (!fgets(buf, sizeof buf, stdin))
+            putchar('\n');
+    }
 
-	conf->selection = choice;
+    conf->selection = choice;
 }
 
 #define CURR_BUFSIZE 256
@@ -145,38 +146,37 @@ static char current_section[CURR_BUFSIZE];
  */
 void config_interactive(void *config)
 {
-	int n;
-	struct rconfig_config *conf = config;
+    int n;
+    struct rconfig_config *conf = config;
 
-	if (strcmp(conf->section->name, current_section) != 0) {
-		if (strcmp(conf->section->file->name, current_file) != 0) {
-			strncpy(current_file, conf->section->file->name,
-			        CURR_BUFSIZE);
-			putchar('\n');
-			n = printf("%s Configuration\n", current_file);
-			while (--n)
-				putchar('=');
-			putchar('\n');
-		}
-		strncpy(current_section, conf->section->name, CURR_BUFSIZE);
-		putchar('\n');
-		n = printf("%s\n", current_section);
-		while (--n)
-			putchar('-');
-		putchar('\n');
-	}
+    if (strcmp(conf->section->name, current_section) != 0) {
+        if (strcmp(conf->section->file->name, current_file) != 0) {
+            strncpy(current_file, conf->section->file->name, CURR_BUFSIZE);
+            putchar('\n');
+            n = printf("%s Configuration\n", current_file);
+            while (--n)
+                putchar('=');
+            putchar('\n');
+        }
+        strncpy(current_section, conf->section->name, CURR_BUFSIZE);
+        putchar('\n');
+        n = printf("%s\n", current_section);
+        while (--n)
+            putchar('-');
+        putchar('\n');
+    }
 
-	switch (conf->type) {
-	case RCONFIG_BOOL:
-		interactive_bool(conf);
-		break;
-	case RCONFIG_INT:
-		interactive_int(conf);
-		break;
-	case RCONFIG_OPTIONS:
-		interactive_options(conf);
-		break;
-	default:
-		exit(1);
-	}
+    switch (conf->type) {
+    case RCONFIG_BOOL:
+        interactive_bool(conf);
+        break;
+    case RCONFIG_INT:
+        interactive_int(conf);
+        break;
+    case RCONFIG_OPTIONS:
+        interactive_options(conf);
+        break;
+    default:
+        exit(1);
+    }
 }

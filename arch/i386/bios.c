@@ -26,9 +26,9 @@
 #define BIOS_REGION_PHYS_START  0x000E0000
 #define BIOS_REGION_PHYS_END    0x00100000
 
-#define EBDA_BASE_LOCATION      phys_to_virt(EBDA_BASE_LOCATION_PHYS)
-#define BIOS_REGION_START       phys_to_virt(BIOS_REGION_PHYS_START)
-#define BIOS_REGION_END         phys_to_virt(BIOS_REGION_PHYS_END)
+#define EBDA_BASE_LOCATION phys_to_virt(EBDA_BASE_LOCATION_PHYS)
+#define BIOS_REGION_START  phys_to_virt(BIOS_REGION_PHYS_START)
+#define BIOS_REGION_END    phys_to_virt(BIOS_REGION_PHYS_END)
 
 static addr_t ebda_base = 0;
 
@@ -36,17 +36,17 @@ static addr_t ebda_base = 0;
  * __find_sig_area:
  * Attempt to find signature `sig` in the memory region from start to end.
  */
-static void *__find_sig_area(const char *sig, size_t size, size_t align,
-                             addr_t start, addr_t end)
+static void *__find_sig_area(
+    const char *sig, size_t size, size_t align, addr_t start, addr_t end)
 {
-	void *s;
+    void *s;
 
-	for (s = (void *)start; s < (void *)end; s += align) {
-		if (memcmp(s, sig, size) == 0)
-			return s;
-	}
+    for (s = (void *)start; s < (void *)end; s += align) {
+        if (memcmp(s, sig, size) == 0)
+            return s;
+    }
 
-	return NULL;
+    return NULL;
 }
 
 /*
@@ -58,16 +58,16 @@ static void *__find_sig_area(const char *sig, size_t size, size_t align,
  */
 void *bios_find_signature(const char *sig, size_t sig_size, size_t sig_align)
 {
-	void *ret;
+    void *ret;
 
-	if (!ebda_base)
-		ebda_base = phys_to_virt((*(uint16_t *)EBDA_BASE_LOCATION) << 4);
+    if (!ebda_base)
+        ebda_base = phys_to_virt((*(uint16_t *)EBDA_BASE_LOCATION) << 4);
 
-	ret = __find_sig_area(sig, sig_size, sig_align,
-	                      ebda_base, ebda_base + KIB(1));
-	if (!ret)
-		ret = __find_sig_area(sig, sig_size, sig_align,
-		                      BIOS_REGION_START, BIOS_REGION_END);
+    ret = __find_sig_area(
+        sig, sig_size, sig_align, ebda_base, ebda_base + KIB(1));
+    if (!ret)
+        ret = __find_sig_area(
+            sig, sig_size, sig_align, BIOS_REGION_START, BIOS_REGION_END);
 
-	return ret;
+    return ret;
 }

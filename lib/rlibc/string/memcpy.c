@@ -21,12 +21,12 @@
 #ifndef __ARCH_HAS_MEMCPY
 void *memcpy(void *__restrict dst, const void *__restrict src, size_t n)
 {
-	unsigned char *d = dst;
-	const unsigned char *s = src;
+    unsigned char *d = dst;
+    const unsigned char *s = src;
 
-	while (n--)
-		*d++ = *s++;
+    while (n--)
+        *d++ = *s++;
 
-	return dst;
+    return dst;
 }
 #endif /* !__ARCH_HAS_MEMCPY */

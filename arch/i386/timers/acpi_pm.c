@@ -16,16 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <acpi/acpi.h>
-#include <acpi/tables/fadt.h>
-
 #include <radix/io.h>
 #include <radix/spinlock.h>
 #include <radix/timer.h>
 
-#define ACPI_PM_FREQUENCY       3579545
-#define ACPI_PM_MULT            2288559
-#define ACPI_PM_SHIFT           13
+#include <acpi/acpi.h>
+#include <acpi/tables/fadt.h>
+
+#define ACPI_PM_FREQUENCY 3579545
+#define ACPI_PM_MULT      2288559
+#define ACPI_PM_SHIFT     13
 
 /*
  * The ACPI power management timer is a counter provided by the ACPI BIOS which
@@ -49,78 +49,70 @@ static struct timer acpi_pm;
  */
 static uint64_t acpi_pm_read(void)
 {
-	uint32_t ticks;
-	int diff;
+    uint32_t ticks;
+    int diff;
 
-	ticks = inl(acpi_pm_port);
-	diff = ticks - acpi_pm_prev_ticks;
+    ticks = inl(acpi_pm_port);
+    diff = ticks - acpi_pm_prev_ticks;
 
-	/* If diff < 0, i.e. prev_ticks > ticks, the counter has overflowed. */
-	if (diff < 0)
-		acpi_pm_total_ticks += (acpi_pm.max_ticks - acpi_pm_prev_ticks)
-		                       + ticks;
-	else
-		acpi_pm_total_ticks += diff;
+    /* If diff < 0, i.e. prev_ticks > ticks, the counter has overflowed. */
+    if (diff < 0)
+        acpi_pm_total_ticks += (acpi_pm.max_ticks - acpi_pm_prev_ticks) + ticks;
+    else
+        acpi_pm_total_ticks += diff;
 
-	acpi_pm_prev_ticks = ticks;
-	return acpi_pm_total_ticks;
+    acpi_pm_prev_ticks = ticks;
+    return acpi_pm_total_ticks;
 }
 
 static uint64_t acpi_pm_reset(void)
 {
-	uint64_t ticks;
+    uint64_t ticks;
 
-	ticks = acpi_pm_read();
-	acpi_pm_total_ticks = 0;
+    ticks = acpi_pm_read();
+    acpi_pm_total_ticks = 0;
 
-	return ticks;
+    return ticks;
 }
 
 static int acpi_pm_enable(void)
 {
-	acpi_pm_prev_ticks = inl(acpi_pm_port);
-	return 0;
+    acpi_pm_prev_ticks = inl(acpi_pm_port);
+    return 0;
 }
 
-static int acpi_pm_disable(void)
-{
-	return 0;
-}
+static int acpi_pm_disable(void) { return 0; }
 
-static void acpi_pm_dummy(void)
-{
-}
+static void acpi_pm_dummy(void) {}
 
-static struct timer acpi_pm = {
-	.read           = acpi_pm_read,
-	.reset          = acpi_pm_reset,
-	.mult           = ACPI_PM_MULT,
-	.shift          = ACPI_PM_SHIFT,
-	.frequency      = ACPI_PM_FREQUENCY,
-	.start          = acpi_pm_dummy,
-	.stop           = acpi_pm_dummy,
-	.enable         = acpi_pm_enable,
-	.disable        = acpi_pm_disable,
-	.flags          = 0,
-	.name           = "acpi_pm",
-	.rating         = 30,
-	.timer_list     = LIST_INIT(acpi_pm.timer_list)
-};
+static struct timer acpi_pm = {.read = acpi_pm_read,
+                               .reset = acpi_pm_reset,
+                               .mult = ACPI_PM_MULT,
+                               .shift = ACPI_PM_SHIFT,
+                               .frequency = ACPI_PM_FREQUENCY,
+                               .start = acpi_pm_dummy,
+                               .stop = acpi_pm_dummy,
+                               .enable = acpi_pm_enable,
+                               .disable = acpi_pm_disable,
+                               .flags = 0,
+                               .name = "acpi_pm",
+                               .rating = 30,
+                               .timer_list = LIST_INIT(acpi_pm.timer_list)};
 
 void acpi_pm_register(void)
 {
-	struct acpi_fadt *fadt;
+    struct acpi_fadt *fadt;
 
-	fadt = acpi_find_table(ACPI_FADT_SIGNATURE);
-	if (!fadt)
-		return;
+    fadt = acpi_find_table(ACPI_FADT_SIGNATURE);
+    if (!fadt)
+        return;
 
-	acpi_pm_port = fadt->pm_tmr_blk;
-	if (!acpi_pm_port)
-		return;
+    acpi_pm_port = fadt->pm_tmr_blk;
+    if (!acpi_pm_port)
+        return;
 
-	acpi_pm.max_ticks =
-		(fadt->flags & ACPI_FADT_TMR_VAL_EXT) ? 0xFFFFFFFF : 0x00FFFFFF;
+    acpi_pm.max_ticks =
+        (fadt->flags & ACPI_FADT_TMR_VAL_EXT) ? 0xFFFFFFFF : 0x00FFFFFF;
 
-	timer_register(&acpi_pm);
+    timer_register(&acpi_pm);
 }

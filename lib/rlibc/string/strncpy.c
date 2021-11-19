@@ -20,11 +20,11 @@
 
 char *strncpy(char *__restrict dst, const char *__restrict src, size_t n)
 {
-	char *start = dst;
+    char *start = dst;
 
-	while (n && (*dst++ = *src++))
-		--n;
-	while (n--)
-		*dst++ = '\0';
-	return start;
+    while (n && (*dst++ = *src++))
+        --n;
+    while (n--)
+        *dst++ = '\0';
+    return start;
 }

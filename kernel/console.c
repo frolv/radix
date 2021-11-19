@@ -24,18 +24,20 @@
 struct console *active_console = NULL;
 static struct list console_list = LIST_INIT(console_list);
 
-void console_register(struct console *console, const char *name,
-                      struct consfn *console_func, int active)
+void console_register(struct console *console,
+                      const char *name,
+                      struct consfn *console_func,
+                      int active)
 {
-	assert(console);
+    assert(console);
 
-	console->name[0] = '\0';
-	strncat(console->name, name, 15);
-	console->actions = console_func;
+    console->name[0] = '\0';
+    strncat(console->name, name, 15);
+    console->actions = console_func;
 
-	list_ins(&console_list, &console->list);
+    list_ins(&console_list, &console->list);
 
-	console->actions->init(console);
-	if (active)
-		active_console = console;
+    console->actions->init(console);
+    if (active)
+        active_console = console;
 }

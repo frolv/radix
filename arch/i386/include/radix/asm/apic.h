@@ -22,86 +22,85 @@
 #include <radix/mm_types.h>
 #include <radix/types.h>
 
-#define APIC_VEC_TIMER          0x22
-#define APIC_VEC_NMI            0xE0
-#define APIC_VEC_SMI            0xE1
-#define APIC_VEC_EXTINT         0xE2
-#define APIC_VEC_ERROR          0xE3
-#define APIC_VEC_THERMAL        0xE4
-#define APIC_VEC_CMCI           0xE5
-#define APIC_VEC_SPURIOUS       0xFF
+#define APIC_VEC_TIMER    0x22
+#define APIC_VEC_NMI      0xE0
+#define APIC_VEC_SMI      0xE1
+#define APIC_VEC_EXTINT   0xE2
+#define APIC_VEC_ERROR    0xE3
+#define APIC_VEC_THERMAL  0xE4
+#define APIC_VEC_CMCI     0xE5
+#define APIC_VEC_SPURIOUS 0xFF
 
 extern paddr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
 extern unsigned int ioapics_available;
 
 enum bus_type {
-	BUS_TYPE_ISA,
-	BUS_TYPE_EISA,
-	BUS_TYPE_PCI,
-	BUS_TYPE_UNKNOWN,
-	BUS_TYPE_NONE
+    BUS_TYPE_ISA,
+    BUS_TYPE_EISA,
+    BUS_TYPE_PCI,
+    BUS_TYPE_UNKNOWN,
+    BUS_TYPE_NONE
 };
 
 struct ioapic_pin {
-	uint8_t         irq;
-	uint8_t         bus_type;
-	uint16_t        flags;
+    uint8_t irq;
+    uint8_t bus_type;
+    uint16_t flags;
 };
 
 struct ioapic {
-	uint32_t id;
-	uint32_t irq_base;
-	uint32_t irq_count;
-	volatile uint32_t *base;
-	struct ioapic_pin *pins;
+    uint32_t id;
+    uint32_t irq_base;
+    uint32_t irq_count;
+    volatile uint32_t *base;
+    struct ioapic_pin *pins;
 };
 
-
-#define APIC_LVT_LINT0          0
-#define APIC_LVT_LINT1          1
-#define APIC_LVT_TIMER          2
-#define APIC_LVT_ERROR          3
-#define APIC_LVT_PMC            4
-#define APIC_LVT_THERMAL        5
-#define APIC_LVT_CMCI           6
-#define APIC_LVT_MAX            APIC_LVT_CMCI
+#define APIC_LVT_LINT0   0
+#define APIC_LVT_LINT1   1
+#define APIC_LVT_TIMER   2
+#define APIC_LVT_ERROR   3
+#define APIC_LVT_PMC     4
+#define APIC_LVT_THERMAL 5
+#define APIC_LVT_CMCI    6
+#define APIC_LVT_MAX     APIC_LVT_CMCI
 
 enum lapic_timer_mode {
-	LAPIC_TIMER_ONESHOT,
-	LAPIC_TIMER_PERIODIC,
-	LAPIC_TIMER_DEADLINE,
-	LAPIC_TIMER_UNDEFINED
+    LAPIC_TIMER_ONESHOT,
+    LAPIC_TIMER_PERIODIC,
+    LAPIC_TIMER_DEADLINE,
+    LAPIC_TIMER_UNDEFINED
 };
 
 struct lapic_lvt {
-	uint8_t vector;
-	uint8_t flags;
+    uint8_t vector;
+    uint8_t flags;
 };
 
 struct lapic {
-	uint32_t                id;
-	uint8_t                 timer_mode;
-	uint8_t                 timer_div;
-	uint16_t                lvt_count;
-	struct lapic_lvt	lvts[APIC_LVT_MAX + 1];
+    uint32_t id;
+    uint8_t timer_mode;
+    uint8_t timer_div;
+    uint16_t lvt_count;
+    struct lapic_lvt lvts[APIC_LVT_MAX + 1];
 };
 
-#define APIC_ID_ALL             0xFFFFFFFF
+#define APIC_ID_ALL 0xFFFFFFFF
 
 /* flags for ioapic_pin and lapic_lvt */
-#define APIC_INT_MASKED         (1 << 3)
-#define APIC_INT_ACTIVE_HIGH    (1 << 4)
-#define APIC_INT_EDGE_TRIGGER   (1 << 5)
+#define APIC_INT_MASKED       (1 << 3)
+#define APIC_INT_ACTIVE_HIGH  (1 << 4)
+#define APIC_INT_EDGE_TRIGGER (1 << 5)
 
-#define APIC_INT_MODE_FIXED     0x00
-#define APIC_INT_MODE_LOW_PRIO  0x01
-#define APIC_INT_MODE_SMI       0x02
-#define APIC_INT_MODE_NMI       0x04
-#define APIC_INT_MODE_INIT      0x05
-#define APIC_INT_MODE_STARTUP   0x06
-#define APIC_INT_MODE_EXTINT    0x07
-#define APIC_INT_MODE_MASK      0x07
+#define APIC_INT_MODE_FIXED    0x00
+#define APIC_INT_MODE_LOW_PRIO 0x01
+#define APIC_INT_MODE_SMI      0x02
+#define APIC_INT_MODE_NMI      0x04
+#define APIC_INT_MODE_INIT     0x05
+#define APIC_INT_MODE_STARTUP  0x06
+#define APIC_INT_MODE_EXTINT   0x07
+#define APIC_INT_MODE_MASK     0x07
 
 int bsp_apic_init(void);
 

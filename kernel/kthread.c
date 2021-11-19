@@ -27,7 +27,8 @@
 
 #include <rlibc/stdio.h>
 
-static struct task *__kthread_create(void (*func)(void *), void *arg,
+static struct task *__kthread_create(void (*func)(void *),
+                                     void *arg,
                                      int page_order);
 static void kthread_set_name(struct task *thread, char *name, va_list ap);
 
@@ -35,96 +36,94 @@ static void kthread_set_name(struct task *thread, char *name, va_list ap);
 // and a kernel stack with size specified by `page_order`.
 //
 // The thread is not run automatically; kthread_start must be called first.
-struct task *kthread_create(void (*func)(void *), void *arg,
-                            int page_order, char *name, ...)
+struct task *kthread_create(
+    void (*func)(void *), void *arg, int page_order, char *name, ...)
 {
-	struct task *thread;
-	va_list ap;
+    struct task *thread;
+    va_list ap;
 
-	if (unlikely(!func || !name))
-		return ERR_PTR(EINVAL);
+    if (unlikely(!func || !name))
+        return ERR_PTR(EINVAL);
 
-	thread = __kthread_create(func, arg, page_order);
-	if (IS_ERR(thread))
-		return thread;
+    thread = __kthread_create(func, arg, page_order);
+    if (IS_ERR(thread))
+        return thread;
 
-	va_start(ap, name);
-	kthread_set_name(thread, name, ap);
-	va_end(ap);
+    va_start(ap, name);
+    kthread_set_name(thread, name, ap);
+    va_end(ap);
 
-	return thread;
+    return thread;
 }
 
 // Creates a kernel thread and immediately starts running it.
-struct task *kthread_run(void (*func)(void *), void *arg,
-                         int page_order, char *name, ...)
+struct task *kthread_run(
+    void (*func)(void *), void *arg, int page_order, char *name, ...)
 {
-	struct task *thread;
-	va_list ap;
+    struct task *thread;
+    va_list ap;
 
-	if (unlikely(!name))
-		return ERR_PTR(EINVAL);
+    if (unlikely(!name))
+        return ERR_PTR(EINVAL);
 
-	thread = __kthread_create(func, arg, page_order);
-	if (IS_ERR(thread))
-		return thread;
+    thread = __kthread_create(func, arg, page_order);
+    if (IS_ERR(thread))
+        return thread;
 
-	va_start(ap, name);
-	kthread_set_name(thread, name, ap);
-	va_end(ap);
+    va_start(ap, name);
+    kthread_set_name(thread, name, ap);
+    va_end(ap);
 
-	kthread_start(thread);
-	return thread;
+    kthread_start(thread);
+    return thread;
 }
 
-void kthread_start(struct task *thread)
-{
-	sched_add(thread);
-}
+void kthread_start(struct task *thread) { sched_add(thread); }
 
 // Exits the running kthread.
 // All created kthreads set this function as their base return address.
 __noreturn void kthread_exit(void)
 {
-	irq_disable();
+    irq_disable();
 
-	struct task *thread = current_task();
-	assert(thread);
-	task_exit(thread, 0);
+    struct task *thread = current_task();
+    assert(thread);
+    task_exit(thread, 0);
 
-	__builtin_unreachable();
+    __builtin_unreachable();
 }
 
-static struct task *__kthread_create(void (*func)(void *), void *arg,
+static struct task *__kthread_create(void (*func)(void *),
+                                     void *arg,
                                      int page_order)
 {
-	struct task *thread;
-	struct page *p;
-	addr_t stack_top;
+    struct task *thread;
+    struct page *p;
+    addr_t stack_top;
 
-	thread = task_alloc();
-	if (IS_ERR(thread)) {
-		return thread;
-	}
+    thread = task_alloc();
+    if (IS_ERR(thread)) {
+        return thread;
+    }
 
-	p = alloc_pages(PA_STANDARD, page_order);
-	if (IS_ERR(p)) {
-		task_free(thread);
-		return (void *)p;
-	}
+    p = alloc_pages(PA_STANDARD, page_order);
+    if (IS_ERR(p)) {
+        task_free(thread);
+        return (void *)p;
+    }
 
-	thread->stack_size = pow2(page_order) * PAGE_SIZE;
-	stack_top = (addr_t)p->mem + thread->stack_size;
-	kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
-	thread->stack_top = (void *)stack_top;
+    thread->stack_size = pow2(page_order) * PAGE_SIZE;
+    stack_top = (addr_t)p->mem + thread->stack_size;
+    kthread_reg_setup(&thread->regs, stack_top, (addr_t)func, (addr_t)arg);
+    thread->stack_top = (void *)stack_top;
 
-	return thread;
+    return thread;
 }
 
 static void kthread_set_name(struct task *thread, char *name, va_list ap)
 {
-	thread->cmdline = kmalloc(2 * sizeof *thread->cmdline);
-	thread->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
-	vsnprintf(thread->cmdline[0], KTHREAD_NAME_LEN, name, ap);
-	thread->cmdline[1] = NULL;
+    thread->cmdline = kmalloc(2 * sizeof *thread->cmdline);
+    thread->cmdline[0] = kmalloc(KTHREAD_NAME_LEN);
+    vsnprintf(thread->cmdline[0], KTHREAD_NAME_LEN, name, ap);
+    thread->cmdline[1] = NULL;
 }

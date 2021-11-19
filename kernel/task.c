@@ -35,44 +35,41 @@ static void task_init(void *t);
 
 void tasking_init(void)
 {
-	task_cache = create_cache("task_cache", sizeof (struct task),
-	                          SLAB_MIN_ALIGN,
-	                          SLAB_HW_CACHE_ALIGN | SLAB_PANIC,
-	                          task_init);
+    task_cache = create_cache("task_cache",
+                              sizeof(struct task),
+                              SLAB_MIN_ALIGN,
+                              SLAB_HW_CACHE_ALIGN | SLAB_PANIC,
+                              task_init);
 }
 
 void task_exit(struct task *task, int status)
 {
-	assert(task && task->state == TASK_RUNNING);
+    assert(task && task->state == TASK_RUNNING);
 
-	task->state = TASK_FINISHED;
-	task->exit_status = status;
+    task->state = TASK_FINISHED;
+    task->exit_status = status;
 
-	schedule(SCHED_REPLACE);
-	__builtin_unreachable();
+    schedule(SCHED_REPLACE);
+    __builtin_unreachable();
 }
 
-struct task *task_alloc(void)
-{
-	return alloc_cache(task_cache);
-}
+struct task *task_alloc(void) { return alloc_cache(task_cache); }
 
 void task_free(struct task *task)
 {
-	if (task->stack_top != NULL) {
-		uintptr_t stack_base =
-			(uintptr_t)task->stack_top - task->stack_size;
-		free_pages(virt_to_page((void *)stack_base));
-	}
+    if (task->stack_top != NULL) {
+        uintptr_t stack_base = (uintptr_t)task->stack_top - task->stack_size;
+        free_pages(virt_to_page((void *)stack_base));
+    }
 
-	if (task->cmdline != NULL) {
-		for (char **s = task->cmdline; *s; ++s) {
-			kfree(*s);
-		}
-		kfree(task->cmdline);
-	}
+    if (task->cmdline != NULL) {
+        for (char **s = task->cmdline; *s; ++s) {
+            kfree(*s);
+        }
+        kfree(task->cmdline);
+    }
 
-	free_cache(task_cache, task);
+    free_cache(task_cache, task);
 }
 
 // TODO(frolv): Try something more sophisticated.
@@ -80,10 +77,10 @@ static uint32_t next_pid = 1;
 
 static void task_init(void *t)
 {
-	struct task *task = t;
-	memset(task, 0, sizeof *task);
+    struct task *task = t;
+    memset(task, 0, sizeof *task);
 
-	list_init(&task->queue);
-	task->cpu_restrict = CPUMASK_ALL;
-	task->pid = atomic_fetch_inc(&next_pid);
+    list_init(&task->queue);
+    task->cpu_restrict = CPUMASK_ALL;
+    task->pid = atomic_fetch_inc(&next_pid);
 }

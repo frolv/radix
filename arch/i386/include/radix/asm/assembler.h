@@ -21,19 +21,21 @@
 
 #ifdef __ASSEMBLY__
 
+// clang-format off
 #define __PERCPU_SECTION .percpu_data
 #define __PERCPU_SEGMENT %fs
 
-#define DEFINE_PER_CPU(var)                     \
-	.section __PERCPU_SECTION ASM_NL        \
-	.global var ASM_NL                      \
+#define DEFINE_PER_CPU(var)              \
+	.section __PERCPU_SECTION ASM_NL \
+	.global var ASM_NL               \
 	var:
 
-#define DEFINE_PER_CPU_END()                    \
-	.section .text ASM_NL                   \
+#define DEFINE_PER_CPU_END()  \
+	.section .text ASM_NL \
 	.align 4
 
 #define THIS_CPU_VAR(var) __PERCPU_SEGMENT:var
+// clang-format on
 
 #endif  // __ASSEMBLY__
 
@@ -54,7 +56,7 @@
 #define __X86_CAST_TO_1(val) ((__X86_UINTTYPE_1)(((unsigned long)val) & 0xff))
 #define __X86_CAST_TO_2(val) ((__X86_UINTTYPE_2)(((unsigned long)val) & 0xffff))
 #define __X86_CAST_TO_4(val) \
-	((__X86_UINTTYPE_4)(((unsigned long)val) & 0xffffffff))
+    ((__X86_UINTTYPE_4)(((unsigned long)val) & 0xffffffff))
 
 #define __X86_REG_1(val) "q"(val)
 #define __X86_REG_2(val) "r"(val)

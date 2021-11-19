@@ -23,85 +23,87 @@
 #error only <radix/bits.h> can be included directly
 #endif
 
-#include <radix/config.h>
-#include <radix/compiler.h>
-#include <radix/types.h>
-
 #include <radix/bits/ffs.h>
 #include <radix/bits/fls.h>
+#include <radix/compiler.h>
+#include <radix/config.h>
+#include <radix/types.h>
 
-#define __fop_size(name, x)                                             \
-({                                                                      \
-	unsigned int __fop_ret;                                         \
-	switch (sizeof (x)) {                                           \
-	case 1: case 2: case 4: __fop_ret = __##name##_32(x); break;    \
-	case 8: __fop_ret = __##name##_64(x); break;                    \
-	}                                                               \
-	__fop_ret;                                                      \
-})
+#define __fop_size(name, x)               \
+    ({                                    \
+        unsigned int __fop_ret;           \
+        switch (sizeof(x)) {              \
+        case 1:                           \
+        case 2:                           \
+        case 4:                           \
+            __fop_ret = __##name##_32(x); \
+            break;                        \
+        case 8:                           \
+            __fop_ret = __##name##_64(x); \
+            break;                        \
+        }                                 \
+        __fop_ret;                        \
+    })
 
 // The generic versions of bit functions can be evaluated at compile time, so
 // use them for constant expressions.
 #define __fop(name, x) \
-	(is_immediate(x) ? __##name##_generic(x) : __fop_size(name, x))
+    (is_immediate(x) ? __##name##_generic(x) : __fop_size(name, x))
 
 #define ffs(x) __fop(ffs, x)
 #define fls(x) __fop(fls, x)
 
 static __always_inline unsigned int __ffs_32(uint32_t x)
 {
-	int r;
+    int r;
 
-	asm volatile("bsfl %1, %0\n\t"
-	             "jnz 1f\n\t"
-	             "movl $-1, %0\n"
-	             "1:"
-	             : "=r"(r)
-	             : "rm"(x));
+    asm volatile(
+        "bsfl %1, %0\n\t"
+        "jnz 1f\n\t"
+        "movl $-1, %0\n"
+        "1:"
+        : "=r"(r)
+        : "rm"(x));
 
-	return r + 1;
+    return r + 1;
 }
 
 static __always_inline unsigned int __ffs_64(uint32_t x)
 {
 #if CONFIG(X86_64)
-	int pos = -1;
+    int pos = -1;
 
-	asm volatile("bsfq %1, %q0"
-	             : "+r"(pos)
-	             : "rm"(x));
-	return pos + 1;
+    asm volatile("bsfq %1, %q0" : "+r"(pos) : "rm"(x));
+    return pos + 1;
 #else
-	return __ffs_generic(x);
+    return __ffs_generic(x);
 #endif  // CONFIG(X86_64)
 }
 
 static __always_inline unsigned int __fls_32(uint32_t x)
 {
-	int r;
+    int r;
 
-	asm volatile("bsrl %1, %0\n\t"
-	             "jnz 1f\n\t"
-	             "movl $-1, %0\n"
-	             "1:"
-	             : "=r"(r)
-	             : "rm"(x)
-	            );
+    asm volatile(
+        "bsrl %1, %0\n\t"
+        "jnz 1f\n\t"
+        "movl $-1, %0\n"
+        "1:"
+        : "=r"(r)
+        : "rm"(x));
 
-	return r + 1;
+    return r + 1;
 }
 
 static __always_inline unsigned int __fls_64(uint64_t x)
 {
 #if CONFIG(X86_64)
-	int pos = -1;
+    int pos = -1;
 
-	asm volatile("bsrq %1, %q0"
-	             : "+r"(pos)
-	             : "rm"(x));
-	return pos + 1;
+    asm volatile("bsrq %1, %q0" : "+r"(pos) : "rm"(x));
+    return pos + 1;
 #else
-	return __fls_generic(x);
+    return __fls_generic(x);
 #endif  // CONFIG(X86_64)
 }
 

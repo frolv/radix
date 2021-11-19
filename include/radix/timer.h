@@ -24,58 +24,56 @@
 #include <radix/types.h>
 
 struct timer {
-	uint64_t        (*read)(void);
-	uint32_t        mult;
-	uint32_t        shift;
-	unsigned long   frequency;
-	uint64_t        max_ticks;
-	uint64_t        max_ns;
-	uint64_t        (*reset)(void);
-	void            (*start)(void);
-	void            (*stop)(void);
-	int             (*enable)(void);
-	int             (*disable)(void);
-	unsigned long   flags;
-	const char      *name;
-	int             rating;
-	struct list     timer_list;
+    uint64_t (*read)(void);
+    uint32_t mult;
+    uint32_t shift;
+    unsigned long frequency;
+    uint64_t max_ticks;
+    uint64_t max_ns;
+    uint64_t (*reset)(void);
+    void (*start)(void);
+    void (*stop)(void);
+    int (*enable)(void);
+    int (*disable)(void);
+    unsigned long flags;
+    const char *name;
+    int rating;
+    struct list timer_list;
 };
 
-#define TIMER_ENABLED   (1 << 0)
-#define TIMER_RUNNING   (1 << 1)
-#define TIMER_EMULATED  (1 << 2)
-#define TIMER_PERCPU    (1 << 3)
+#define TIMER_ENABLED  (1 << 0)
+#define TIMER_RUNNING  (1 << 1)
+#define TIMER_EMULATED (1 << 2)
+#define TIMER_PERCPU   (1 << 3)
 
 extern struct timer *system_timer;
 
 void timer_register(struct timer *timer);
 void timer_accumulate(void);
 
-
 struct irq_timer {
-	void            (*schedule_irq)(uint64_t);
-	uint32_t        mult;
-	uint32_t        shift;
-	unsigned long   frequency;
-	uint64_t        max_ticks;
-	uint64_t        max_ns;
-	int             (*enable)(void);
-	int             (*disable)(void);
-	unsigned long   flags;
-	const char      *name;
+    void (*schedule_irq)(uint64_t);
+    uint32_t mult;
+    uint32_t shift;
+    unsigned long frequency;
+    uint64_t max_ticks;
+    uint64_t max_ns;
+    int (*enable)(void);
+    int (*disable)(void);
+    unsigned long flags;
+    const char *name;
 };
 
 extern void (*schedule_timer_irq)(uint64_t ns);
 extern uint64_t (*irq_timer_max_ns)(void);
 int set_irq_timer(struct irq_timer *irqt);
 
-
 struct percpu_timer_data {
-	uint32_t        mult;
-	uint32_t        shift;
-	unsigned long   frequency;
-	uint64_t        max_ticks;
-	uint64_t        max_ns;
+    uint32_t mult;
+    uint32_t shift;
+    unsigned long frequency;
+    uint64_t max_ticks;
+    uint64_t max_ns;
 };
 
 void set_percpu_timer_data(struct percpu_timer_data *pcpu_data);

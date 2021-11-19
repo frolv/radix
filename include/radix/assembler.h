@@ -23,13 +23,15 @@
 
 #define ASM_NL ;
 
-#define BEGIN_FUNC(name)                \
-	.global name ASM_NL             \
-	.type name, @function ASM_NL    \
+// clang-format off
+#define BEGIN_FUNC(name)             \
+	.global name ASM_NL          \
+	.type name, @function ASM_NL \
 	name:
 
-#define END_FUNC(name)                  \
-	.size name, . - name
+#define END_FUNC(name) \
+	.size name, .- name
+// clang-format on
 
 #include <radix/asm/assembler.h>
 

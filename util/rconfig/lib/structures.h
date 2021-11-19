@@ -31,10 +31,10 @@ int verify_config(struct rconfig_file *file, struct rconfig_config *conf);
 
 static inline struct rconfig_config *curr_config(struct rconfig_file *file)
 {
-	struct rconfig_section *s;
+    struct rconfig_section *s;
 
-	s = &file->sections[file->num_sections - 1];
-	return &s->configs[s->num_configs - 1];
+    s = &file->sections[file->num_sections - 1];
+    return &s->configs[s->num_configs - 1];
 }
 
 void free_rconfig(struct rconfig_file *config);

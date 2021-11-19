@@ -22,12 +22,15 @@
 #include <radix/list.h>
 #include <radix/spinlock.h>
 
-#define MUTEX_INIT(name) { 0, SPINLOCK_INIT, LIST_INIT((name).queue) }
+#define MUTEX_INIT(name)                          \
+    {                                             \
+        0, SPINLOCK_INIT, LIST_INIT((name).queue) \
+    }
 
 struct mutex {
-	uintptr_t   owner;
-	spinlock_t  lock;
-	struct list queue;
+    uintptr_t owner;
+    spinlock_t lock;
+    struct list queue;
 };
 
 void mutex_init(struct mutex *m);

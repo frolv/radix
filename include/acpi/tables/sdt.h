@@ -23,20 +23,20 @@
 
 /* Header of an ACPI System Description Table. */
 struct acpi_sdt_header {
-	char            signature[4];
-	uint32_t        length;
-	uint8_t         revision;
-	uint8_t         checksum;
-	char            oem_id[6];
-	char            oem_table_id[8];
-	uint32_t        oem_revision;
-	uint32_t        creator_id;
-	uint32_t        creator_revision;
+    char signature[4];
+    uint32_t length;
+    uint8_t revision;
+    uint8_t checksum;
+    char oem_id[6];
+    char oem_table_id[8];
+    uint32_t oem_revision;
+    uint32_t creator_id;
+    uint32_t creator_revision;
 };
 
 struct acpi_subtable_header {
-	uint8_t type;
-	uint8_t length;
+    uint8_t type;
+    uint8_t length;
 };
 
 int acpi_valid_checksum(struct acpi_sdt_header *header);

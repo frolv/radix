@@ -23,34 +23,35 @@
 
 static __always_inline void invlpg(addr_t addr)
 {
-	asm volatile("invlpg (%0)" ::"r"(addr) :"memory");
+    asm volatile("invlpg (%0)" ::"r"(addr) : "memory");
 }
 
 static __always_inline void __tlb_flush_nonglobal(void)
 {
-	asm volatile("movl %%cr3, %%eax\n\t"
-	             "movl %%eax, %%cr3"
-	             :::"%eax");
+    asm volatile(
+        "movl %%cr3, %%eax\n\t"
+        "movl %%eax, %%cr3" ::
+            : "%eax");
 }
 
 static __always_inline void __tlb_flush_all(void)
 {
-	if (cpu_supports(CPUID_PGE)) {
-		cpu_modify_cr4(CR4_PGE, 0);
-		cpu_modify_cr4(0, CR4_PGE);
-	} else {
-		/* no global pages, so flush all == flush nonglobal */
-		__tlb_flush_nonglobal();
-	}
+    if (cpu_supports(CPUID_PGE)) {
+        cpu_modify_cr4(CR4_PGE, 0);
+        cpu_modify_cr4(0, CR4_PGE);
+    } else {
+        /* no global pages, so flush all == flush nonglobal */
+        __tlb_flush_nonglobal();
+    }
 }
 
 static void __tlb_flush_range(addr_t start, addr_t end)
 {
-	start = ALIGN(start, PAGE_SIZE);
-	end = ALIGN(end, PAGE_SIZE);
+    start = ALIGN(start, PAGE_SIZE);
+    end = ALIGN(end, PAGE_SIZE);
 
-	for (; start < end; start += PAGE_SIZE)
-		invlpg(start);
+    for (; start < end; start += PAGE_SIZE)
+        invlpg(start);
 }
 
 /*
@@ -60,8 +61,8 @@ static void __tlb_flush_range(addr_t start, addr_t end)
  */
 void i386_tlb_flush_all(int sync)
 {
-	__tlb_flush_all();
-	(void)sync;
+    __tlb_flush_all();
+    (void)sync;
 }
 
 /*
@@ -70,8 +71,8 @@ void i386_tlb_flush_all(int sync)
  */
 void i386_tlb_flush_nonglobal(int sync)
 {
-	__tlb_flush_nonglobal();
-	(void)sync;
+    __tlb_flush_nonglobal();
+    (void)sync;
 }
 
 /*
@@ -80,8 +81,8 @@ void i386_tlb_flush_nonglobal(int sync)
  */
 void i386_tlb_flush_range(addr_t start, addr_t end, int sync)
 {
-	__tlb_flush_range(start, end);
-	(void)sync;
+    __tlb_flush_range(start, end);
+    (void)sync;
 }
 
 /*
@@ -90,18 +91,15 @@ void i386_tlb_flush_range(addr_t start, addr_t end, int sync)
  */
 void i386_tlb_flush_page(addr_t addr, int sync)
 {
-	invlpg(addr);
-	(void)sync;
+    invlpg(addr);
+    (void)sync;
 }
 
 /*
  * i386_tlb_flush_nonglobal_lazy:
  * Flush all non-global pages from the current processor's TLB.
  */
-void i386_tlb_flush_nonglobal_lazy(void)
-{
-	__tlb_flush_nonglobal();
-}
+void i386_tlb_flush_nonglobal_lazy(void) { __tlb_flush_nonglobal(); }
 
 /*
  * i386_tlb_flush_range_lazy:
@@ -109,14 +107,11 @@ void i386_tlb_flush_nonglobal_lazy(void)
  */
 void i386_tlb_flush_range_lazy(addr_t start, addr_t end)
 {
-	__tlb_flush_range(start, end);
+    __tlb_flush_range(start, end);
 }
 
 /*
  * i386_tlb_flush_page_lazy:
  * Flush a single page from the current processor's TLB.
  */
-void i386_tlb_flush_page_lazy(addr_t addr)
-{
-	invlpg(addr);
-}
+void i386_tlb_flush_page_lazy(addr_t addr) { invlpg(addr); }

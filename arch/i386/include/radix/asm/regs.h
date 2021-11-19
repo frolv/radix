@@ -19,39 +19,39 @@
 #ifndef ARCH_I386_RADIX_REGS_H
 #define ARCH_I386_RADIX_REGS_H
 
-#include <radix/types.h>
 #include <radix/mm_types.h>
+#include <radix/types.h>
 
 struct regs {
-	/* gprs */
-	uint32_t di;
-	uint32_t si;
-	uint32_t sp;
-	uint32_t bp;
-	uint32_t bx;
-	uint32_t dx;
-	uint32_t cx;
-	uint32_t ax;
+    /* gprs */
+    uint32_t di;
+    uint32_t si;
+    uint32_t sp;
+    uint32_t bp;
+    uint32_t bx;
+    uint32_t dx;
+    uint32_t cx;
+    uint32_t ax;
 
-	/* segment registers */
-	uint32_t gs;
-	uint32_t fs;
-	uint32_t es;
-	uint32_t ds;
-	uint32_t cs;
-	uint32_t ss;
+    /* segment registers */
+    uint32_t gs;
+    uint32_t fs;
+    uint32_t es;
+    uint32_t ds;
+    uint32_t cs;
+    uint32_t ss;
 
-	uint32_t ip;
-	uint32_t flags;
+    uint32_t ip;
+    uint32_t flags;
 };
 
 struct interrupt_context {
-	struct regs     regs;
-	uint32_t        ip;
-	uint32_t        cs;
-	uint32_t        flags;
-	uint32_t        sp;
-	uint32_t        ss;
+    struct regs regs;
+    uint32_t ip;
+    uint32_t cs;
+    uint32_t flags;
+    uint32_t sp;
+    uint32_t ss;
 };
 
 void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg);

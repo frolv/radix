@@ -23,8 +23,8 @@
 
 void smp_init(void)
 {
-	ipi_init();
-	arch_smp_boot();
+    ipi_init();
+    arch_smp_boot();
 }
 
 #endif  // CONFIG(SMP)

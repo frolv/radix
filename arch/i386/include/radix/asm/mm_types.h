@@ -46,17 +46,17 @@ typedef unsigned long pteval_t;
 #endif  // CONFIG(X86_PAE)
 
 typedef struct {
-	pdeval_t pde;
+    pdeval_t pde;
 } pde_t;
 
 typedef struct {
-	pteval_t pte;
+    pteval_t pte;
 } pte_t;
 
 #if CONFIG(X86_PAE)
 
 typedef struct {
-	pdpteval_t pdpte;
+    pdpteval_t pdpte;
 } pdpte_t;
 
 #endif  // CONFIG(X86_PAE)

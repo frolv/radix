@@ -22,32 +22,14 @@
 static cpumask_t online_cpus = CPUMASK_CPU(0);
 static cpumask_t idle_cpus = 0;
 
-cpumask_t cpumask_online(void)
-{
-	return online_cpus;
-}
+cpumask_t cpumask_online(void) { return online_cpus; }
 
-cpumask_t cpumask_idle(void)
-{
-	return idle_cpus;
-}
+cpumask_t cpumask_idle(void) { return idle_cpus; }
 
-void set_cpu_online(int cpu)
-{
-	atomic_or(&online_cpus, CPUMASK_CPU(cpu));
-}
+void set_cpu_online(int cpu) { atomic_or(&online_cpus, CPUMASK_CPU(cpu)); }
 
-void set_cpu_offline(int cpu)
-{
-	atomic_and(&online_cpus, ~CPUMASK_CPU(cpu));
-}
+void set_cpu_offline(int cpu) { atomic_and(&online_cpus, ~CPUMASK_CPU(cpu)); }
 
-void set_cpu_idle(int cpu)
-{
-	atomic_or(&idle_cpus, CPUMASK_CPU(cpu));
-}
+void set_cpu_idle(int cpu) { atomic_or(&idle_cpus, CPUMASK_CPU(cpu)); }
 
-void set_cpu_active(int cpu)
-{
-	atomic_and(&idle_cpus, ~CPUMASK_CPU(cpu));
-}
+void set_cpu_active(int cpu) { atomic_and(&idle_cpus, ~CPUMASK_CPU(cpu)); }

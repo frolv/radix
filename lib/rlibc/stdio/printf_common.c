@@ -26,178 +26,178 @@ static int atoi_skip(const char **format);
 /* get_format: parse a complete single format sequence from format */
 int get_format(const char *format, struct printf_format *p)
 {
-	const char *start;
-	int done;
+    const char *start;
+    int done;
 
-	start = format;
-	done = 0;
+    start = format;
+    done = 0;
 
-	p->width = -1;
-	p->precision = 0;
-	p->base = 10;
-	p->flags = 0;
-	p->type = FORMAT_NONE;
+    p->width = -1;
+    p->precision = 0;
+    p->base = 10;
+    p->flags = 0;
+    p->type = FORMAT_NONE;
 
-	while (!done) {
-		switch (*++format) {
-		case '0':
-			p->flags |= FLAGS_ZERO;
-			break;
-		case '#':
-			p->flags |= FLAGS_SPECIAL;
-			break;
-		default:
-			done = 1;
-			break;
-		}
-	}
+    while (!done) {
+        switch (*++format) {
+        case '0':
+            p->flags |= FLAGS_ZERO;
+            break;
+        case '#':
+            p->flags |= FLAGS_SPECIAL;
+            break;
+        default:
+            done = 1;
+            break;
+        }
+    }
 
-	if (isdigit(*format))
-		p->width = atoi_skip(&format);
+    if (isdigit(*format))
+        p->width = atoi_skip(&format);
 
-	if (*format == '.' && isdigit(*++format)) {
-		p->precision = atoi_skip(&format);
-		if (p->precision < 0)
-			p->precision = 0;
-		else if (p->precision > 32)
-			p->precision = 32;
-	}
+    if (*format == '.' && isdigit(*++format)) {
+        p->precision = atoi_skip(&format);
+        if (p->precision < 0)
+            p->precision = 0;
+        else if (p->precision > 32)
+            p->precision = 32;
+    }
 
-	if (*format == 'h') {
-		p->flags |= FLAGS_SHORT;
-		++format;
-	} else if (*format == 'l') {
-		if (*++format == 'l') {
-			p->flags |= FLAGS_LLONG;
-			++format;
-		} else {
-			p->flags |= FLAGS_LONG;
-		}
-	}
+    if (*format == 'h') {
+        p->flags |= FLAGS_SHORT;
+        ++format;
+    } else if (*format == 'l') {
+        if (*++format == 'l') {
+            p->flags |= FLAGS_LLONG;
+            ++format;
+        } else {
+            p->flags |= FLAGS_LONG;
+        }
+    }
 
-	switch (*format) {
-	case 'c':
-		p->type = FORMAT_CHAR;
-		break;
-	case 'd':
-		p->type = FORMAT_INT;
-		break;
-	case 'o':
-		p->type = FORMAT_UINT;
-		p->base = 8;
-		break;
-	case 's':
-		p->type = FORMAT_STR;
-		break;
-	case 'u':
-		p->type = FORMAT_UINT;
-		break;
-	case 'p':
-		p->precision = __WORDSIZE / sizeof (void *);
-		p->flags |= FLAGS_SPECIAL;
-		p->type = FORMAT_UINT;
-		p->base = 16;
-		break;
-	case 'x':
-		p->flags |= FLAGS_LOWER;
-		/* fall through */
-	case 'X':
-		p->type = FORMAT_UINT;
-		p->base = 16;
-		break;
-	case '%':
-		p->type = FORMAT_PERCENT;
-		break;
-	default:
-		p->type = FORMAT_INVALID;
-		break;
-	}
+    switch (*format) {
+    case 'c':
+        p->type = FORMAT_CHAR;
+        break;
+    case 'd':
+        p->type = FORMAT_INT;
+        break;
+    case 'o':
+        p->type = FORMAT_UINT;
+        p->base = 8;
+        break;
+    case 's':
+        p->type = FORMAT_STR;
+        break;
+    case 'u':
+        p->type = FORMAT_UINT;
+        break;
+    case 'p':
+        p->precision = __WORDSIZE / sizeof(void *);
+        p->flags |= FLAGS_SPECIAL;
+        p->type = FORMAT_UINT;
+        p->base = 16;
+        break;
+    case 'x':
+        p->flags |= FLAGS_LOWER;
+        /* fall through */
+    case 'X':
+        p->type = FORMAT_UINT;
+        p->base = 16;
+        break;
+    case '%':
+        p->type = FORMAT_PERCENT;
+        break;
+    default:
+        p->type = FORMAT_INVALID;
+        break;
+    }
 
-	return ++format - start;
+    return ++format - start;
 }
 
 static int atoi_skip(const char **format)
 {
-	int i = 0;
+    int i = 0;
 
-	do {
-		i = 10 * i + (**format - '0');
-		++*format;
-	} while (isdigit(**format));
+    do {
+        i = 10 * i + (**format - '0');
+        ++*format;
+    } while (isdigit(**format));
 
-	return i;
+    return i;
 }
 
 int oct_num(struct printf_format *p, char *out, unsigned long long i, int sp)
 {
-	int len, written;
+    int len, written;
 
-	len = written = 0;
-	if (sp) {
-		*out++ = '0';
-		++written;
-	}
+    len = written = 0;
+    if (sp) {
+        *out++ = '0';
+        ++written;
+    }
 
-	do {
-		out[len++] = (i % 8) + '0';
-	} while ((i /= 8));
+    do {
+        out[len++] = (i % 8) + '0';
+    } while ((i /= 8));
 
-	while (len < p->precision)
-		out[len++] = '0';
+    while (len < p->precision)
+        out[len++] = '0';
 
-	out[len] = '\0';
-	written += len;
-	strrev(out);
+    out[len] = '\0';
+    written += len;
+    strrev(out);
 
-	return written;
+    return written;
 }
 
 int dec_num(struct printf_format *p, char *out, unsigned long long i)
 {
-	int len = 0;
+    int len = 0;
 
-	do {
-		out[len++] = (i % 10) + '0';
-	} while ((i /= 10));
+    do {
+        out[len++] = (i % 10) + '0';
+    } while ((i /= 10));
 
-	while (len < p->precision)
-		out[len++] = '0';
+    while (len < p->precision)
+        out[len++] = '0';
 
-	out[len] = '\0';
-	strrev(out);
+    out[len] = '\0';
+    strrev(out);
 
-	return len;
+    return len;
 }
 
 int hex_num(struct printf_format *p, char *out, unsigned long long i, int sp)
 {
-	static const char *hex_char = "ABCDEF";
-	int len, written, c;
+    static const char *hex_char = "ABCDEF";
+    int len, written, c;
 
-	len = written = 0;
-	if (sp) {
-		*out++ = '0';
-		*out++ = 'x';
-		written += 2;
-	}
+    len = written = 0;
+    if (sp) {
+        *out++ = '0';
+        *out++ = 'x';
+        written += 2;
+    }
 
-	do {
-		if ((c = i % 16) < 10) {
-			out[len++] = c + '0';
-		} else {
-			c = hex_char[c - 10];
-			if (p->flags & FLAGS_LOWER)
-				c = tolower(c);
-			out[len++] = c;
-		}
-	} while ((i /= 16));
+    do {
+        if ((c = i % 16) < 10) {
+            out[len++] = c + '0';
+        } else {
+            c = hex_char[c - 10];
+            if (p->flags & FLAGS_LOWER)
+                c = tolower(c);
+            out[len++] = c;
+        }
+    } while ((i /= 16));
 
-	while (len < p->precision)
-		out[len++] = '0';
+    while (len < p->precision)
+        out[len++] = '0';
 
-	out[len] = '\0';
-	written += len;
-	strrev(out);
+    out[len] = '\0';
+    written += len;
+    strrev(out);
 
-	return written;
+    return written;
 }

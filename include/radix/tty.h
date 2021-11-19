@@ -29,8 +29,8 @@ void tty_write(const char *data, size_t size);
 
 static inline void tty_putchar(int c)
 {
-	char ch = c;
-	tty_write(&ch, sizeof ch);
+    char ch = c;
+    tty_write(&ch, sizeof ch);
 }
 
 void tty_flush(void);

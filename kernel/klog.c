@@ -16,31 +16,31 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdarg.h>
-
-#include <radix/config.h>
 #include <radix/compiler.h>
+#include <radix/config.h>
 #include <radix/console.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
 #include <radix/spinlock.h>
-#include <radix/types.h>
 #include <radix/time.h>
+#include <radix/types.h>
 
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
-#define KLOG_SHIFT CONFIG(KLOG_SHIFT)
+#include <stdarg.h>
+
+#define KLOG_SHIFT       CONFIG(KLOG_SHIFT)
 #define KLOG_MAX_MSG_LEN 256
 #define KLOG_WRAPAROUND  0xFFFF
 
 struct klog_entry {
-	uint64_t        timestamp;
-	uint16_t        msg_len;
-	uint8_t         level;
-	uint8_t         flags;
-	uint32_t        seqno;
-	char            message[];
+    uint64_t timestamp;
+    uint16_t msg_len;
+    uint8_t level;
+    uint8_t flags;
+    uint32_t seqno;
+    char message[];
 };
 
 static unsigned char klog_buffer[1 << KLOG_SHIFT];
@@ -51,24 +51,23 @@ static spinlock_t klog_lock = SPINLOCK_INIT;
 static uint32_t klog_sequence_number = 0;
 
 static struct klog_entry *first_entry = (struct klog_entry *)klog_buffer;
-static struct klog_entry *next_entry  = (struct klog_entry *)klog_buffer;
+static struct klog_entry *next_entry = (struct klog_entry *)klog_buffer;
 
 static int klog_written = 0;
 
 static struct console *klog_console = NULL;
 
-#define klog_entry_size(entry) \
-	(sizeof *(entry) + ALIGN((entry)->msg_len, 8))
+#define klog_entry_size(entry) (sizeof *(entry) + ALIGN((entry)->msg_len, 8))
 
-#define klog_next_entry(entry)                                  \
-({                                                              \
-	typeof(entry) __kne_ret;                                \
-	__kne_ret = (typeof(entry))((uintptr_t)(entry) +        \
-	                            klog_entry_size(entry));    \
-	if (__kne_ret->msg_len == KLOG_WRAPAROUND)              \
-		__kne_ret = (typeof(entry))klog_buffer;         \
-	__kne_ret;                                              \
-})
+#define klog_next_entry(entry)                                            \
+    ({                                                                    \
+        typeof(entry) __kne_ret;                                          \
+        __kne_ret =                                                       \
+            (typeof(entry))((uintptr_t)(entry) + klog_entry_size(entry)); \
+        if (__kne_ret->msg_len == KLOG_WRAPAROUND)                        \
+            __kne_ret = (typeof(entry))klog_buffer;                       \
+        __kne_ret;                                                        \
+    })
 
 /*
  * klog_has_space:
@@ -77,34 +76,34 @@ static struct console *klog_console = NULL;
  */
 static __always_inline int klog_has_space(uint16_t msg_len)
 {
-	int required;
+    int required;
 
-	/* must always have space for an empty klog_entry struct */
-	required = 2 * sizeof (struct klog_entry) + ALIGN(msg_len, 8);
+    /* must always have space for an empty klog_entry struct */
+    required = 2 * sizeof(struct klog_entry) + ALIGN(msg_len, 8);
 
-	return (uintptr_t)next_entry + required <= klog_end;
+    return (uintptr_t)next_entry + required <= klog_end;
 }
 
 static void klog_advance_first(uint16_t msg_len)
 {
-	size_t entry_size;
+    size_t entry_size;
 
-	if (next_entry > first_entry) {
-		/*
-		 * There are two cases in which next_entry > first_entry.
-		 * The first occurs when the buffer has not yet filled up once.
-		 * The second is when first_entry has wrapped around, but
-		 * first_entry has not.
-		 * Since we have already ensured that there is sufficient
-		 * space in the buffer for the message, the first message
-		 * cannot be overwritten in either case.
-		 */
-		return;
-	}
+    if (next_entry > first_entry) {
+        /*
+         * There are two cases in which next_entry > first_entry.
+         * The first occurs when the buffer has not yet filled up once.
+         * The second is when first_entry has wrapped around, but
+         * first_entry has not.
+         * Since we have already ensured that there is sufficient
+         * space in the buffer for the message, the first message
+         * cannot be overwritten in either case.
+         */
+        return;
+    }
 
-	entry_size = sizeof *next_entry + ALIGN(msg_len, 8);
-	while ((uintptr_t)next_entry + entry_size > (uintptr_t)first_entry)
-		first_entry = klog_next_entry(first_entry);
+    entry_size = sizeof *next_entry + ALIGN(msg_len, 8);
+    while ((uintptr_t)next_entry + entry_size > (uintptr_t)first_entry)
+        first_entry = klog_next_entry(first_entry);
 }
 
 /*
@@ -114,83 +113,80 @@ static void klog_advance_first(uint16_t msg_len)
  */
 static int klog_print(struct klog_entry *entry, char *buf)
 {
-	unsigned long sec;
-	uint32_t rem;
-	int n;
+    unsigned long sec;
+    uint32_t rem;
+    int n;
 
-	sec = entry->timestamp / NSEC_PER_SEC;
-	rem = entry->timestamp % NSEC_PER_SEC;
+    sec = entry->timestamp / NSEC_PER_SEC;
+    rem = entry->timestamp % NSEC_PER_SEC;
 
-	n = sprintf(buf, "[%05lu.%06u] ", sec, rem / 1000);
-	memcpy(buf + n, entry->message, entry->msg_len);
-	buf[n + entry->msg_len] = '\n';
+    n = sprintf(buf, "[%05lu.%06u] ", sec, rem / 1000);
+    memcpy(buf + n, entry->message, entry->msg_len);
+    buf[n + entry->msg_len] = '\n';
 
-	return n + entry->msg_len + 1;
+    return n + entry->msg_len + 1;
 }
 
 static void klog_console_write(struct klog_entry *entry)
 {
-	char buf[512];
-	int n;
+    char buf[512];
+    int n;
 
-	n = klog_print(entry, buf);
-	klog_console->actions->write(klog_console, buf, n);
+    n = klog_print(entry, buf);
+    klog_console->actions->write(klog_console, buf, n);
 }
 
 static int vklog(int level, const char *format, va_list ap)
 {
-	char buf[KLOG_MAX_MSG_LEN];
-	struct klog_entry *entry;
-	unsigned long irqstate;
-	int len;
+    char buf[KLOG_MAX_MSG_LEN];
+    struct klog_entry *entry;
+    unsigned long irqstate;
+    int len;
 
-	len = vsnprintf(buf, sizeof buf, format, ap);
-	if (buf[len - 1] == '\n')
-		--len;
+    len = vsnprintf(buf, sizeof buf, format, ap);
+    if (buf[len - 1] == '\n')
+        --len;
 
-	spin_lock_irq(&klog_lock, &irqstate);
-	if (!klog_has_space(len)) {
-		/* wraparound to the start of the buffer */
-		next_entry->msg_len = KLOG_WRAPAROUND;
-		next_entry = (struct klog_entry *)klog_buffer;
-	}
+    spin_lock_irq(&klog_lock, &irqstate);
+    if (!klog_has_space(len)) {
+        /* wraparound to the start of the buffer */
+        next_entry->msg_len = KLOG_WRAPAROUND;
+        next_entry = (struct klog_entry *)klog_buffer;
+    }
 
-	/* we don't want to do this the first time a log message is written */
-	if (klog_written)
-		klog_advance_first(len);
-	klog_written = 1;
+    /* we don't want to do this the first time a log message is written */
+    if (klog_written)
+        klog_advance_first(len);
+    klog_written = 1;
 
-	entry = next_entry;
-	next_entry = klog_next_entry(next_entry);
+    entry = next_entry;
+    next_entry = klog_next_entry(next_entry);
 
-	entry->timestamp = time_ns();
-	entry->msg_len = len;
-	entry->level = level;
-	entry->flags = 0;
-	entry->seqno = klog_sequence_number++;
-	memcpy(entry->message, buf, len);
+    entry->timestamp = time_ns();
+    entry->msg_len = len;
+    entry->level = level;
+    entry->flags = 0;
+    entry->seqno = klog_sequence_number++;
+    memcpy(entry->message, buf, len);
 
-	spin_unlock_irq(&klog_lock, irqstate);
+    spin_unlock_irq(&klog_lock, irqstate);
 
-	if (klog_console)
-		klog_console_write(entry);
+    if (klog_console)
+        klog_console_write(entry);
 
-	return len;
+    return len;
 }
 
 int klog(int level, const char *format, ...)
 {
-	va_list ap;
-	int n;
+    va_list ap;
+    int n;
 
-	va_start(ap, format);
-	n = vklog(level, format, ap);
-	va_end(ap);
+    va_start(ap, format);
+    n = vklog(level, format, ap);
+    va_end(ap);
 
-	return n;
+    return n;
 }
 
-void klog_set_console(struct console *c)
-{
-	klog_console = c;
-}
+void klog_set_console(struct console *c) { klog_console = c; }

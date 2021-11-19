@@ -19,8 +19,8 @@
 #include <radix/compiler.h>
 #include <radix/error.h>
 #include <radix/kernel.h>
-#include <radix/kthread.h>
 #include <radix/klog.h>
+#include <radix/kthread.h>
 #include <radix/percpu.h>
 #include <radix/smp.h>
 #include <radix/task.h>
@@ -30,31 +30,28 @@ DEFINE_PER_CPU(struct task *, idle_task);
 
 static void idle_func(__unused void *p)
 {
-	while (1) {
-		irq_enable();
-		set_cpu_idle(processor_id());
-		HALT();
-	}
+    while (1) {
+        irq_enable();
+        set_cpu_idle(processor_id());
+        HALT();
+    }
 }
 
 int idle_task_init(void)
 {
-	struct task *idle;
-	int cpu;
+    struct task *idle;
+    int cpu = processor_id();
 
-	cpu = processor_id();
+    idle = kthread_create(idle_func, NULL, 0, "idle_%u", cpu);
+    if (IS_ERR(idle)) {
+        klog(KLOG_ERROR, "failed to initialize idle task for cpu %u", cpu);
+        return 1;
+    }
 
-	idle = kthread_create(idle_func, NULL, 0, "idle_%u", cpu);
-	if (IS_ERR(idle)) {
-		klog(KLOG_ERROR, "failed to initialize idle task for cpu %u",
-		     cpu);
-		return 1;
-	}
+    idle->cpu_restrict = CPUMASK_SELF;
+    idle->prio_level = 19;
+    idle->remaining_time = 100 * NSEC_PER_MSEC;
 
-	idle->cpu_restrict = CPUMASK_SELF;
-	idle->prio_level = 19;
-	idle->remaining_time = 100 * NSEC_PER_MSEC;
-
-	this_cpu_write(idle_task, idle);
-	return 0;
+    this_cpu_write(idle_task, idle);
+    return 0;
 }

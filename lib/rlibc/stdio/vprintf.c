@@ -39,136 +39,136 @@ static int print_uint(unsigned long long u, struct printf_format *p);
  */
 int vprintf(const char *format, va_list ap)
 {
-	struct printf_format p;
-	unsigned long long u;
-	long long i;
-	int n = 0;
+    struct printf_format p;
+    unsigned long long u;
+    long long i;
+    int n = 0;
 
-	while (*format) {
-		if (*format != '%') {
-			++n;
-			tty_putchar(*format++);
-			continue;
-		}
+    while (*format) {
+        if (*format != '%') {
+            ++n;
+            tty_putchar(*format++);
+            continue;
+        }
 
-		format += get_format(format, &p);
-		switch (p.type) {
-		case FORMAT_CHAR:
-			n += print_char(va_arg(ap, int), &p);
-			break;
-		case FORMAT_STR:
-			n += print_str(va_arg(ap, const char *), &p);
-			break;
-		case FORMAT_INT:
-			i = va_int_type(ap, p, signed);
-			n += print_int(i, &p);
-			break;
-		case FORMAT_UINT:
-			u = va_int_type(ap, p, unsigned);
-			n += print_uint(u, &p);
-			break;
-		case FORMAT_PERCENT:
-			putchar('%');
-			++n;
-			break;
-		}
-	}
+        format += get_format(format, &p);
+        switch (p.type) {
+        case FORMAT_CHAR:
+            n += print_char(va_arg(ap, int), &p);
+            break;
+        case FORMAT_STR:
+            n += print_str(va_arg(ap, const char *), &p);
+            break;
+        case FORMAT_INT:
+            i = va_int_type(ap, p, signed);
+            n += print_int(i, &p);
+            break;
+        case FORMAT_UINT:
+            u = va_int_type(ap, p, unsigned);
+            n += print_uint(u, &p);
+            break;
+        case FORMAT_PERCENT:
+            putchar('%');
+            ++n;
+            break;
+        }
+    }
 
-	return n;
+    return n;
 }
 
 static int print_str(const char *s, struct printf_format *p)
 {
-	int len, pad;
+    int len, pad;
 
-	len = strlen(s);
-	if (p->precision && p->precision < len)
-		len = p->precision;
+    len = strlen(s);
+    if (p->precision && p->precision < len)
+        len = p->precision;
 
-	if ((pad = p->width - len) > 0) {
-		while (pad--)
-			tty_putchar(' ');
-	}
+    if ((pad = p->width - len) > 0) {
+        while (pad--)
+            tty_putchar(' ');
+    }
 
-	tty_write(s, len);
-	return max((int)p->width, len);
+    tty_write(s, len);
+    return max((int)p->width, len);
 }
 
 static int print_char(int c, struct printf_format *p)
 {
-	int pad;
+    int pad;
 
-	pad = p->width;
-	while (pad-- > 1)
-		tty_putchar(' ');
-	tty_putchar(c);
+    pad = p->width;
+    while (pad-- > 1)
+        tty_putchar(' ');
+    tty_putchar(c);
 
-	return max((int)p->width, 1);
+    return max((int)p->width, 1);
 }
 
 /* print_int: print a signed integer */
 static int print_int(long long i, struct printf_format *p)
 {
-	int pad, len, n;
-	char buf[64];
+    int pad, len, n;
+    char buf[64];
 
-	len = 0;
-	if (i < 0) {
-		tty_putchar('-');
-		++len;
-		i = -i;
-	}
+    len = 0;
+    if (i < 0) {
+        tty_putchar('-');
+        ++len;
+        i = -i;
+    }
 
-	n = dec_num(p, buf, i);
-	len += n;
+    n = dec_num(p, buf, i);
+    len += n;
 
-	if ((pad = p->width - len) > 0) {
-		i = (p->flags & FLAGS_ZERO) ? '0': ' ';
-		while (pad--)
-			tty_putchar(i);
-	}
-	tty_write(buf, n);
-	return max((int)p->width, len);
+    if ((pad = p->width - len) > 0) {
+        i = (p->flags & FLAGS_ZERO) ? '0' : ' ';
+        while (pad--)
+            tty_putchar(i);
+    }
+    tty_write(buf, n);
+    return max((int)p->width, len);
 }
 
 /* print_uint: print an unsigned integer in octal, decimal or hex format */
 static int print_uint(unsigned long long u, struct printf_format *p)
 {
-	int pad, len, buflen, special;
-	char buf[64];
+    int pad, len, buflen, special;
+    char buf[64];
 
-	len = 0;
-	special = p->flags & FLAGS_SPECIAL;
+    len = 0;
+    special = p->flags & FLAGS_SPECIAL;
 
-	switch (p->base) {
-	case 010:
-		if (special && (p->flags & FLAGS_ZERO)) {
-			putchar('0');
-			special = 0;
-			++len;
-		}
-		buflen = oct_num(p, buf, u, special);
-		break;
-	case 0x10:
-		if (special && (p->flags & FLAGS_ZERO)) {
-			putchar('0');
-			putchar('x');
-			special = 0;
-			len += 2;
-		}
-		buflen = hex_num(p, buf, u, special);
-		break;
-	default:
-		buflen = dec_num(p, buf, u);
-		break;
-	}
+    switch (p->base) {
+    case 010:
+        if (special && (p->flags & FLAGS_ZERO)) {
+            putchar('0');
+            special = 0;
+            ++len;
+        }
+        buflen = oct_num(p, buf, u, special);
+        break;
+    case 0x10:
+        if (special && (p->flags & FLAGS_ZERO)) {
+            putchar('0');
+            putchar('x');
+            special = 0;
+            len += 2;
+        }
+        buflen = hex_num(p, buf, u, special);
+        break;
+    default:
+        buflen = dec_num(p, buf, u);
+        break;
+    }
 
-	len += buflen;
-	if ((pad = p->width - len) > 0) {
-		u = (p->flags & FLAGS_ZERO) ? '0': ' ';
-		while (pad--)
-			tty_putchar(u);
-	}
-	tty_write(buf, buflen);
-	return max((int)p->width, len);
+    len += buflen;
+    if ((pad = p->width - len) > 0) {
+        u = (p->flags & FLAGS_ZERO) ? '0' : ' ';
+        while (pad--)
+            tty_putchar(u);
+    }
+    tty_write(buf, buflen);
+    return max((int)p->width, len);
 }

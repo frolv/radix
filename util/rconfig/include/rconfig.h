@@ -24,61 +24,60 @@
 #define PROGRAM_NAME    "rconfig"
 #define PROGRAM_VERSION "1.1.0"
 
-#define CONFIG_DIR      "config"
+#define CONFIG_DIR "config"
 
 struct rconfig_file {
-	char                    *name;
-	const char              *path;
-	size_t                  alloc_size;
-	size_t                  num_sections;
-	struct rconfig_section  *sections;
+    char *name;
+    const char *path;
+    size_t alloc_size;
+    size_t num_sections;
+    struct rconfig_section *sections;
 };
 
 struct rconfig_section {
-	char                    *name;
-	size_t                  alloc_size;
-	size_t                  num_configs;
-	struct rconfig_config   *configs;
-	struct rconfig_file     *file;
+    char *name;
+    size_t alloc_size;
+    size_t num_configs;
+    struct rconfig_config *configs;
+    struct rconfig_file *file;
 };
 
 enum rconfig_config_type {
-	RCONFIG_BOOL,
-	RCONFIG_INT,
-	RCONFIG_OPTIONS,
-	RCONFIG_UNKNOWN
+    RCONFIG_BOOL,
+    RCONFIG_INT,
+    RCONFIG_OPTIONS,
+    RCONFIG_UNKNOWN
 };
 
 struct rconfig_option {
-	int  val;
-	char *desc;
+    int val;
+    char *desc;
 };
 
 struct rconfig_config_options {
-	size_t                  alloc_size;
-	size_t                  num_options;
-	struct rconfig_option   *options;
+    size_t alloc_size;
+    size_t num_options;
+    struct rconfig_option *options;
 };
 
 struct rconfig_config_int_lim {
-	int min;
-	int max;
+    int min;
+    int max;
 };
 
 struct rconfig_config {
-	char                    identifier[32];
-	char                    desc[64];
-	int                     type;
-	int                     default_val;
-	int                     default_set;
-	int                     selection;
-	union {
-		struct rconfig_config_int_lim lim;
-		struct rconfig_config_options opts;
-	};
-	struct rconfig_section  *section;
+    char identifier[32];
+    char desc[64];
+    int type;
+    int default_val;
+    int default_set;
+    int selection;
+    union {
+        struct rconfig_config_int_lim lim;
+        struct rconfig_config_options opts;
+    };
+    struct rconfig_section *section;
 };
-
 
 /* callback function to process an rconfig structure */
 typedef void (*config_fn)(void *);
@@ -88,9 +87,9 @@ void config_default(void *config);
 
 #include <errno.h>
 
-#define RCONFIG_CB_CONFIG       0
-#define RCONFIG_CB_SECTION      1
-#define RCONFIG_CB_FILE         2
+#define RCONFIG_CB_CONFIG  0
+#define RCONFIG_CB_SECTION 1
+#define RCONFIG_CB_FILE    2
 
 void rconfig_set_archdir(const char *archdir);
 int rconfig_verify_src_dirs(const char **errdir);

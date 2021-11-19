@@ -21,27 +21,27 @@
 
 #if defined(__GNUC__) && !defined(__clang__)
 
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
+#define likely(x)   __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define __always_inline inline __attribute__((always_inline))
 
-#define __noreturn __attribute__((noreturn))
+#define __noreturn   __attribute__((noreturn))
 #define __deprecated __attribute__((deprecated))
-#define __unused __attribute__((unused))
+#define __unused     __attribute__((unused))
 #define __must_check __attribute__((warn_unused_result))
-#define __packed __attribute__((packed))
+#define __packed     __attribute__((packed))
 
 #define __aligned(x) __attribute__((aligned(x)))
 #define __section(x) __attribute__((section(x)))
 
 #define offsetof(type, member) __builtin_offsetof(type, member)
 
-#define container_of(ptr, type, member)                         \
-({                                                              \
-	const typeof(((type *)0)->member) *__ptr = (ptr);       \
-	(type *)((char *)__ptr - offsetof(type, member));       \
-})
+#define container_of(ptr, type, member)                   \
+    ({                                                    \
+        const typeof(((type *)0)->member) *__ptr = (ptr); \
+        (type *)((char *)__ptr - offsetof(type, member)); \
+    })
 
 #define is_immediate(exp) (__builtin_constant_p(exp))
 

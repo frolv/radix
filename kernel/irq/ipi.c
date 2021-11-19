@@ -18,7 +18,4 @@
 
 #include <radix/ipi.h>
 
-void ipi_init(void)
-{
-	arch_ipi_init();
-}
+void ipi_init(void) { arch_ipi_init(); }

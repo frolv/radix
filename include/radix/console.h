@@ -23,52 +23,54 @@
 #include <radix/mutex.h>
 #include <radix/types.h>
 
-#define CON_NORMAL      0
-#define CON_BOLD        (1 << 3)
+#define CON_NORMAL 0
+#define CON_BOLD   (1 << 3)
 
 enum console_color {
-	CON_COLOR_BLACK,
-	CON_COLOR_BLUE,
-	CON_COLOR_GREEN,
-	CON_COLOR_CYAN,
-	CON_COLOR_RED,
-	CON_COLOR_MAGENTA,
-	CON_COLOR_BROWN,
-	CON_COLOR_WHITE
+    CON_COLOR_BLACK,
+    CON_COLOR_BLUE,
+    CON_COLOR_GREEN,
+    CON_COLOR_CYAN,
+    CON_COLOR_RED,
+    CON_COLOR_MAGENTA,
+    CON_COLOR_BROWN,
+    CON_COLOR_WHITE
 };
 
 struct console;
 
 struct consfn {
-	int (*init)(struct console *);
-	int (*putc)(struct console *, int);
-	int (*write)(struct console *, const char *, size_t);
-	int (*clear)(struct console *);
-	int (*set_color)(struct console *, int, int);
-	int (*move_cursor)(struct console *, int, int);
-	int (*destroy)(struct console *);
+    int (*init)(struct console *);
+    int (*putc)(struct console *, int);
+    int (*write)(struct console *, const char *, size_t);
+    int (*clear)(struct console *);
+    int (*set_color)(struct console *, int, int);
+    int (*move_cursor)(struct console *, int, int);
+    int (*destroy)(struct console *);
 };
 
 struct console {
-	char            name[16];
-	int             cols;
-	int             rows;
-	int             cursor_x;
-	int             cursor_y;
-	void            *screenbuf;
-	size_t          screenbuf_size;
-	struct consfn   *actions;
-	uint8_t         fg_color;
-	uint8_t         bg_color;
-	uint8_t         color;
-	uint8_t         default_color;
-	struct mutex    lock;
-	struct list     list;
+    char name[16];
+    int cols;
+    int rows;
+    int cursor_x;
+    int cursor_y;
+    void *screenbuf;
+    size_t screenbuf_size;
+    struct consfn *actions;
+    uint8_t fg_color;
+    uint8_t bg_color;
+    uint8_t color;
+    uint8_t default_color;
+    struct mutex lock;
+    struct list list;
 };
 
 extern struct console *active_console;
 
-void console_register(struct console *console, const char *name,
-                      struct consfn *console_func, int active);
+void console_register(struct console *console,
+                      const char *name,
+                      struct consfn *console_func,
+                      int active);
 
 #endif /* RADIX_CONSOLE_H */

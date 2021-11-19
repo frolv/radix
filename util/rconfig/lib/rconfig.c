@@ -18,13 +18,12 @@
 
 #include <dirent.h>
 #include <limits.h>
+#include <rconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include <rconfig.h>
 
 #include "gen.h"
 #include "lint.h"
@@ -32,9 +31,9 @@
 #include "scanner.h"
 #include "structures.h"
 
-static const char *src_dirs[] = { "kernel", "drivers", "lib", NULL };
+static const char *src_dirs[] = {"kernel", "drivers", "lib", NULL};
 
-#define NUM_SRC_DIRS   (sizeof src_dirs / sizeof (src_dirs[0]))
+#define NUM_SRC_DIRS   (sizeof src_dirs / sizeof(src_dirs[0]))
 #define ARCH_DIR_INDEX (NUM_SRC_DIRS - 1)
 
 int is_linting = 0;
@@ -42,102 +41,102 @@ int exit_status = 0;
 
 void rconfig_set_archdir(const char *archdir)
 {
-	src_dirs[ARCH_DIR_INDEX] = archdir;
+    src_dirs[ARCH_DIR_INDEX] = archdir;
 }
 
 void rconfig_parse_file(const char *path,
                         config_fn callback,
                         unsigned int flags)
 {
-	yyscan_t rconfig_scanner;
-	struct rconfig_file config;
-	FILE *f;
+    yyscan_t rconfig_scanner;
+    struct rconfig_file config;
+    FILE *f;
 
-	f = fopen(path, "r");
-	if (!f)
-		return;
+    f = fopen(path, "r");
+    if (!f)
+        return;
 
-	config.name = NULL;
-	config.path = path;
-	config.alloc_size = 0;
-	config.num_sections = 0;
-	config.sections = NULL;
+    config.name = NULL;
+    config.path = path;
+    config.alloc_size = 0;
+    config.num_sections = 0;
+    config.sections = NULL;
 
-	yylex_init(&rconfig_scanner);
-	yyset_in(f, rconfig_scanner);
-	yyparse(rconfig_scanner, &config);
-	yylex_destroy(rconfig_scanner);
+    yylex_init(&rconfig_scanner);
+    yyset_in(f, rconfig_scanner);
+    yyparse(rconfig_scanner, &config);
+    yylex_destroy(rconfig_scanner);
 
-	if (!is_linting)
-		generate_config(&config, callback, flags);
+    if (!is_linting)
+        generate_config(&config, callback, flags);
 
-	free_rconfig(&config);
+    free_rconfig(&config);
 
-	fclose(f);
+    fclose(f);
 }
 
 /*
  * rconfig_dir:
  * Recursively find all rconfig files in directory `path`.
  */
-static void rconfig_dir(const char *path, config_fn callback, unsigned int flags)
+static void rconfig_dir(const char *path,
+                        config_fn callback,
+                        unsigned int flags)
 {
-	char dirpath[PATH_MAX];
-	struct dirent *dirent;
-	struct stat sb;
-	int found_dir;
-	DIR *d;
+    char dirpath[PATH_MAX];
+    struct dirent *dirent;
+    struct stat sb;
+    int found_dir;
+    DIR *d;
 
-	if (!callback)
-		return;
+    if (!callback)
+        return;
 
-	d = opendir(path);
-	if (!d)
-		return;
+    d = opendir(path);
+    if (!d)
+        return;
 
-	while ((dirent = readdir(d))) {
-		if (strcmp(dirent->d_name, ".") == 0 ||
-		    strcmp(dirent->d_name, "..") == 0)
-			continue;
+    while ((dirent = readdir(d))) {
+        if (strcmp(dirent->d_name, ".") == 0 ||
+            strcmp(dirent->d_name, "..") == 0)
+            continue;
 
-		found_dir = 0;
-		if (dirent->d_type == DT_DIR) {
-			snprintf(dirpath, PATH_MAX, "%s/%s",
-			         path, dirent->d_name);
-			found_dir = 1;
-		} else if (dirent->d_type == DT_UNKNOWN) {
-			snprintf(dirpath, PATH_MAX, "%s/%s",
-			         path, dirent->d_name);
-			if (stat(dirpath, &sb) != 0) {
-				perror(dirpath);
-				exit(1);
-			}
-			if (S_ISDIR(sb.st_mode))
-				found_dir = 1;
-		}
+        found_dir = 0;
+        if (dirent->d_type == DT_DIR) {
+            snprintf(dirpath, PATH_MAX, "%s/%s", path, dirent->d_name);
+            found_dir = 1;
+        } else if (dirent->d_type == DT_UNKNOWN) {
+            snprintf(dirpath, PATH_MAX, "%s/%s", path, dirent->d_name);
+            if (stat(dirpath, &sb) != 0) {
+                perror(dirpath);
+                exit(1);
+            }
+            if (S_ISDIR(sb.st_mode))
+                found_dir = 1;
+        }
 
-		if (found_dir) {
-			rconfig_dir(dirpath, callback, flags);
-		} else if (strcmp(dirent->d_name, "rconfig") == 0) {
-			snprintf(dirpath, PATH_MAX, "%s/rconfig", path);
-			rconfig_parse_file(dirpath, callback, flags);
-		}
-	}
+        if (found_dir) {
+            rconfig_dir(dirpath, callback, flags);
+        } else if (strcmp(dirent->d_name, "rconfig") == 0) {
+            snprintf(dirpath, PATH_MAX, "%s/rconfig", path);
+            rconfig_parse_file(dirpath, callback, flags);
+        }
+    }
 
-	closedir(d);
+    closedir(d);
 }
 
 void rconfig_recursive(config_fn callback, unsigned int flags)
 {
-	size_t i;
+    size_t i;
 
-	if (!callback)
-		return;
+    if (!callback)
+        return;
 
-	rconfig_parse_file("rconfig", callback, flags);
+    rconfig_parse_file("rconfig", callback, flags);
 
-	for (i = 0; i < NUM_SRC_DIRS; ++i)
-		rconfig_dir(src_dirs[i], callback, flags);
+    for (i = 0; i < NUM_SRC_DIRS; ++i)
+        rconfig_dir(src_dirs[i], callback, flags);
 }
 
 /*
@@ -147,68 +146,68 @@ void rconfig_recursive(config_fn callback, unsigned int flags)
  */
 int rconfig_concatenate(const char *outfile)
 {
-	struct dirent *dirent;
-	struct stat sb;
-	char path[PATH_MAX];
-	char buf[BUFSIZ];
-	FILE *f, *out;
-	int status;
-	DIR *d;
+    struct dirent *dirent;
+    struct stat sb;
+    char path[PATH_MAX];
+    char buf[BUFSIZ];
+    FILE *f, *out;
+    int status;
+    DIR *d;
 
-	if (!outfile)
-		outfile = "config/config";
+    if (!outfile)
+        outfile = "config/config";
 
-	d = opendir(CONFIG_DIR);
-	if (!d) {
-		perror(CONFIG_DIR);
-		return 1;
-	}
+    d = opendir(CONFIG_DIR);
+    if (!d) {
+        perror(CONFIG_DIR);
+        return 1;
+    }
 
-	out = fopen(outfile, "w");
-	if (!out) {
-		perror(outfile);
-		return 1;
-	}
+    out = fopen(outfile, "w");
+    if (!out) {
+        perror(outfile);
+        return 1;
+    }
 
-	fprintf(out, "#\n");
-	fprintf(out, "# File automatically generated by rconfig "
-	        PROGRAM_VERSION "\n");
-	fprintf(out, "# Do not modify this file manually.\n");
-	fprintf(out, "#\n");
+    fprintf(out, "#\n");
+    fprintf(out,
+            "# File automatically generated by rconfig " PROGRAM_VERSION "\n");
+    fprintf(out, "# Do not modify this file manually.\n");
+    fprintf(out, "#\n");
 
-	status = 0;
-	while ((dirent = readdir(d))) {
-		if (strncmp(dirent->d_name, ".rconfig.", 9) != 0)
-			continue;
+    status = 0;
+    while ((dirent = readdir(d))) {
+        if (strncmp(dirent->d_name, ".rconfig.", 9) != 0)
+            continue;
 
-		snprintf(path, PATH_MAX, CONFIG_DIR "/%s", dirent->d_name);
-		if (stat(path, &sb) != 0) {
-			perror(path);
-			status = 1;
-			break;
-		} else if (!S_ISREG(sb.st_mode)) {
-			fprintf(stderr, "%s: not a regular file\n", path);
-			status = 1;
-			break;
-		} else if (!(f = fopen(path, "r"))) {
-			perror(path);
-			status = 1;
-			break;
-		}
+        snprintf(path, PATH_MAX, CONFIG_DIR "/%s", dirent->d_name);
+        if (stat(path, &sb) != 0) {
+            perror(path);
+            status = 1;
+            break;
+        } else if (!S_ISREG(sb.st_mode)) {
+            fprintf(stderr, "%s: not a regular file\n", path);
+            status = 1;
+            break;
+        } else if (!(f = fopen(path, "r"))) {
+            perror(path);
+            status = 1;
+            break;
+        }
 
-		fprintf(out, "\n\n");
-		while (fgets(buf, BUFSIZ, f))
-			fprintf(out, "%s", buf);
+        fprintf(out, "\n\n");
+        while (fgets(buf, BUFSIZ, f))
+            fprintf(out, "%s", buf);
 
-		fclose(f);
-	}
+        fclose(f);
+    }
 
-	fclose(out);
-	if (status == 1)
-		unlink(outfile);
-	closedir(d);
+    fclose(out);
+    if (status == 1)
+        unlink(outfile);
+    closedir(d);
 
-	return status;
+    return status;
 }
 
 /*
@@ -216,47 +215,47 @@ int rconfig_concatenate(const char *outfile)
  * Ensure that all source directories exist and are valid.
  * Returns 0 if successful, or an errno constant indicating the error that
  * occurred otherwise. The faulting directory is stored in `errdir`.
- */ 
+ */
 int rconfig_verify_src_dirs(const char **errdir)
 {
-	struct stat sb;
-	size_t i;
+    struct stat sb;
+    size_t i;
 
-	if (stat("rconfig", &sb) != 0) {
-		if (errdir)
-			*errdir = "rconfig";
-		return errno;
-	} else if (S_ISDIR(sb.st_mode)) {
-		if (errdir)
-			*errdir = "rconfig";
-		return EISDIR;
-	} else if (access("rconfig", R_OK) != 0) {
-		if (errdir)
-			*errdir = "rconfig";
-		return EACCES;
-	}
+    if (stat("rconfig", &sb) != 0) {
+        if (errdir)
+            *errdir = "rconfig";
+        return errno;
+    } else if (S_ISDIR(sb.st_mode)) {
+        if (errdir)
+            *errdir = "rconfig";
+        return EISDIR;
+    } else if (access("rconfig", R_OK) != 0) {
+        if (errdir)
+            *errdir = "rconfig";
+        return EACCES;
+    }
 
-	for (i = 0; i < NUM_SRC_DIRS; ++i) {
-		if (errdir)
-			*errdir = src_dirs[i];
+    for (i = 0; i < NUM_SRC_DIRS; ++i) {
+        if (errdir)
+            *errdir = src_dirs[i];
 
-		if (stat(src_dirs[i], &sb) == 0) {
-			if (!S_ISDIR(sb.st_mode))
-				return ENOTDIR;
-			else if (access(src_dirs[i], R_OK) != 0)
-				return EACCES;
-			else
-				continue;
-		}
-		if (i == ARCH_DIR_INDEX)
-			return EINVAL;
+        if (stat(src_dirs[i], &sb) == 0) {
+            if (!S_ISDIR(sb.st_mode))
+                return ENOTDIR;
+            else if (access(src_dirs[i], R_OK) != 0)
+                return EACCES;
+            else
+                continue;
+        }
+        if (i == ARCH_DIR_INDEX)
+            return EINVAL;
 
-		return errno;
-	}
+        return errno;
+    }
 
-	if (errdir)
-		*errdir = NULL;
-	return 0;
+    if (errdir)
+        *errdir = NULL;
+    return 0;
 }
 
 /*
@@ -265,6 +264,6 @@ int rconfig_verify_src_dirs(const char **errdir)
  */
 void rconfig_cleanup_partial(void)
 {
-	if (curr_partial)
-		unlink(curr_partial);
+    if (curr_partial)
+        unlink(curr_partial);
 }

@@ -28,26 +28,26 @@
  */
 int request_irq(void *device, irq_handler_t handler, unsigned long flags)
 {
-	struct irq_descriptor *desc;
-	int irq;
+    struct irq_descriptor *desc;
+    int irq;
 
-	if (!device || !handler)
-		return -EINVAL;
+    if (!device || !handler)
+        return -EINVAL;
 
-	desc = kmalloc(sizeof *desc);
-	if (!desc)
-		return -ENOMEM;
+    desc = kmalloc(sizeof *desc);
+    if (!desc)
+        return -ENOMEM;
 
-	desc->handler = handler;
-	desc->device = device;
-	desc->flags = flags;
-	desc->next = NULL;
+    desc->handler = handler;
+    desc->device = device;
+    desc->flags = flags;
+    desc->next = NULL;
 
-	irq = __arch_request_irq(desc);
-	if (irq < 0)
-		kfree(desc);
+    irq = __arch_request_irq(desc);
+    if (irq < 0)
+        kfree(desc);
 
-	return irq;
+    return irq;
 }
 
 /*
@@ -58,10 +58,10 @@ int request_irq(void *device, irq_handler_t handler, unsigned long flags)
  */
 int request_fixed_irq(unsigned int irq, void *device, irq_handler_t handler)
 {
-	if (!device || !handler)
-		return EINVAL;
+    if (!device || !handler)
+        return EINVAL;
 
-	return __arch_request_fixed_irq(irq, device, handler);
+    return __arch_request_fixed_irq(irq, device, handler);
 }
 
 /*
@@ -70,5 +70,5 @@ int request_fixed_irq(unsigned int irq, void *device, irq_handler_t handler)
  */
 void release_irq(unsigned int irq, void *device)
 {
-	__arch_release_irq(irq, device);
+    __arch_release_irq(irq, device);
 }

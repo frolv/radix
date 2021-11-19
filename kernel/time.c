@@ -18,9 +18,6 @@
 
 #include <radix/time.h>
 
-static uint64_t time_ns_null(void)
-{
-	return 0;
-}
+static uint64_t time_ns_null(void) { return 0; }
 
 uint64_t (*time_ns)(void) = time_ns_null;

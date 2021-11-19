@@ -25,71 +25,71 @@
 
 void mutex_init(struct mutex *m)
 {
-	m->owner = 0;
-	spin_init(&m->lock);
-	list_init(&m->queue);
+    m->owner = 0;
+    spin_init(&m->lock);
+    list_init(&m->queue);
 }
 
 // Attempts to lock the mutex `m`. If it is already locked, puts the running
 // thread into a wait and yields the CPU.
 void mutex_lock(struct mutex *m)
 {
-	struct task *curr = current_task();
+    struct task *curr = current_task();
 
-	unsigned long irqstate;
-	irq_save(irqstate);
+    unsigned long irqstate;
+    irq_save(irqstate);
 
-	while (1) {
-		// Attempt to acquire the mutex. There are two acquisition
-		// possibilities: either there is no owner (i.e. owner == 0), or
-		// this thread had been waiting for the mutex and the previous
-		// owner handed it over by setting this thread as the new owner.
-		uintptr_t owner = atomic_cmpxchg(&m->owner, 0, (uintptr_t)curr);
-		if (owner == 0 || owner == (uintptr_t)curr) {
-			break;
-		}
+    while (1) {
+        // Attempt to acquire the mutex. There are two acquisition
+        // possibilities: either there is no owner (i.e. owner == 0), or
+        // this thread had been waiting for the mutex and the previous
+        // owner handed it over by setting this thread as the new owner.
+        uintptr_t owner = atomic_cmpxchg(&m->owner, 0, (uintptr_t)curr);
+        if (owner == 0 || owner == (uintptr_t)curr) {
+            break;
+        }
 
-		// Block the task and add it to the mutex's list.
-		spin_lock(&m->lock);
-		assert(list_empty(&curr->queue));
-		curr->state = TASK_BLOCKED;
-		list_ins(&m->queue, &curr->queue);
-		spin_unlock(&m->lock);
+        // Block the task and add it to the mutex's list.
+        spin_lock(&m->lock);
+        assert(list_empty(&curr->queue));
+        curr->state = TASK_BLOCKED;
+        list_ins(&m->queue, &curr->queue);
+        spin_unlock(&m->lock);
 
-		schedule(SCHED_REPLACE);
-	}
+        schedule(SCHED_REPLACE);
+    }
 
-	irq_restore(irqstate);
+    irq_restore(irqstate);
 }
 
 // Unlocks mutex `m` and wakes a waiting thread, if any.
 // This must be called by the thread that holds the mutex.
 void mutex_unlock(struct mutex *m)
 {
-	struct task *curr = current_task();
+    struct task *curr = current_task();
 
-	uintptr_t owner = atomic_read(&m->owner);
-	assert(owner == (uintptr_t)curr);
+    uintptr_t owner = atomic_read(&m->owner);
+    assert(owner == (uintptr_t)curr);
 
-	struct task *next = NULL;
-	unsigned long irqstate;
+    struct task *next = NULL;
+    unsigned long irqstate;
 
-	// Hand the mutex over to the first waiter, if one exists, and notify
-	// the scheduler.
-	spin_lock_irq(&m->lock, &irqstate);
-	if (!list_empty(&m->queue)) {
-		next = list_first_entry(&m->queue, struct task, queue);
-		list_del(&next->queue);
-	}
-	spin_unlock(&m->lock);
+    // Hand the mutex over to the first waiter, if one exists, and notify
+    // the scheduler.
+    spin_lock_irq(&m->lock, &irqstate);
+    if (!list_empty(&m->queue)) {
+        next = list_first_entry(&m->queue, struct task, queue);
+        list_del(&next->queue);
+    }
+    spin_unlock(&m->lock);
 
-	atomic_swap(&m->owner, (uintptr_t)next);
+    atomic_swap(&m->owner, (uintptr_t)next);
 
-	// Add the unblocked back into the scheduler before disabling interrupts
-	// to ensure that it doesn't get lost if the current task is preempted.
-	if (next != NULL) {
-		sched_unblock(next);
-	}
+    // Add the unblocked back into the scheduler before disabling interrupts
+    // to ensure that it doesn't get lost if the current task is preempted.
+    if (next != NULL) {
+        sched_unblock(next);
+    }
 
-	irq_restore(irqstate);
+    irq_restore(irqstate);
 }

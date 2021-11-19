@@ -19,7 +19,7 @@
 #ifndef RADIX_VERSION_H
 #define RADIX_VERSION_H
 
-#define KERNEL_NAME "radix"
+#define KERNEL_NAME    "radix"
 #define KERNEL_VERSION "0.1-dev"
 
 #endif /* RADIX_VERSION_H */

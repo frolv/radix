@@ -23,22 +23,23 @@
 #error only <radix/bits.h> can be included directly
 #endif
 
+#include <radix/compiler.h>
 #include <radix/types.h>
 
 static __always_inline unsigned int __ffs_generic(uint64_t x)
 {
-	int n, ret;
+    int n, ret;
 
-	if (!x)
-		return 0;
+    if (!x)
+        return 0;
 
-	n = ret = 1;
-	while (!(x & n)) {
-		n <<= 1;
-		++ret;
-	}
+    n = ret = 1;
+    while (!(x & n)) {
+        n <<= 1;
+        ++ret;
+    }
 
-	return ret;
+    return ret;
 }
 
 #endif /* RADIX_BITS_FFS_H */

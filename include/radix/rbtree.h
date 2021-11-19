@@ -23,28 +23,28 @@
 #include <radix/types.h>
 
 struct rb_node {
-	unsigned long __parent;
-	struct rb_node *left;
-	struct rb_node *right;
+    unsigned long __parent;
+    struct rb_node *left;
+    struct rb_node *right;
 };
 
 struct rb_root {
-	struct rb_node *root_node;
+    struct rb_node *root_node;
 };
 
-#define RB_ROOT (struct rb_root){ NULL }
+#define RB_ROOT \
+    (struct rb_root) { NULL }
 
 #define __rb_parent_addr(node) ((node)->__parent & ~3UL)
-#define rb_parent(node) ((struct rb_node *)__rb_parent_addr(node))
+#define rb_parent(node)        ((struct rb_node *)__rb_parent_addr(node))
 
-#define rb_entry(ptr, type, member) \
-	container_of(ptr, type, member)
+#define rb_entry(ptr, type, member) container_of(ptr, type, member)
 
 /* rb_init: initialize a red-black tree node */
 static __always_inline void rb_init(struct rb_node *node)
 {
-	node->__parent = (unsigned long)node;
-	node->left = node->right = NULL;
+    node->__parent = (unsigned long)node;
+    node->left = node->right = NULL;
 }
 
 /*
@@ -55,8 +55,8 @@ static __always_inline void rb_link(struct rb_node *node,
                                     struct rb_node *parent,
                                     struct rb_node **pos)
 {
-	*pos = node;
-	node->__parent = (unsigned long)parent;
+    *pos = node;
+    node->__parent = (unsigned long)parent;
 }
 
 void rb_balance(struct rb_root *root, struct rb_node *node);

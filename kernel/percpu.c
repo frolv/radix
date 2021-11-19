@@ -39,8 +39,8 @@ addr_t __percpu_offset[MAX_CPUS];
 
 void percpu_init_early(void)
 {
-	memset(__percpu_offset, 0, sizeof __percpu_offset);
-	arch_percpu_init_early();
+    memset(__percpu_offset, 0, sizeof __percpu_offset);
+    arch_percpu_init_early();
 }
 
 /*
@@ -49,17 +49,17 @@ void percpu_init_early(void)
  */
 int percpu_init(int ap)
 {
-	int err;
+    int err;
 
-	if ((err = arch_percpu_init(ap)))
-		return err;
+    if ((err = arch_percpu_init(ap)))
+        return err;
 
-	if ((err = cpu_timer_init()))
-		return err;
+    if ((err = cpu_timer_init()))
+        return err;
 
-	cpu_event_init();
+    cpu_event_init();
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -69,49 +69,53 @@ int percpu_init(int ap)
  */
 void percpu_area_setup(void)
 {
-	size_t percpu_size, align, i;
-	addr_t percpu_base, base_offset;
-	struct vmm_area *area;
+    size_t percpu_size, align, i;
+    addr_t percpu_base, base_offset;
+    struct vmm_area *area;
 
-	percpu_size = percpu_end - percpu_start;
-	if (percpu_size < PAGE_SIZE / 2) {
-		align = pow2(log2(percpu_size));
-		percpu_size = ALIGN(percpu_size, align);
-	} else {
-		percpu_size = ALIGN(percpu_size, PAGE_SIZE);
-	}
+    percpu_size = percpu_end - percpu_start;
+    if (percpu_size < PAGE_SIZE / 2) {
+        align = pow2(log2(percpu_size));
+        percpu_size = ALIGN(percpu_size, align);
+    } else {
+        percpu_size = ALIGN(percpu_size, PAGE_SIZE);
+    }
 
-	area = vmm_alloc_size(NULL, percpu_size * MAX_CPUS, VMM_ALLOC_UPFRONT);
-	if (IS_ERR(area))
-		panic("failed to allocate space for per-CPU areas\n");
+    area = vmm_alloc_size(NULL, percpu_size * MAX_CPUS, VMM_ALLOC_UPFRONT);
+    if (IS_ERR(area))
+        panic("failed to allocate space for per-CPU areas\n");
 
-	percpu_base = area->base;
-	base_offset = percpu_base - percpu_start;
+    percpu_base = area->base;
+    base_offset = percpu_base - percpu_start;
 
-	for (i = 0; i < MAX_CPUS; ++i) {
-		__percpu_offset[i] = base_offset + i * percpu_size;
-		memcpy((void *)percpu_base, (void *)percpu_start, percpu_size);
-		percpu_base += percpu_size;
-	}
+    for (i = 0; i < MAX_CPUS; ++i) {
+        __percpu_offset[i] = base_offset + i * percpu_size;
+        memcpy((void *)percpu_base, (void *)percpu_start, percpu_size);
+        percpu_base += percpu_size;
+    }
 
-	/* initialize per-CPU variables for the BSP */
-	percpu_init(0);
+    /* initialize per-CPU variables for the BSP */
+    percpu_init(0);
 
-	/*
-	 * TODO: we no longer need the original per-CPU area, so we can add
-	 * it to the page allocator. (Requires adding an additional zone_init
-	 * call in buddy_populate of page.c to handle the .percpu_data section.)
-	 */
+    /*
+     * TODO: we no longer need the original per-CPU area, so we can add
+     * it to the page allocator. (Requires adding an additional zone_init
+     * call in buddy_populate of page.c to handle the .percpu_data section.)
+     */
 
-	if (percpu_size < PAGE_SIZE) {
-		klog(KLOG_INFO,
-		     "percpu: allocated %uB for %d CPUs (%uB per CPU)\n",
-		     percpu_size * MAX_CPUS, MAX_CPUS, percpu_size);
-	} else {
-		klog(KLOG_INFO, "percpu: allocated %u pages for %d CPUs "
-		     "(%u page%s per CPU)\n",
-		     percpu_size / PAGE_SIZE * MAX_CPUS,
-		     MAX_CPUS, percpu_size / PAGE_SIZE,
-		     percpu_size > PAGE_SIZE ? "s" : "");
-	}
+    if (percpu_size < PAGE_SIZE) {
+        klog(KLOG_INFO,
+             "percpu: allocated %uB for %d CPUs (%uB per CPU)\n",
+             percpu_size * MAX_CPUS,
+             MAX_CPUS,
+             percpu_size);
+    } else {
+        klog(KLOG_INFO,
+             "percpu: allocated %u pages for %d CPUs "
+             "(%u page%s per CPU)\n",
+             percpu_size / PAGE_SIZE * MAX_CPUS,
+             MAX_CPUS,
+             percpu_size / PAGE_SIZE,
+             percpu_size > PAGE_SIZE ? "s" : "");
+    }
 }

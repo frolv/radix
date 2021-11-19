@@ -21,12 +21,12 @@
 #ifndef __ARCH_HAS_MEMCHR
 void *memchr(const void *s, int c, size_t n)
 {
-	while (n--) {
-		if (*(char *)s == c)
-			return (void *)s;
-		++s;
-	}
+    while (n--) {
+        if (*(char *)s == c)
+            return (void *)s;
+        ++s;
+    }
 
-	return NULL;
+    return NULL;
 }
 #endif /* !__ARCH_HAS_MEMCHR */

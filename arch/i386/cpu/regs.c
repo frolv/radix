@@ -18,7 +18,6 @@
 
 #include <radix/asm/gdt.h>
 #include <radix/asm/regs.h>
-
 #include <radix/cpu.h>
 #include <radix/kthread.h>
 #include <radix/mm_types.h>
@@ -29,27 +28,27 @@
  */
 void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg)
 {
-	uint32_t *s;
+    uint32_t *s;
 
-	s = (uint32_t *)stack;
+    s = (uint32_t *)stack;
 
-	s[-1] = 0;
-	s[-2] = 0;
-	s[-3] = 0;
-	/* argument and return address */
-	s[-4] = arg;
-	s[-5] = (addr_t)kthread_exit;
+    s[-1] = 0;
+    s[-2] = 0;
+    s[-3] = 0;
+    /* argument and return address */
+    s[-4] = arg;
+    s[-5] = (addr_t)kthread_exit;
 
-	r->bp = (addr_t)(s - 3);
-	r->sp = (addr_t)(s - 5);
-	r->ip = (addr_t)func;
+    r->bp = (addr_t)(s - 3);
+    r->sp = (addr_t)(s - 5);
+    r->ip = (addr_t)func;
 
-	r->gs = GDT_OFFSET(GDT_GS);
-	r->fs = GDT_OFFSET(GDT_FS);
-	r->es = GDT_OFFSET(GDT_KERNEL_DATA);
-	r->ds = GDT_OFFSET(GDT_KERNEL_DATA);
-	r->ss = GDT_OFFSET(GDT_KERNEL_DATA);
+    r->gs = GDT_OFFSET(GDT_GS);
+    r->fs = GDT_OFFSET(GDT_FS);
+    r->es = GDT_OFFSET(GDT_KERNEL_DATA);
+    r->ds = GDT_OFFSET(GDT_KERNEL_DATA);
+    r->ss = GDT_OFFSET(GDT_KERNEL_DATA);
 
-	r->cs = GDT_OFFSET(GDT_KERNEL_CODE);
-	r->flags = EFLAGS_IF | EFLAGS_ID;
+    r->cs = GDT_OFFSET(GDT_KERNEL_CODE);
+    r->flags = EFLAGS_IF | EFLAGS_ID;
 }

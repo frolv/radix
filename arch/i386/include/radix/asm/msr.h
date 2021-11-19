@@ -33,12 +33,12 @@
 
 static __always_inline void rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 {
-	asm volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
+    asm volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
 }
 
 static __always_inline void wrmsr(uint32_t msr, uint32_t lo, uint32_t hi)
 {
-	asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
+    asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
 }
 
 #endif /* ARCH_I386_RADIX_ASM_MSR_H */

@@ -19,19 +19,20 @@
 #ifndef ACPI_TABLES_HPET_H
 #define ACPI_TABLES_HPET_H
 
+#include <radix/types.h>
+
 #include <acpi/tables/gas.h>
 #include <acpi/tables/sdt.h>
-#include <radix/types.h>
 
 #define ACPI_HPET_SIGNATURE "HPET"
 
 struct acpi_hpet {
-	struct acpi_sdt_header header;
-	uint32_t        timer_blk_id;
-	struct acpi_generic_address hpet_base;
-	uint8_t         hpet_number;
-	uint16_t        min_periodic_ticks;
-	uint8_t         page_prot_oem_attr;
+    struct acpi_sdt_header header;
+    uint32_t timer_blk_id;
+    struct acpi_generic_address hpet_base;
+    uint8_t hpet_number;
+    uint16_t min_periodic_ticks;
+    uint8_t page_prot_oem_attr;
 };
 
 #endif /* ACPI_TABLES_HPET_H */

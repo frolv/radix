@@ -17,12 +17,13 @@
  */
 
 #include <radix/tty.h>
+
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
 int puts(const char *s)
 {
-	tty_write(s, strlen(s));
-	tty_putchar('\n');
-	return 0;
+    tty_write(s, strlen(s));
+    tty_putchar('\n');
+    return 0;
 }

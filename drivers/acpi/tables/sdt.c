@@ -21,15 +21,15 @@
 
 int acpi_valid_checksum(struct acpi_sdt_header *header)
 {
-	size_t i;
-	int sum;
+    size_t i;
+    int sum;
 
-	if (header->length > 0x800)
-		return 0;
+    if (header->length > 0x800)
+        return 0;
 
-	sum = 0;
-	for (i = 0; i < header->length; ++i)
-		sum += ((char *)header)[i];
+    sum = 0;
+    for (i = 0; i < header->length; ++i)
+        sum += ((char *)header)[i];
 
-	return (sum & 0xFF) == 0;
+    return (sum & 0xFF) == 0;
 }

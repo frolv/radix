@@ -28,11 +28,10 @@
 #define __ARCH_PER_CPU_SEGMENT "fs"
 #define __ARCH_PER_CPU_REG     "%%" __ARCH_PER_CPU_SEGMENT
 
-#define __percpu_arg(num) \
-	__ARCH_PER_CPU_REG ":%" #num
+#define __percpu_arg(num) __ARCH_PER_CPU_REG ":%" #num
 
 #define __arch_this_cpu_offset() \
-	__percpu_from_op("mov", volatile, __this_cpu_offset, 4)
+    __percpu_from_op("mov", volatile, __this_cpu_offset, 4)
 
 #define this_cpu_read_1(var) __percpu_from_op("mov", volatile, var, 1)
 #define this_cpu_read_2(var) __percpu_from_op("mov", volatile, var, 2)
@@ -67,21 +66,21 @@
 #define raw_cpu_sub_4(var, val) __percpu_to_op("sub", , var, val, 4)
 
 #define __percpu_from_op(op, qualifier, var, size)                      \
-({                                                                      \
-	typeof(var) __pfo_ret;                                          \
-	asm qualifier(op __X86_SUFFIX_##size " " __percpu_arg(1) ", %0" \
-	             : "=" __X86_REG_##size(__pfo_ret)                  \
-	             : "m"(var));                                       \
-	__pfo_ret;                                                      \
-})
+    ({                                                                  \
+        typeof(var) __pfo_ret;                                          \
+        asm qualifier(op __X86_SUFFIX_##size " " __percpu_arg(1) ", %0" \
+                      : "=" __X86_REG_##size(__pfo_ret)                 \
+                      : "m"(var));                                      \
+        __pfo_ret;                                                      \
+    })
 
 #define __percpu_to_op(op, qualifier, var, val, size)                \
-do {                                                                 \
-	__X86_UINTTYPE_##size __pto_val = __X86_CAST_TO_##size(val); \
-	asm qualifier(op __X86_SUFFIX_##size " %1, " __percpu_arg(0) \
-	    : "+m"(var)                                              \
-	    : __X86_REG_IMM_##size(__pto_val));                      \
-} while (0)
+    do {                                                             \
+        __X86_UINTTYPE_##size __pto_val = __X86_CAST_TO_##size(val); \
+        asm qualifier(op __X86_SUFFIX_##size " %1, " __percpu_arg(0) \
+                      : "+m"(var)                                    \
+                      : __X86_REG_IMM_##size(__pto_val));            \
+    } while (0)
 
 #include <radix/percpu_defs.h>
 

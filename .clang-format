@@ -1,0 +1,35 @@
+BasedOnStyle: Google
+AlignConsecutiveMacros: Consecutive
+AllowShortBlocksOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: Linux
+DerivePointerAlignment: false
+ForEachMacros:
+  - foreach
+  - list_for_each_entry
+  - list_for_each_entry_r
+  - list_for_each_safe
+  - for_each_cpu
+IncludeCategories:
+  - Regex:           '^<radix/.*\.h>'
+    Priority:        1
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '^<rlibc/.*\.h>'
+    Priority:        2
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '^<.*\.h>'
+    Priority:        3
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '.*'
+    Priority:        4
+    SortPriority:    0
+IndentCaseLabels: false
+IndentWidth: 4
+InsertTrailingCommas: Wrapped
+PointerAlignment: Right

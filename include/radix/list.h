@@ -23,35 +23,39 @@
 #include <radix/compiler.h>
 
 struct list {
-	struct list *next;
-	struct list *prev;
+    struct list *next;
+    struct list *prev;
 };
 
-#define LIST_INIT(name) { &(name), &(name) }
+#define LIST_INIT(name)  \
+    {                    \
+        &(name), &(name) \
+    }
 
 static __always_inline void list_init(struct list *list)
 {
-	list->next = list->prev = list;
+    list->next = list->prev = list;
 }
 
 static __always_inline int list_empty(struct list *head)
 {
-	return head->next == head;
+    return head->next == head;
 }
 
 /*
  * Insert elem into the list between the entries head and prev.
  * This is internal for the two functions below.
  */
-static __always_inline void __insert(struct list *elem, struct list *prev,
+static __always_inline void __insert(struct list *elem,
+                                     struct list *prev,
                                      struct list *next)
 {
-	assert(list_empty(elem));
+    assert(list_empty(elem));
 
-	elem->next = next;
-	elem->prev = prev;
-	next->prev = elem;
-	prev->next = elem;
+    elem->next = next;
+    elem->prev = prev;
+    next->prev = elem;
+    prev->next = elem;
 }
 
 /*
@@ -59,7 +63,7 @@ static __always_inline void __insert(struct list *elem, struct list *prev,
  */
 static __always_inline void list_add(struct list *head, struct list *elem)
 {
-	__insert(elem, head, head->next);
+    __insert(elem, head, head->next);
 }
 
 /*
@@ -67,7 +71,7 @@ static __always_inline void list_add(struct list *head, struct list *elem)
  */
 static __always_inline void list_ins(struct list *head, struct list *elem)
 {
-	__insert(elem, head->prev, head);
+    __insert(elem, head->prev, head);
 }
 
 /*
@@ -75,50 +79,47 @@ static __always_inline void list_ins(struct list *head, struct list *elem)
  */
 static __always_inline void list_del(struct list *elem)
 {
-	elem->prev->next = elem->next;
-	elem->next->prev = elem->prev;
-	elem->prev = elem->next = elem;
+    elem->prev->next = elem->next;
+    elem->next->prev = elem->prev;
+    elem->prev = elem->next = elem;
 }
 
-#define list_entry(ptr, type, member) \
-	container_of(ptr, type, member)
+#define list_entry(ptr, type, member) container_of(ptr, type, member)
 
 #define list_first_entry(head, type, member) \
-	list_entry((head)->next, type, member)
+    list_entry((head)->next, type, member)
 
 #define list_last_entry(head, type, member) \
-	list_entry((head)->prev, type, member)
+    list_entry((head)->prev, type, member)
 
 #define list_next_entry(pos, member) \
-	list_entry((&(pos)->member)->next, typeof(*pos), member)
+    list_entry((&(pos)->member)->next, typeof(*pos), member)
 
 #define list_prev_entry(pos, member) \
-	list_entry((&(pos)->member)->prev, typeof(*pos), member)
+    list_entry((&(pos)->member)->prev, typeof(*pos), member)
 
 #define list_for_each(pos, head) \
-	for ((pos) = (head)->next; (pos) != (head); (pos) = (pos)->next)
+    for ((pos) = (head)->next; (pos) != (head); (pos) = (pos)->next)
 
 #define list_for_each_r(pos, head) \
-	for ((pos) = (head)->prev; (pos) != (head); (pos) = (pos)->prev)
+    for ((pos) = (head)->prev; (pos) != (head); (pos) = (pos)->prev)
 
-#define list_for_each_safe(pos, n, head)                                \
-	for ((pos) = (head)->next, (n) = (pos)->next;                   \
-	     (pos) != (head);                                           \
-	     (pos) = (n), (n) = (pos)->next)
+#define list_for_each_safe(pos, n, head)                           \
+    for ((pos) = (head)->next, (n) = (pos)->next; (pos) != (head); \
+         (pos) = (n), (n) = (pos)->next)
 
-#define list_for_each_safe_r(pos, n, head)                              \
-	for ((pos) = (head)->prev, (n) = (pos)->prev;                   \
-	     (pos) != (head);                                           \
-	     (pos) = (n), (n) = (pos)->prev)
+#define list_for_each_safe_r(pos, n, head)                         \
+    for ((pos) = (head)->prev, (n) = (pos)->prev; (pos) != (head); \
+         (pos) = (n), (n) = (pos)->prev)
 
-#define list_for_each_entry(pos, head, member)                          \
-	for ((pos) = list_first_entry(head, typeof(*pos), member);      \
-	     &(pos)->member != (head);                                  \
-	     (pos) = list_next_entry(pos, member))
+#define list_for_each_entry(pos, head, member)                 \
+    for ((pos) = list_first_entry(head, typeof(*pos), member); \
+         &(pos)->member != (head);                             \
+         (pos) = list_next_entry(pos, member))
 
-#define list_for_each_entry_r(pos, head, member)                        \
-	for ((pos) = list_last_entry(head, typeof(*pos), member);       \
-	     &(pos)->member != (head);                                  \
-	     (pos) = list_prev_entry(pos, member))
+#define list_for_each_entry_r(pos, head, member)              \
+    for ((pos) = list_last_entry(head, typeof(*pos), member); \
+         &(pos)->member != (head);                            \
+         (pos) = list_prev_entry(pos, member))
 
 #endif /* RADIX_LIST_H */

@@ -18,10 +18,10 @@
 
 #include <radix/atomic.h>
 #include <radix/console.h>
-#include <radix/list.h>
 #include <radix/ipi.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
+#include <radix/list.h>
 #include <radix/stacktrace.h>
 
 #include <rlibc/stdio.h>
@@ -33,12 +33,12 @@
 
 static void raw_write(const char *s, size_t len)
 {
-	if (!active_console || !s)
-		return;
+    if (!active_console || !s)
+        return;
 
-	atomic_write(&active_console->lock.owner, 0);
-	list_init(&active_console->lock.queue);
-	active_console->actions->write(active_console, s, len);
+    atomic_write(&active_console->lock.owner, 0);
+    list_init(&active_console->lock.queue);
+    active_console->actions->write(active_console, s, len);
 }
 
 static char panic_buffer[PANIC_BUFSIZE];
@@ -49,33 +49,33 @@ static char panic_buffer[PANIC_BUFSIZE];
  */
 __noreturn void panic(const char *err, ...)
 {
-	va_list ap;
-	char *s;
+    va_list ap;
+    char *s;
 
-	irq_disable();
-	send_panic_ipi();
+    irq_disable();
+    send_panic_ipi();
 
-	s = panic_buffer;
+    s = panic_buffer;
 
 #ifdef DEBUG_STACKTRACE
-	s += stack_trace(panic_buffer, PANIC_TRACESIZE);
+    s += stack_trace(panic_buffer, PANIC_TRACESIZE);
 #endif
 
-	/* TODO: register dump */
+    /* TODO: register dump */
 
-	strcpy(s, PANIC);
-	s += sizeof PANIC - 1;
+    strcpy(s, PANIC);
+    s += sizeof PANIC - 1;
 
-	va_start(ap, err);
-	s += vsprintf(s, err, ap);
-	va_end(ap);
+    va_start(ap, err);
+    s += vsprintf(s, err, ap);
+    va_end(ap);
 
-	raw_write(panic_buffer, s - panic_buffer);
+    raw_write(panic_buffer, s - panic_buffer);
 
-	DIE();
+    DIE();
 }
 
 void __assert_fail(const char *cond, const char *file, int line)
 {
-	panic("%s:%d: assertion failed: %s", file, line, cond);
+    panic("%s:%d: assertion failed: %s", file, line, cond);
 }

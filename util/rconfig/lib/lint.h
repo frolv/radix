@@ -22,12 +22,12 @@
 #include <stdio.h>
 
 #define error(msg, ...) \
-	fprintf(stderr, "\x1B[1;31merror: \x1B[0;37m" msg, ##__VA_ARGS__)
+    fprintf(stderr, "\x1B[1;31merror: \x1B[0;37m" msg, ##__VA_ARGS__)
 
 #define warn(msg, ...) \
-	fprintf(stderr, "\x1B[1;35mwarning: \x1B[0;37m" msg, ##__VA_ARGS__)
+    fprintf(stderr, "\x1B[1;35mwarning: \x1B[0;37m" msg, ##__VA_ARGS__)
 
 #define info(msg, ...) \
-	fprintf(stderr, "\x1B[1;34minfo: \x1B[0;37m" msg, ##__VA_ARGS__)
+    fprintf(stderr, "\x1B[1;34minfo: \x1B[0;37m" msg, ##__VA_ARGS__)
 
 #endif /* LINT_H */

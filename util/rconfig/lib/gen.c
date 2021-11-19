@@ -16,40 +16,42 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-
 #include "gen.h"
+
+#include <stdio.h>
 
 char *curr_partial;
 
 #define CB_TYPE(flags) (flags & 0x3)
 
-static void write_section(FILE *f, struct rconfig_section *sec,
-                          config_fn cb, unsigned int flags)
+static void write_section(FILE *f,
+                          struct rconfig_section *sec,
+                          config_fn cb,
+                          unsigned int flags)
 {
-	struct rconfig_config *conf;
-	size_t i;
-	int val;
+    struct rconfig_config *conf;
+    size_t i;
+    int val;
 
-	if (CB_TYPE(flags) == RCONFIG_CB_SECTION)
-		cb(sec);
+    if (CB_TYPE(flags) == RCONFIG_CB_SECTION)
+        cb(sec);
 
-	fprintf(f, "\n# section %s\n", sec->name);
+    fprintf(f, "\n# section %s\n", sec->name);
 
-	for (i = 0; i < sec->num_configs; ++i) {
-		conf = &sec->configs[i];
-		if (CB_TYPE(flags) == RCONFIG_CB_CONFIG)
-			cb(conf);
+    for (i = 0; i < sec->num_configs; ++i) {
+        conf = &sec->configs[i];
+        if (CB_TYPE(flags) == RCONFIG_CB_CONFIG)
+            cb(conf);
 
-		val = conf->selection;
-		fprintf(f, "CONFIG_%s=", conf->identifier);
-		if (conf->type == RCONFIG_BOOL)
-			fprintf(f, "%s\n", val ? "true" : "false");
-		else if (conf->type == RCONFIG_INT)
-			fprintf(f, "%d\n", val);
-		else
-			fprintf(f, "%d\n", conf->opts.options[val - 1].val);
-	}
+        val = conf->selection;
+        fprintf(f, "CONFIG_%s=", conf->identifier);
+        if (conf->type == RCONFIG_BOOL)
+            fprintf(f, "%s\n", val ? "true" : "false");
+        else if (conf->type == RCONFIG_INT)
+            fprintf(f, "%d\n", val);
+        else
+            fprintf(f, "%d\n", conf->opts.options[val - 1].val);
+    }
 }
 
 /*
@@ -64,30 +66,30 @@ void generate_config(struct rconfig_file *file,
                      config_fn callback,
                      unsigned int flags)
 {
-	FILE *f;
-	size_t i;
-	char path[256];
+    FILE *f;
+    size_t i;
+    char path[256];
 
-	snprintf(path, 256, CONFIG_DIR "/.rconfig.%s", file->name);
-	f = fopen(path, "w");
-	if (!f)
-		return;
+    snprintf(path, 256, CONFIG_DIR "/.rconfig.%s", file->name);
+    f = fopen(path, "w");
+    if (!f)
+        return;
 
-	curr_partial = path;
+    curr_partial = path;
 
-	if (CB_TYPE(flags) == RCONFIG_CB_FILE)
-		callback(file);
+    if (CB_TYPE(flags) == RCONFIG_CB_FILE)
+        callback(file);
 
-	fprintf(f, "#\n");
-	fprintf(f, "# rconfig %s\n", file->name);
-	fprintf(f, "# %s\n", file->path);
-	fprintf(f, "#\n");
+    fprintf(f, "#\n");
+    fprintf(f, "# rconfig %s\n", file->name);
+    fprintf(f, "# %s\n", file->path);
+    fprintf(f, "#\n");
 
-	for (i = 0; i < file->num_sections; ++i)
-		write_section(f, &file->sections[i], callback, flags);
+    for (i = 0; i < file->num_sections; ++i)
+        write_section(f, &file->sections[i], callback, flags);
 
-	fclose(f);
-	curr_partial = NULL;
+    fclose(f);
+    curr_partial = NULL;
 }
 
 /*
@@ -96,6 +98,6 @@ void generate_config(struct rconfig_file *file,
  */
 void config_default(void *config)
 {
-	struct rconfig_config *conf = config;
-	conf->selection = conf->default_val;
+    struct rconfig_config *conf = config;
+    conf->selection = conf->default_val;
 }

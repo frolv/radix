@@ -28,30 +28,31 @@
 
 static __always_inline unsigned long cpuid_supported(void)
 {
-	unsigned long res;
+    unsigned long res;
 
-	asm volatile("pushf\n\t"
-	             "pop %%eax\n\t"
-	             "movl %%eax, %%ecx\n\t"
-	             "xorl $0x200000, %%eax\n\t"
-	             "push %%eax\n\t"
-	             "popf\n\t"
-	             "pushf\n\t"
-	             "pop %%eax\n\t"
-	             "xorl %%ecx, %%eax"
-	             : "=a"(res)
-	             :
-	             : "%ecx");
-	return res;
+    asm volatile(
+        "pushf\n\t"
+        "pop %%eax\n\t"
+        "movl %%eax, %%ecx\n\t"
+        "xorl $0x200000, %%eax\n\t"
+        "push %%eax\n\t"
+        "popf\n\t"
+        "pushf\n\t"
+        "pop %%eax\n\t"
+        "xorl %%ecx, %%eax"
+        : "=a"(res)
+        :
+        : "%ecx");
+    return res;
 }
 
 #include <radix/types.h>
 
 int cpu_supports(uint64_t features);
 
-#define __arch_cache_line_size()        i386_cache_line_size()
-#define __arch_set_kernel_stack(s)      i386_set_kernel_stack(s)
-#define __arch_cache_str()              i386_cache_str()
+#define __arch_cache_line_size()   i386_cache_line_size()
+#define __arch_set_kernel_stack(s) i386_set_kernel_stack(s)
+#define __arch_cache_str()         i386_cache_str()
 
 void read_cpu_info(void);
 

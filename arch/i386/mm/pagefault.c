@@ -35,56 +35,54 @@
  */
 static void do_kernel_pf(addr_t fault_addr, int error)
 {
-	struct vmm_area *area;
-	struct page *p;
-	const char *access;
-	addr_t page;
+    struct vmm_area *area;
+    struct page *p;
+    const char *access;
+    addr_t page;
 
-	page = fault_addr & PAGE_MASK;
-	access = error & X86_PF_WRITE ? "write to" : "read from";
+    page = fault_addr & PAGE_MASK;
+    access = error & X86_PF_WRITE ? "write to" : "read from";
 
-	if (error & X86_PF_PROTECTION) {
-		panic("illegal %s virtual address %p\n",
-		      access, fault_addr);
-	}
+    if (error & X86_PF_PROTECTION) {
+        panic("illegal %s virtual address %p\n", access, fault_addr);
+    }
 
-	area = vmm_get_allocated_area(NULL, fault_addr);
-	if (!area) {
-		panic("attempt to %s non-allocated page %p\n",
-		      access, page);
-	}
+    area = vmm_get_allocated_area(NULL, fault_addr);
+    if (!area) {
+        panic("attempt to %s non-allocated page %p\n", access, page);
+    }
 
-	/*
-	 * XXX: it may be worth investigating a smarter approach to this than
-	 * allocating a single page at a time. For example, the number of pages
-	 * allocated could be proportional to the size of the virtual area,
-	 * with the expectation that the thread accesses more of them in the
-	 * near future.
-	 * As the system grows, time spent in page faults should be profiled to
-	 * determine whether optimization is necessary.
-	 */
-	p = alloc_page(PA_USER);
-	if (IS_ERR(p)) {
-		/*
-		 * TODO: figure out the best actions to take
-		 * here depending on the error that occurred.
-		 */
-		panic("do_kernel_pf: could not allocate physical page\n");
-	}
+    /*
+     * XXX: it may be worth investigating a smarter approach to this than
+     * allocating a single page at a time. For example, the number of pages
+     * allocated could be proportional to the size of the virtual area,
+     * with the expectation that the thread accesses more of them in the
+     * near future.
+     * As the system grows, time spent in page faults should be profiled to
+     * determine whether optimization is necessary.
+     */
+    p = alloc_page(PA_USER);
+    if (IS_ERR(p)) {
+        /*
+         * TODO: figure out the best actions to take
+         * here depending on the error that occurred.
+         */
+        panic("do_kernel_pf: could not allocate physical page\n");
+    }
 
-	map_page_kernel(page, page_to_phys(p), PROT_WRITE, PAGE_CP_DEFAULT);
-	mark_page_mapped(p, page);
-	vmm_add_area_pages(area, p);
+    map_page_kernel(page, page_to_phys(p), PROT_WRITE, PAGE_CP_DEFAULT);
+    mark_page_mapped(p, page);
+    vmm_add_area_pages(area, p);
 }
 
 void page_fault_handler(__unused struct regs *regs, int error)
 {
-	addr_t fault_addr;
+    addr_t fault_addr;
 
-	fault_addr = cpu_read_cr2();
-	if (error & X86_PF_USER) {
-		/* TODO */
-	} else {
-		do_kernel_pf(fault_addr, error);
-	}
+    fault_addr = cpu_read_cr2();
+    if (error & X86_PF_USER) {
+        /* TODO */
+    } else {
+        do_kernel_pf(fault_addr, error);
+    }
 }

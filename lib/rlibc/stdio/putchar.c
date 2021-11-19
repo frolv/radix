@@ -17,10 +17,11 @@
  */
 
 #include <radix/tty.h>
+
 #include <rlibc/stdio.h>
 
 int putchar(int c)
 {
-	tty_putchar(c);
-	return 0;
+    tty_putchar(c);
+    return 0;
 }

@@ -17,7 +17,6 @@
  */
 
 #include <radix/asm/gdt.h>
-
 #include <radix/percpu.h>
 #include <radix/smp.h>
 
@@ -27,8 +26,8 @@ DEFINE_PER_CPU(unsigned long, __this_cpu_offset);
 
 void arch_percpu_init_early(void)
 {
-	gdt_set_initial_fsbase(BOOT_PERCPU_OFFSET);
-	this_cpu_write(__this_cpu_offset, BOOT_PERCPU_OFFSET);
+    gdt_set_initial_fsbase(BOOT_PERCPU_OFFSET);
+    this_cpu_write(__this_cpu_offset, BOOT_PERCPU_OFFSET);
 }
 
 /*
@@ -37,20 +36,20 @@ void arch_percpu_init_early(void)
  */
 int arch_percpu_init(int ap)
 {
-	addr_t offset;
+    addr_t offset;
 
-	if (ap) {
-		/* TODO */
-	} else {
-		/*
-		 * Complete BSP per-CPU initialization by setting its
-		 * fsbase to its newly allocated per-CPU section offset.
-		 */
-		offset = __percpu_offset[processor_id()];
-		gdt_set_fsbase(offset);
-		this_cpu_write(__this_cpu_offset, offset);
-		gdt_init(offset);
-	}
+    if (ap) {
+        /* TODO */
+    } else {
+        /*
+         * Complete BSP per-CPU initialization by setting its
+         * fsbase to its newly allocated per-CPU section offset.
+         */
+        offset = __percpu_offset[processor_id()];
+        gdt_set_fsbase(offset);
+        this_cpu_write(__this_cpu_offset, offset);
+        gdt_init(offset);
+    }
 
-	return 0;
+    return 0;
 }

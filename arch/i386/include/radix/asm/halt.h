@@ -25,9 +25,9 @@
 
 #define HALT() asm volatile("hlt")
 
-#define DIE()                   \
-do {                            \
-	HALT();                 \
-} while (1)
+#define DIE()   \
+    do {        \
+        HALT(); \
+    } while (1)
 
 #endif /* ARCH_I386_RADIX_HALT_H */

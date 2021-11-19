@@ -42,23 +42,19 @@ DEFINE_PER_CPU(struct percpu_timer_data *, pcpu_irq_timer) = NULL;
 static spinlock_t time_ns_lock = SPINLOCK_INIT;
 static uint64_t ns_since_boot = 0;
 
-enum {
-	TIMER_ACTION_ENABLE,
-	TIMER_ACTION_DISABLE,
-	TIMER_ACTION_UPDATE
-};
+enum { TIMER_ACTION_ENABLE, TIMER_ACTION_DISABLE, TIMER_ACTION_UPDATE };
 
 #define TIMER_ACTION_IRQ_TIMER (1 << 31)
 
-#define TIMER_ACTION_COMPLETE  (1 << 30)
-#define TIMER_ACTION_FAILED    (1 << 31)
+#define TIMER_ACTION_COMPLETE (1 << 30)
+#define TIMER_ACTION_FAILED   (1 << 31)
 
 static struct {
-	int             action;
-	int		state;
-	void            *timer;
-	void            *new_timer;
-	cpumask_t	mask;
+    int action;
+    int state;
+    void *timer;
+    void *new_timer;
+    cpumask_t mask;
 } timer_action;
 
 /*
@@ -66,23 +62,20 @@ static struct {
  * Temporary time_ns function which returns the last known system time.
  * Used if no timers in the system are active.
  */
-static uint64_t time_ns_static(void)
-{
-	return ns_since_boot;
-}
+static uint64_t time_ns_static(void) { return ns_since_boot; }
 
 static uint64_t time_ns_timer(void)
 {
-	uint64_t ticks, initial_ns, current_ns;
-	unsigned long irqstate;
+    uint64_t ticks, initial_ns, current_ns;
+    unsigned long irqstate;
 
-	spin_lock_irq(&time_ns_lock, &irqstate);
-	ticks = system_timer->read();
-	initial_ns = ns_since_boot;
-	current_ns = (ticks * system_timer->mult) >> system_timer->shift;
-	spin_unlock_irq(&time_ns_lock, irqstate);
+    spin_lock_irq(&time_ns_lock, &irqstate);
+    ticks = system_timer->read();
+    initial_ns = ns_since_boot;
+    current_ns = (ticks * system_timer->mult) >> system_timer->shift;
+    spin_unlock_irq(&time_ns_lock, irqstate);
 
-	return initial_ns + current_ns;
+    return initial_ns + current_ns;
 }
 
 /*
@@ -93,13 +86,13 @@ static uint64_t time_ns_timer(void)
  */
 void timer_accumulate(void)
 {
-	uint64_t ticks;
-	unsigned long irqstate;
+    uint64_t ticks;
+    unsigned long irqstate;
 
-	spin_lock_irq(&time_ns_lock, &irqstate);
-	ticks = system_timer->reset();
-	ns_since_boot += (ticks * system_timer->mult) >> system_timer->shift;
-	spin_unlock_irq(&time_ns_lock, irqstate);
+    spin_lock_irq(&time_ns_lock, &irqstate);
+    ticks = system_timer->reset();
+    ns_since_boot += (ticks * system_timer->mult) >> system_timer->shift;
+    spin_unlock_irq(&time_ns_lock, irqstate);
 }
 
 /*
@@ -111,30 +104,32 @@ void timer_accumulate(void)
  * allowed to run such that `from * mult` does not overflow an unsigned
  * 64-bit integer.
  */
-static void __calc_mult_shift(uint32_t *mult, uint32_t *shift,
-                              uint64_t from, uint64_t to,
+static void __calc_mult_shift(uint32_t *mult,
+                              uint32_t *shift,
+                              uint64_t from,
+                              uint64_t to,
                               unsigned int secs)
 {
-	uint64_t mlt, tmp;
-	uint32_t sft, shift_acc;
+    uint64_t mlt, tmp;
+    uint32_t sft, shift_acc;
 
-	tmp = ((uint64_t)secs * from) >> 32;
-	shift_acc = 32;
-	while (tmp) {
-		tmp >>= 1;
-		--shift_acc;
-	}
+    tmp = ((uint64_t)secs * from) >> 32;
+    shift_acc = 32;
+    while (tmp) {
+        tmp >>= 1;
+        --shift_acc;
+    }
 
-	for (sft = 32; sft > 0; --sft) {
-		mlt = to << sft;
-		mlt += from / 2;
-		mlt /= from;
-		if (!(mlt >> shift_acc))
-			break;
-	}
+    for (sft = 32; sft > 0; --sft) {
+        mlt = to << sft;
+        mlt += from / 2;
+        mlt /= from;
+        if (!(mlt >> shift_acc))
+            break;
+    }
 
-	*mult = mlt;
-	*shift = sft;
+    *mult = mlt;
+    *shift = sft;
 }
 
 /*
@@ -146,20 +141,20 @@ static void __calc_mult_shift(uint32_t *mult, uint32_t *shift,
  */
 static void timer_configure(struct timer *timer)
 {
-	uint64_t max_ticks;
+    uint64_t max_ticks;
 
-	/* timer did not provide its own mult/shift; must calculate them */
-	if (!timer->mult)
-		__calc_mult_shift(&timer->mult, &timer->shift, timer->frequency,
-		                  NSEC_PER_SEC, 600);
+    /* timer did not provide its own mult/shift; must calculate them */
+    if (!timer->mult)
+        __calc_mult_shift(
+            &timer->mult, &timer->shift, timer->frequency, NSEC_PER_SEC, 600);
 
-	max_ticks = ~0ULL / timer->mult;
-	if (timer->max_ticks)
-		timer->max_ticks = min(timer->max_ticks, max_ticks);
-	else
-		timer->max_ticks = max_ticks;
+    max_ticks = ~0ULL / timer->mult;
+    if (timer->max_ticks)
+        timer->max_ticks = min(timer->max_ticks, max_ticks);
+    else
+        timer->max_ticks = max_ticks;
 
-	timer->max_ns = (timer->max_ticks * timer->mult) >> timer->shift;
+    timer->max_ns = (timer->max_ticks * timer->mult) >> timer->shift;
 }
 
 /*
@@ -168,43 +163,43 @@ static void timer_configure(struct timer *timer)
  */
 static void timer_list_add(struct timer *timer)
 {
-	struct timer *tm;
+    struct timer *tm;
 
-	list_for_each_entry(tm, &system_timer_list, timer_list) {
-		if (timer->rating > tm->rating) {
-			list_ins(&tm->timer_list, &timer->timer_list);
-			return;
-		}
-	}
-	list_ins(&system_timer_list, &timer->timer_list);
+    list_for_each_entry (tm, &system_timer_list, timer_list) {
+        if (timer->rating > tm->rating) {
+            list_ins(&tm->timer_list, &timer->timer_list);
+            return;
+        }
+    }
+    list_ins(&system_timer_list, &timer->timer_list);
 }
 
 static int timer_enable(struct timer *timer)
 {
-	int err;
+    int err;
 
-	if ((err = timer->enable()) != 0)
-		return err;
+    if ((err = timer->enable()) != 0)
+        return err;
 
-	if (timer->flags & TIMER_PERCPU) {
-		if (!this_cpu_read(pcpu_timer))
-			return 1;
-	} else {
-		this_cpu_write(pcpu_timer, NULL);
-	}
+    if (timer->flags & TIMER_PERCPU) {
+        if (!this_cpu_read(pcpu_timer))
+            return 1;
+    } else {
+        this_cpu_write(pcpu_timer, NULL);
+    }
 
-	if (!(timer->flags & TIMER_RUNNING))
-		timer->start();
+    if (!(timer->flags & TIMER_RUNNING))
+        timer->start();
 
-	return 0;
+    return 0;
 }
 
 static void timer_disable(struct timer *timer)
 {
-	if (timer->flags & TIMER_RUNNING)
-		timer->stop();
-	if (timer->flags & TIMER_ENABLED)
-		timer->disable();
+    if (timer->flags & TIMER_RUNNING)
+        timer->stop();
+    if (timer->flags & TIMER_ENABLED)
+        timer->disable();
 }
 
 /*
@@ -213,15 +208,15 @@ static void timer_disable(struct timer *timer)
  */
 static __always_inline void __timer_action_wait(void)
 {
-	cpumask_t online;
+    cpumask_t online;
 
-	while (1) {
-		online = cpumask_online();
-		if ((timer_action.mask & online) == online)
-			break;
-	}
+    while (1) {
+        online = cpumask_online();
+        if ((timer_action.mask & online) == online)
+            break;
+    }
 
-	timer_action.state |= TIMER_ACTION_COMPLETE;
+    timer_action.state |= TIMER_ACTION_COMPLETE;
 }
 
 /*
@@ -231,31 +226,31 @@ static __always_inline void __timer_action_wait(void)
  */
 static int enable_percpu_timer(struct timer *timer)
 {
-	timer_action.action = TIMER_ACTION_ENABLE;
-	timer_action.state = 0;
-	timer_action.timer = timer;
-	timer_action.mask = CPUMASK_SELF;
-	send_timer_ipi();
+    timer_action.action = TIMER_ACTION_ENABLE;
+    timer_action.state = 0;
+    timer_action.timer = timer;
+    timer_action.mask = CPUMASK_SELF;
+    send_timer_ipi();
 
-	if (timer_enable(timer) != 0)
-		timer_action.state |= TIMER_ACTION_FAILED;
+    if (timer_enable(timer) != 0)
+        timer_action.state |= TIMER_ACTION_FAILED;
 
-	__timer_action_wait();
+    __timer_action_wait();
 
-	/*
-	 * During normal system operation, we can assume that a timer change
-	 * will only occur if the current system timer has failed or become
-	 * unreliable. If enabling a new timer fails, other CPUs in the
-	 * system could continue running with an invalid timer.
-	 * Until a new timer source is found, the time_ns function is set to
-	 * return the last known system time.
-	 */
-	if (timer_action.state & TIMER_ACTION_FAILED) {
-		time_ns = time_ns_static;
-		return 1;
-	}
+    /*
+     * During normal system operation, we can assume that a timer change
+     * will only occur if the current system timer has failed or become
+     * unreliable. If enabling a new timer fails, other CPUs in the
+     * system could continue running with an invalid timer.
+     * Until a new timer source is found, the time_ns function is set to
+     * return the last known system time.
+     */
+    if (timer_action.state & TIMER_ACTION_FAILED) {
+        time_ns = time_ns_static;
+        return 1;
+    }
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -264,14 +259,14 @@ static int enable_percpu_timer(struct timer *timer)
  */
 static void disable_percpu_timer(struct timer *timer)
 {
-	timer_action.action = TIMER_ACTION_DISABLE;
-	timer_action.state = 0;
-	timer_action.timer = timer;
-	timer_action.mask = CPUMASK_SELF;
-	send_timer_ipi();
+    timer_action.action = TIMER_ACTION_DISABLE;
+    timer_action.state = 0;
+    timer_action.timer = timer;
+    timer_action.mask = CPUMASK_SELF;
+    send_timer_ipi();
 
-	timer_disable(timer);
-	__timer_action_wait();
+    timer_disable(timer);
+    __timer_action_wait();
 }
 
 /*
@@ -281,23 +276,23 @@ static void disable_percpu_timer(struct timer *timer)
  */
 static int update_percpu_timer(struct timer *old, struct timer *new)
 {
-	timer_action.action = TIMER_ACTION_UPDATE;
-	timer_action.timer = old;
-	timer_action.new_timer = new;
-	send_timer_ipi();
+    timer_action.action = TIMER_ACTION_UPDATE;
+    timer_action.timer = old;
+    timer_action.new_timer = new;
+    send_timer_ipi();
 
-	timer_disable(old);
-	if (timer_enable(new) != 0)
-		timer_action.state |= TIMER_ACTION_FAILED;
+    timer_disable(old);
+    if (timer_enable(new) != 0)
+        timer_action.state |= TIMER_ACTION_FAILED;
 
-	__timer_action_wait();
+    __timer_action_wait();
 
-	if (timer_action.state & TIMER_ACTION_FAILED) {
-		time_ns = time_ns_static;
-		return 1;
-	}
+    if (timer_action.state & TIMER_ACTION_FAILED) {
+        time_ns = time_ns_static;
+        return 1;
+    }
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -306,39 +301,36 @@ static int update_percpu_timer(struct timer *old, struct timer *new)
  */
 static int update_system_timer(struct timer *timer)
 {
-	int (*enable_fn)(struct timer *);
+    int (*enable_fn)(struct timer *);
 
-	if ((timer->flags & TIMER_PERCPU) &&
-	    (system_timer->flags & TIMER_PERCPU))
-		return update_percpu_timer(system_timer, timer);
+    if ((timer->flags & TIMER_PERCPU) && (system_timer->flags & TIMER_PERCPU))
+        return update_percpu_timer(system_timer, timer);
 
-	if (!(timer->flags & TIMER_ENABLED)) {
-		enable_fn = (timer->flags & TIMER_PERCPU)
-		          ? enable_percpu_timer
-		          : timer_enable;
+    if (!(timer->flags & TIMER_ENABLED)) {
+        enable_fn =
+            (timer->flags & TIMER_PERCPU) ? enable_percpu_timer : timer_enable;
 
-		if (enable_fn(timer) != 0) {
-			klog(KLOG_WARNING, TIMER "failed to enable timer %s",
-			     timer->name);
-			return 1;
-		}
-	}
+        if (enable_fn(timer) != 0) {
+            klog(KLOG_WARNING, TIMER "failed to enable timer %s", timer->name);
+            return 1;
+        }
+    }
 
-	if (system_timer) {
-		timer_accumulate();
+    if (system_timer) {
+        timer_accumulate();
 
-		if (system_timer->flags & TIMER_PERCPU)
-			disable_percpu_timer(system_timer);
-		else
-			timer_disable(system_timer);
+        if (system_timer->flags & TIMER_PERCPU)
+            disable_percpu_timer(system_timer);
+        else
+            timer_disable(system_timer);
 
-		timekeeping_event_set_period(timer->max_ns / 2);
-	}
+        timekeeping_event_set_period(timer->max_ns / 2);
+    }
 
-	system_timer = timer;
-	klog(KLOG_INFO, TIMER "system timer switched to %s", timer->name);
+    system_timer = timer;
+    klog(KLOG_INFO, TIMER "system timer switched to %s", timer->name);
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -348,53 +340,57 @@ static int update_system_timer(struct timer *timer)
  */
 void timer_register(struct timer *timer)
 {
-	if (!timer)
-		return;
+    if (!timer)
+        return;
 
-	if (timer->rating < 0 || timer->rating > 100) {
-		klog(KLOG_ERROR, TIMER "invalid rating provided for timer %s",
-		     timer->name);
-		return;
-	}
+    if (timer->rating < 0 || timer->rating > 100) {
+        klog(KLOG_ERROR,
+             TIMER "invalid rating provided for timer %s",
+             timer->name);
+        return;
+    }
 
-	timer_configure(timer);
-	klog(KLOG_INFO, TIMER "%s max_ticks 0x%llX max_ns %llu",
-	     timer->name, timer->max_ticks, timer->max_ns);
+    timer_configure(timer);
+    klog(KLOG_INFO,
+         TIMER "%s max_ticks 0x%llX max_ns %llu",
+         timer->name,
+         timer->max_ticks,
+         timer->max_ns);
 
-	if (!system_timer) {
-		list_add(&system_timer_list, &timer->timer_list);
-		update_system_timer(timer);
-		time_ns = time_ns_timer;
-	} else {
-		timer_list_add(timer);
-		if (timer->rating > system_timer->rating)
-			update_system_timer(timer);
-	}
+    if (!system_timer) {
+        list_add(&system_timer_list, &timer->timer_list);
+        update_system_timer(timer);
+        time_ns = time_ns_timer;
+    } else {
+        timer_list_add(timer);
+        if (timer->rating > system_timer->rating)
+            update_system_timer(timer);
+    }
 }
 
 static void __schedule_timer_irq_percpu(uint64_t ns)
 {
-	struct percpu_timer_data *pcpu;
+    struct percpu_timer_data *pcpu;
 
-	pcpu = this_cpu_read(pcpu_irq_timer);
-	sys_irq_timer->schedule_irq((ns * pcpu->mult) >> pcpu->shift);
+    pcpu = this_cpu_read(pcpu_irq_timer);
+    sys_irq_timer->schedule_irq((ns * pcpu->mult) >> pcpu->shift);
 }
 
 static uint64_t __irq_timer_max_ns_percpu(void)
 {
-	return this_cpu_read(pcpu_irq_timer)->max_ns;
+    return this_cpu_read(pcpu_irq_timer)->max_ns;
 }
 
 static void __schedule_timer_irq_normal(uint64_t ns)
 {
-	uint64_t ticks = (ns * sys_irq_timer->mult) >> sys_irq_timer->shift;
+    uint64_t ticks = (ns * sys_irq_timer->mult) >> sys_irq_timer->shift;
 
-	sys_irq_timer->schedule_irq(ticks);
+    sys_irq_timer->schedule_irq(ticks);
 }
 
 static uint64_t __irq_timer_max_ns_normal(void)
 {
-	return sys_irq_timer->max_ns;
+    return sys_irq_timer->max_ns;
 }
 
 void (*schedule_timer_irq)(uint64_t ns) = NULL;
@@ -403,47 +399,47 @@ uint64_t (*irq_timer_max_ns)(void) = NULL;
 // Sets the specified IRQ timer as the active system IRQ timer.
 int set_irq_timer(struct irq_timer *irqt)
 {
-	uint64_t max_ticks;
+    uint64_t max_ticks;
 
-	if (!irqt)
-		return 1;
+    if (!irqt)
+        return 1;
 
-	if (sys_irq_timer == irqt)
-		return 0;
+    if (sys_irq_timer == irqt)
+        return 0;
 
-	if (!(irqt->flags & TIMER_PERCPU)) {
-		if (!irqt->mult)
-			__calc_mult_shift(&irqt->mult, &irqt->shift,
-			                  NSEC_PER_SEC, irqt->frequency, 60);
+    if (!(irqt->flags & TIMER_PERCPU)) {
+        if (!irqt->mult)
+            __calc_mult_shift(
+                &irqt->mult, &irqt->shift, NSEC_PER_SEC, irqt->frequency, 60);
 
-		max_ticks = ~0ULL / irqt->mult;
-		if (irqt->max_ticks)
-			irqt->max_ticks = min(irqt->max_ticks, max_ticks);
-		else
-			irqt->max_ticks = max_ticks;
+        max_ticks = ~0ULL / irqt->mult;
+        if (irqt->max_ticks)
+            irqt->max_ticks = min(irqt->max_ticks, max_ticks);
+        else
+            irqt->max_ticks = max_ticks;
 
-		irqt->max_ns = (irqt->max_ticks << irqt->shift) / irqt->mult;
-	}
+        irqt->max_ns = (irqt->max_ticks << irqt->shift) / irqt->mult;
+    }
 
-	if (irqt->enable() != 0)
-		return 1;
+    if (irqt->enable() != 0)
+        return 1;
 
-	if (sys_irq_timer) {
-		/* TODO: make next event disable current irq_timer */
-	}
+    if (sys_irq_timer) {
+        /* TODO: make next event disable current irq_timer */
+    }
 
-	sys_irq_timer = irqt;
+    sys_irq_timer = irqt;
 
-	if (irqt->flags & TIMER_PERCPU) {
-		schedule_timer_irq = __schedule_timer_irq_percpu;
-		irq_timer_max_ns = __irq_timer_max_ns_percpu;
-	} else {
-		schedule_timer_irq = __schedule_timer_irq_normal;
-		irq_timer_max_ns = __irq_timer_max_ns_normal;
-	}
+    if (irqt->flags & TIMER_PERCPU) {
+        schedule_timer_irq = __schedule_timer_irq_percpu;
+        irq_timer_max_ns = __irq_timer_max_ns_percpu;
+    } else {
+        schedule_timer_irq = __schedule_timer_irq_normal;
+        irq_timer_max_ns = __irq_timer_max_ns_normal;
+    }
 
-	klog(KLOG_INFO, TIMER "IRQ timer set to %s", irqt->name);
-	return 0;
+    klog(KLOG_INFO, TIMER "IRQ timer set to %s", irqt->name);
+    return 0;
 }
 
 /*
@@ -453,34 +449,34 @@ int set_irq_timer(struct irq_timer *irqt)
  */
 static void __calc_pcpu_data(struct percpu_timer_data *pd)
 {
-	uint64_t max_ticks;
+    uint64_t max_ticks;
 
-	if (!pd)
-		return;
+    if (!pd)
+        return;
 
-	if (!pd->mult)
-		__calc_mult_shift(&pd->mult, &pd->shift, pd->frequency,
-		                  NSEC_PER_SEC, 600);
+    if (!pd->mult)
+        __calc_mult_shift(
+            &pd->mult, &pd->shift, pd->frequency, NSEC_PER_SEC, 600);
 
-	max_ticks = ~0ULL / pd->mult;
-	if (pd->max_ticks)
-		pd->max_ticks = min(pd->max_ticks, max_ticks);
-	else
-		pd->max_ticks = max_ticks;
+    max_ticks = ~0ULL / pd->mult;
+    if (pd->max_ticks)
+        pd->max_ticks = min(pd->max_ticks, max_ticks);
+    else
+        pd->max_ticks = max_ticks;
 
-	pd->max_ns = (pd->max_ticks << pd->shift) / pd->mult;
+    pd->max_ns = (pd->max_ticks << pd->shift) / pd->mult;
 }
 
 void set_percpu_timer_data(struct percpu_timer_data *pcpu_data)
 {
-	__calc_pcpu_data(pcpu_data);
-	this_cpu_write(pcpu_timer, pcpu_data);
+    __calc_pcpu_data(pcpu_data);
+    this_cpu_write(pcpu_timer, pcpu_data);
 }
 
 void set_percpu_irq_timer_data(struct percpu_timer_data *pcpu_data)
 {
-	__calc_pcpu_data(pcpu_data);
-	this_cpu_write(pcpu_irq_timer, pcpu_data);
+    __calc_pcpu_data(pcpu_data);
+    this_cpu_write(pcpu_irq_timer, pcpu_data);
 }
 
 /*
@@ -496,35 +492,35 @@ void set_percpu_irq_timer_data(struct percpu_timer_data *pcpu_data)
  */
 void handle_timer_action(void)
 {
-	if (timer_action.action & TIMER_ACTION_IRQ_TIMER) {
-		/* TODO: add timer actions for IRQ timers */
-		switch (timer_action.action & 0xF) {
-		case TIMER_ACTION_UPDATE:
-			/* fallthrough */
-		case TIMER_ACTION_ENABLE:
-			break;
-		case TIMER_ACTION_DISABLE:
-			break;
-		}
-	} else {
-		switch (timer_action.action & 0xF) {
-		case TIMER_ACTION_UPDATE:
-			timer_disable(timer_action.timer);
-			/* fallthrough */
-		case TIMER_ACTION_ENABLE:
-			if (timer_enable(timer_action.timer) != 0)
-				timer_action.state |= TIMER_ACTION_FAILED;
-			break;
-		case TIMER_ACTION_DISABLE:
-			timer_disable(timer_action.timer);
-			break;
-		}
-	}
+    if (timer_action.action & TIMER_ACTION_IRQ_TIMER) {
+        /* TODO: add timer actions for IRQ timers */
+        switch (timer_action.action & 0xF) {
+        case TIMER_ACTION_UPDATE:
+            /* fallthrough */
+        case TIMER_ACTION_ENABLE:
+            break;
+        case TIMER_ACTION_DISABLE:
+            break;
+        }
+    } else {
+        switch (timer_action.action & 0xF) {
+        case TIMER_ACTION_UPDATE:
+            timer_disable(timer_action.timer);
+            /* fallthrough */
+        case TIMER_ACTION_ENABLE:
+            if (timer_enable(timer_action.timer) != 0)
+                timer_action.state |= TIMER_ACTION_FAILED;
+            break;
+        case TIMER_ACTION_DISABLE:
+            timer_disable(timer_action.timer);
+            break;
+        }
+    }
 
-	timer_action.mask |= CPUMASK_SELF;
+    timer_action.mask |= CPUMASK_SELF;
 
-	while (!(timer_action.state & TIMER_ACTION_COMPLETE))
-		cpu_pause();
+    while (!(timer_action.state & TIMER_ACTION_COMPLETE))
+        cpu_pause();
 }
 
 /*
@@ -534,21 +530,21 @@ void handle_timer_action(void)
  */
 int cpu_timer_init(void)
 {
-	int err;
+    int err;
 
-	if (system_timer->flags & TIMER_PERCPU) {
-		/*
-		 * TODO: if this fails, the system should try to
-		 * fall back to the next timer in the queue.
-		 */
-		if ((err = timer_enable(system_timer)))
-			return err;
-	}
+    if (system_timer->flags & TIMER_PERCPU) {
+        /*
+         * TODO: if this fails, the system should try to
+         * fall back to the next timer in the queue.
+         */
+        if ((err = timer_enable(system_timer)))
+            return err;
+    }
 
-	if (sys_irq_timer->flags & TIMER_PERCPU) {
-		if ((err = sys_irq_timer->enable()))
-			return err;
-	}
+    if (sys_irq_timer->flags & TIMER_PERCPU) {
+        if ((err = sys_irq_timer->enable()))
+            return err;
+    }
 
-	return 0;
+    return 0;
 }

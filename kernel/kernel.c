@@ -37,42 +37,42 @@
 
 static void kernel_boot_thread(__unused void *p)
 {
-	klog(KLOG_INFO, "Post-scheduler boot starting");
+    klog(KLOG_INFO, "Post-scheduler boot starting");
 
-	event_start();
-	smp_init();
+    event_start();
+    smp_init();
 
-	while (1) {
-		HALT();
-	}
+    while (1) {
+        HALT();
+    }
 }
 
 // Kernel entry point.
 int kmain(struct multiboot_info *mbt)
 {
-	klog(KLOG_INFO, KERNEL_NAME " " KERNEL_VERSION);
+    klog(KLOG_INFO, KERNEL_NAME " " KERNEL_VERSION);
 
-	buddy_init(mbt);
-	slab_init();
-	vmm_init();
+    buddy_init(mbt);
+    slab_init();
+    vmm_init();
 
-	arch_main_setup();
-	irq_init();
-	event_init();
-	percpu_area_setup();
+    arch_main_setup();
+    irq_init();
+    event_init();
+    percpu_area_setup();
 
-	tasking_init();
-	irq_enable();
+    tasking_init();
+    irq_enable();
 
-	sched_init();
+    sched_init();
 
-	// Create a task to continue the boot sequence, then hand over to the
-	// scheduler.
-	struct task *boot = kthread_create(kernel_boot_thread, NULL, 0,
-	                                   "kernel_boot_task");
-	boot->cpu_restrict = CPUMASK_SELF;
-	kthread_start(boot);
+    // Create a task to continue the boot sequence, then hand over to the
+    // scheduler.
+    struct task *boot =
+        kthread_create(kernel_boot_thread, NULL, 0, "kernel_boot_task");
+    boot->cpu_restrict = CPUMASK_SELF;
+    kthread_start(boot);
 
-	sched_yield();
-	return 0;
+    sched_yield();
+    return 0;
 }

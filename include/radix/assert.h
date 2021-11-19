@@ -24,7 +24,7 @@
 
 #if CONFIG(DEBUG) && CONFIG(ASSERT)
 
-#define assert(x) ((void)((x) || (__assert_fail(#x, __FILE__, __LINE__),0)))
+#define assert(x) ((void)((x) || (__assert_fail(#x, __FILE__, __LINE__), 0)))
 
 __noreturn void __assert_fail(const char *, const char *, int);
 

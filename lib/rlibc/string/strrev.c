@@ -20,17 +20,17 @@
 
 char *strrev(char *s)
 {
-	char *start, *t;
-	char c;
+    char *start, *t;
+    char c;
 
-	start = s;
-	t = s + strlen(s) - 1;
+    start = s;
+    t = s + strlen(s) - 1;
 
-	while (s < t) {
-		c = *t;
-		*t-- = *s;
-		*s++ = c;
-	}
+    while (s < t) {
+        c = *t;
+        *t-- = *s;
+        *s++ = c;
+    }
 
-	return start;
+    return start;
 }

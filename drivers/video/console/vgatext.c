@@ -33,17 +33,17 @@
 #define VGATEXT_NORMAL  0
 #define VGATEXT_BOLD    (1 << 3)
 
-#define VGA_MISC_OUTPUT_OUT     0x3C2
-#define VGA_MISC_OUTPUT_IN      0x3CC
+#define VGA_MISC_OUTPUT_OUT 0x3C2
+#define VGA_MISC_OUTPUT_IN  0x3CC
 
 static __always_inline uint8_t vgatext_entry_color(uint8_t fg, uint8_t bg)
 {
-	return fg | bg << 4;
+    return fg | bg << 4;
 }
 
 static __always_inline uint16_t vgatext_entry(uint8_t c, uint8_t color)
 {
-	return (uint16_t)c | (uint16_t)color << 8;
+    return (uint16_t)c | (uint16_t)color << 8;
 }
 
 static struct console vgatext_console;
@@ -51,9 +51,9 @@ static struct consfn vgatext_fn;
 
 void vgatext_register(void)
 {
-	list_init(&vgatext_console.list);
-	console_register(&vgatext_console, "vgatext", &vgatext_fn, 1);
-	klog_set_console(&vgatext_console);
+    list_init(&vgatext_console.list);
+    console_register(&vgatext_console, "vgatext", &vgatext_fn, 1);
+    klog_set_console(&vgatext_console);
 }
 
 static int vgatext_move_cursor(struct console *c, int x, int y);
@@ -61,90 +61,91 @@ static int vgatext_move_cursor(struct console *c, int x, int y);
 /* vgatext_clear: clear the VGA text buffer */
 static int vgatext_clear(struct console *c)
 {
-	int x, y, ind;
-	uint16_t *screenbuf = c->screenbuf;
+    int x, y, ind;
+    uint16_t *screenbuf = c->screenbuf;
 
-	mutex_lock(&c->lock);
-	for (y = 0; y < VGATEXT_HEIGHT; ++y) {
-		for (x = 0; x < VGATEXT_WIDTH; ++x) {
-			ind = y * VGATEXT_WIDTH + x;
-			screenbuf[ind] = vgatext_entry(' ', c->color);
-		}
-	}
+    mutex_lock(&c->lock);
+    for (y = 0; y < VGATEXT_HEIGHT; ++y) {
+        for (x = 0; x < VGATEXT_WIDTH; ++x) {
+            ind = y * VGATEXT_WIDTH + x;
+            screenbuf[ind] = vgatext_entry(' ', c->color);
+        }
+    }
 
-	vgatext_move_cursor(c, 0, 0);
-	mutex_unlock(&c->lock);
+    vgatext_move_cursor(c, 0, 0);
+    mutex_unlock(&c->lock);
 
-	return 0;
+    return 0;
 }
 
 static int vgatext_init(struct console *c)
 {
-	uint8_t val;
+    uint8_t val;
 
-	c->cols = VGATEXT_WIDTH;
-	c->rows = VGATEXT_HEIGHT;
-	c->cursor_x = 0;
-	c->cursor_y = 0;
-	c->screenbuf = (void *)VGATEXT_BUFFER;
-	c->screenbuf_size = c->rows * c->cols * sizeof (uint16_t);
-	c->fg_color = CON_COLOR_WHITE;
-	c->bg_color = CON_COLOR_BLACK;
-	c->default_color = vgatext_entry_color(c->fg_color, c->bg_color);
-	c->color = c->default_color;
-	mutex_init(&c->lock);
+    c->cols = VGATEXT_WIDTH;
+    c->rows = VGATEXT_HEIGHT;
+    c->cursor_x = 0;
+    c->cursor_y = 0;
+    c->screenbuf = (void *)VGATEXT_BUFFER;
+    c->screenbuf_size = c->rows * c->cols * sizeof(uint16_t);
+    c->fg_color = CON_COLOR_WHITE;
+    c->bg_color = CON_COLOR_BLACK;
+    c->default_color = vgatext_entry_color(c->fg_color, c->bg_color);
+    c->color = c->default_color;
+    mutex_init(&c->lock);
 
-	/* set bit 0 of the misc output register to map port 0x3D4 */
-	val = inb(VGA_MISC_OUTPUT_IN);
-	outb(VGA_MISC_OUTPUT_OUT, val | 1);
+    /* set bit 0 of the misc output register to map port 0x3D4 */
+    val = inb(VGA_MISC_OUTPUT_IN);
+    outb(VGA_MISC_OUTPUT_OUT, val | 1);
 
-	return vgatext_clear(c);
+    return vgatext_clear(c);
 }
 
 /* vgatext_put: write ch to position x, y of vga text buffer */
 static __always_inline void vgatext_put(struct console *c, int ch, int x, int y)
 {
-	uint16_t *screenbuf = c->screenbuf;
+    uint16_t *screenbuf = c->screenbuf;
 
-	screenbuf[y * VGATEXT_WIDTH + x] = vgatext_entry(ch, c->color);
+    screenbuf[y * VGATEXT_WIDTH + x] = vgatext_entry(ch, c->color);
 }
 
 /* vgatext_nextrow: advance to the next row, scrolling if necessary */
 static void vgatext_nextrow(struct console *c)
 {
-	uint16_t *screenbuf;
-	int x;
+    uint16_t *screenbuf;
+    int x;
 
-	c->cursor_x = 0;
-	screenbuf = c->screenbuf;
-	if (c->cursor_y == VGATEXT_HEIGHT - 1) {
-		/* move each row up by one, discarding the first */
-		memmove(screenbuf, screenbuf + VGATEXT_WIDTH,
-		        c->cursor_y * VGATEXT_WIDTH * sizeof (uint16_t));
-		/* clear the final row */
-		for (x = 0; x < VGATEXT_WIDTH; ++x)
-			vgatext_put(c, ' ', x, c->cursor_y);
-	} else {
-		++c->cursor_y;
-	}
+    c->cursor_x = 0;
+    screenbuf = c->screenbuf;
+    if (c->cursor_y == VGATEXT_HEIGHT - 1) {
+        /* move each row up by one, discarding the first */
+        memmove(screenbuf,
+                screenbuf + VGATEXT_WIDTH,
+                c->cursor_y * VGATEXT_WIDTH * sizeof(uint16_t));
+        /* clear the final row */
+        for (x = 0; x < VGATEXT_WIDTH; ++x)
+            vgatext_put(c, ' ', x, c->cursor_y);
+    } else {
+        ++c->cursor_y;
+    }
 }
 
 /* vgatext_putchar: write ch to current vga position */
 static __always_inline void vgatext_putchar(struct console *c, int ch)
 {
-	vgatext_put(c, ch, c->cursor_x, c->cursor_y);
-	if (++c->cursor_x == VGATEXT_WIDTH)
-		vgatext_nextrow(c);
+    vgatext_put(c, ch, c->cursor_x, c->cursor_y);
+    if (++c->cursor_x == VGATEXT_WIDTH)
+        vgatext_nextrow(c);
 }
 
 static void vgatext_update_cursor(int x, int y)
 {
-	int pos = y * VGATEXT_WIDTH + x;
+    int pos = y * VGATEXT_WIDTH + x;
 
-	outb(0x3D4, 14);
-	outb(0x3D5, (pos >> 8) & 0xFF);
-	outb(0x3D4, 15);
-	outb(0x3D5, pos & 0xFF);
+    outb(0x3D4, 14);
+    outb(0x3D5, (pos >> 8) & 0xFF);
+    outb(0x3D4, 15);
+    outb(0x3D5, pos & 0xFF);
 }
 
 /*
@@ -153,48 +154,48 @@ static void vgatext_update_cursor(int x, int y)
  */
 static int vgatext_write(struct console *c, const char *buf, size_t n)
 {
-	int written;
+    int written;
 
-	written = 0;
-	mutex_lock(&c->lock);
-	while (n--) {
-		switch (*buf) {
-		case '\b':
-			if (c->cursor_x == 0) {
-				c->cursor_x = VGATEXT_WIDTH - 1;
-				--c->cursor_y;
-			} else {
-				--c->cursor_x;
-			}
-			vgatext_put(c, ' ', c->cursor_x, c->cursor_y);
-			break;
-		case '\n':
-			vgatext_nextrow(c);
-			break;
-		case '\t':
-			do {
-				vgatext_putchar(c, ' ');
-			} while (!ALIGNED(c->cursor_x, VGATEXT_TABSTOP));
-			break;
-		default:
-			vgatext_putchar(c, *buf);
-			break;
-		}
-		++written;
-		++buf;
-	}
-	mutex_unlock(&c->lock);
-	vgatext_update_cursor(c->cursor_x, c->cursor_y);
+    written = 0;
+    mutex_lock(&c->lock);
+    while (n--) {
+        switch (*buf) {
+        case '\b':
+            if (c->cursor_x == 0) {
+                c->cursor_x = VGATEXT_WIDTH - 1;
+                --c->cursor_y;
+            } else {
+                --c->cursor_x;
+            }
+            vgatext_put(c, ' ', c->cursor_x, c->cursor_y);
+            break;
+        case '\n':
+            vgatext_nextrow(c);
+            break;
+        case '\t':
+            do {
+                vgatext_putchar(c, ' ');
+            } while (!ALIGNED(c->cursor_x, VGATEXT_TABSTOP));
+            break;
+        default:
+            vgatext_putchar(c, *buf);
+            break;
+        }
+        ++written;
+        ++buf;
+    }
+    mutex_unlock(&c->lock);
+    vgatext_update_cursor(c->cursor_x, c->cursor_y);
 
-	return written;
+    return written;
 }
 
 /* vgatext_putc: write character `ch` to the VGA text buffer */
 static int vgatext_putc(struct console *c, int ch)
 {
-	char put = ch;
+    char put = ch;
 
-	return vgatext_write(c, &put, 1);
+    return vgatext_write(c, &put, 1);
 }
 
 /*
@@ -203,39 +204,34 @@ static int vgatext_putc(struct console *c, int ch)
  */
 static int vgatext_set_color(struct console *c, int fg, int bg)
 {
-	mutex_lock(&c->lock);
-	if (fg != -1)
-		c->fg_color = fg;
-	if (bg != -1)
-		c->bg_color = bg;
+    mutex_lock(&c->lock);
+    if (fg != -1)
+        c->fg_color = fg;
+    if (bg != -1)
+        c->bg_color = bg;
 
-	c->color = vgatext_entry_color(c->fg_color, c->bg_color);
-	mutex_unlock(&c->lock);
+    c->color = vgatext_entry_color(c->fg_color, c->bg_color);
+    mutex_unlock(&c->lock);
 
-	return 0;
+    return 0;
 }
 
 static int vgatext_move_cursor(struct console *c, int x, int y)
 {
-	c->cursor_x = x;
-	c->cursor_y = y;
-	vgatext_update_cursor(c->cursor_x, c->cursor_y);
+    c->cursor_x = x;
+    c->cursor_y = y;
+    vgatext_update_cursor(c->cursor_x, c->cursor_y);
 
-	return 0;
+    return 0;
 }
 
 /* vgatext_dummy: dummy function for unimplemented operations */
-int vgatext_dummy()
-{
-	return 0;
-}
+int vgatext_dummy() { return 0; }
 
-static struct consfn vgatext_fn = {
-	.init           = vgatext_init,
-	.putc           = vgatext_putc,
-	.write          = vgatext_write,
-	.clear          = vgatext_clear,
-	.set_color      = vgatext_set_color,
-	.move_cursor    = vgatext_move_cursor,
-	.destroy        = vgatext_dummy
-};
+static struct consfn vgatext_fn = {.init = vgatext_init,
+                                   .putc = vgatext_putc,
+                                   .write = vgatext_write,
+                                   .clear = vgatext_clear,
+                                   .set_color = vgatext_set_color,
+                                   .move_cursor = vgatext_move_cursor,
+                                   .destroy = vgatext_dummy};

@@ -30,8 +30,8 @@
  * returns a pointer through a "pointer" containing the negative
  * of one of the standard error values - a large unsigned number.
  */
-#define ERR_PTR(err)    ((void *)(-(err)))
-#define IS_ERR(ptr)     ((unsigned long)ptr >= (unsigned long)(-MAX_ERRNO))
-#define ERR_VAL(ptr)    (-((unsigned long)(ptr)))
+#define ERR_PTR(err) ((void *)(-(err)))
+#define IS_ERR(ptr)  ((unsigned long)ptr >= (unsigned long)(-MAX_ERRNO))
+#define ERR_VAL(ptr) (-((unsigned long)(ptr)))
 
 #endif /* RADIX_ERROR_H */

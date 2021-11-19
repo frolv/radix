@@ -17,41 +17,42 @@
  */
 
 #include <radix/stacktrace.h>
+
 #include <rlibc/stdio.h>
 
 #ifdef DEBUG_STACKTRACE
 
 int stack_trace(char *buf, size_t size)
 {
-	uint32_t *ebp, *eip;
-	char *s;
-	int i, n;
+    uint32_t *ebp, *eip;
+    char *s;
+    int i, n;
 
-	asm volatile("movl %%ebp, %0" : "=r"(ebp));
+    asm volatile("movl %%ebp, %0" : "=r"(ebp));
 
-	--size;
-	n = snprintf(buf, size, "\nstack trace:\n");
-	s = buf + n;
-	size -= n;
+    --size;
+    n = snprintf(buf, size, "\nstack trace:\n");
+    s = buf + n;
+    size -= n;
 
-	/*
-	 * This will terminate properly as the initial value of ebp is always
-	 * set to 0 when a processor starts, or when a process is created.
-	 *
-	 * TODO: replace the null with a symbol lookup once those are supported.
-	 */
-	for (i = 0; ebp && size && i < STACKTRACE_DEPTH; ++i) {
-		eip = ebp + 1;
-		if (*eip) {
-			n = snprintf(s, size, "\t[%p] null\n", *eip);
-			s += n;
-			size -= n;
-		}
-		ebp = (uint32_t *)*ebp;
-	}
-	*s++ = '\n';
+    /*
+     * This will terminate properly as the initial value of ebp is always
+     * set to 0 when a processor starts, or when a process is created.
+     *
+     * TODO: replace the null with a symbol lookup once those are supported.
+     */
+    for (i = 0; ebp && size && i < STACKTRACE_DEPTH; ++i) {
+        eip = ebp + 1;
+        if (*eip) {
+            n = snprintf(s, size, "\t[%p] null\n", *eip);
+            s += n;
+            size -= n;
+        }
+        ebp = (uint32_t *)*ebp;
+    }
+    *s++ = '\n';
 
-	return s - buf;
+    return s - buf;
 }
 
 #endif /* DEBUG_STACKTRACE */

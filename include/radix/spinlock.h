@@ -29,38 +29,38 @@ typedef unsigned long spinlock_t;
 
 static __always_inline int __spinlock_try_acquire(spinlock_t *lock)
 {
-	return atomic_swap(lock, 1) == 0;
+    return atomic_swap(lock, 1) == 0;
 }
 
 static __always_inline void __spinlock_acquire(spinlock_t *lock)
 {
-	while (!__spinlock_try_acquire(lock))
-		;
+    while (!__spinlock_try_acquire(lock))
+        ;
 }
 
 static __always_inline void __spinlock_release(spinlock_t *lock)
 {
-	atomic_write(lock, 0);
+    atomic_write(lock, 0);
 }
 
 static __always_inline void spin_init(spinlock_t *lock)
 {
-	atomic_write(lock, 0);
+    atomic_write(lock, 0);
 }
 
 static __always_inline void spin_lock(spinlock_t *lock)
 {
-	__spinlock_acquire(lock);
+    __spinlock_acquire(lock);
 }
 
 static __always_inline int spin_try_lock(spinlock_t *lock)
 {
-	return __spinlock_try_acquire(lock);
+    return __spinlock_try_acquire(lock);
 }
 
 static __always_inline void spin_unlock(spinlock_t *lock)
 {
-	__spinlock_release(lock);
+    __spinlock_release(lock);
 }
 
 // Attempts to acquire a spinlock with interrupts disabled. If the acquisition
@@ -68,26 +68,26 @@ static __always_inline void spin_unlock(spinlock_t *lock)
 static __always_inline int spin_try_lock_irq(spinlock_t *lock,
                                              unsigned long *irqstate)
 {
-	irq_save(*irqstate);
-	if (__spinlock_try_acquire(lock)) {
-		return 1;
-	}
-	irq_restore(*irqstate);
-	return 0;
+    irq_save(*irqstate);
+    if (__spinlock_try_acquire(lock)) {
+        return 1;
+    }
+    irq_restore(*irqstate);
+    return 0;
 }
 
 static __always_inline void spin_lock_irq(spinlock_t *lock,
                                           unsigned long *irqstate)
 {
-	irq_save(*irqstate);
-	__spinlock_acquire(lock);
+    irq_save(*irqstate);
+    __spinlock_acquire(lock);
 }
 
 static __always_inline void spin_unlock_irq(spinlock_t *lock,
                                             unsigned long irqstate)
 {
-	__spinlock_release(lock);
-	irq_restore(irqstate);
+    __spinlock_release(lock);
+    irq_restore(irqstate);
 }
 
 #endif  // RADIX_SPINLOCK_H

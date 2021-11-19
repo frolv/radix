@@ -23,20 +23,20 @@
 
 /* ACPI Root System Description Pointer descriptor. */
 struct acpi_rsdp {
-	char signature[8];
-	uint8_t checksum;
-	char oem_id[6];
-	uint8_t revision;
-	uint32_t rsdt_addr;
+    char signature[8];
+    uint8_t checksum;
+    char oem_id[6];
+    uint8_t revision;
+    uint32_t rsdt_addr;
 };
 
 /* Extended descriptor introduced in ACPI 2.0 (x86_64 support) */
 struct acpi_rsdp_2 {
-	struct acpi_rsdp rsdp;
-	uint32_t length;
-	uint64_t xsdt_addr;
-	uint8_t ext_checksum;
-	uint8_t reserved[3];
+    struct acpi_rsdp rsdp;
+    uint32_t length;
+    uint64_t xsdt_addr;
+    uint8_t ext_checksum;
+    uint8_t reserved[3];
 };
 
 #endif /* ACPI_RSDP_H */

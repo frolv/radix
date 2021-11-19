@@ -16,11 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <acpi/acpi.h>
-
 #include <radix/asm/apic.h>
 #include <radix/cpu.h>
 #include <radix/timer.h>
+
+#include <acpi/acpi.h>
 
 /*
  * arch_main_setup:
@@ -28,19 +28,19 @@
  */
 void arch_main_setup(void)
 {
-	acpi_init();
-	bsp_init();
+    acpi_init();
+    bsp_init();
 
-	hpet_register();
-	acpi_pm_register();
-	rtc_register();
+    hpet_register();
+    acpi_pm_register();
+    rtc_register();
 
-	/* If there is no APIC, the PIT must be used as a scheduling timer. */
-	if (cpu_supports(CPUID_APIC)) {
-		lapic_timer_calibrate();
-		lapic_timer_register();
-		pit_register();
-	} else {
-		pit_oneshot_register();
-	}
+    /* If there is no APIC, the PIT must be used as a scheduling timer. */
+    if (cpu_supports(CPUID_APIC)) {
+        lapic_timer_calibrate();
+        lapic_timer_register();
+        pit_register();
+    } else {
+        pit_oneshot_register();
+    }
 }

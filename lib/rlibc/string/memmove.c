@@ -21,18 +21,18 @@
 #ifndef __ARCH_HAS_MEMMOVE
 void *memmove(void *dst, const void *src, size_t n)
 {
-	size_t i;
-	unsigned char *d = dst;
-	const unsigned char *s = src;
+    size_t i;
+    unsigned char *d = dst;
+    const unsigned char *s = src;
 
-	if (d < s) {
-		for (i = 0; i < n; ++i)
-			d[i] = s[i];
-	} else {
-		for (i = n; i; --i)
-			d[i - 1] = s[i - 1];
-	}
+    if (d < s) {
+        for (i = 0; i < n; ++i)
+            d[i] = s[i];
+    } else {
+        for (i = n; i; --i)
+            d[i - 1] = s[i - 1];
+    }
 
-	return dst;
+    return dst;
 }
 #endif /* !__ARCH_HAS_MEMMOVE */

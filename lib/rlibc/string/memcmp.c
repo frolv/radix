@@ -20,17 +20,17 @@
 
 int memcmp(const void *s1, const void *s2, size_t n)
 {
-	const unsigned char *a, *b;
-	size_t i;
+    const unsigned char *a, *b;
+    size_t i;
 
-	a = s1;
-	b = s2;
+    a = s1;
+    b = s2;
 
-	for (i = 0; i < n; ++i) {
-		if (a[i] < b[i])
-			return -1;
-		else if (a[i] > b[i])
-			return 1;
-	}
-	return 0;
+    for (i = 0; i < n; ++i) {
+        if (a[i] < b[i])
+            return -1;
+        else if (a[i] > b[i])
+            return 1;
+    }
+    return 0;
 }

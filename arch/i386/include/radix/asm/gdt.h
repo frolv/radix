@@ -20,18 +20,18 @@
 #define ARCH_I386_RADIX_GDT_H
 
 enum {
-	GDT_NULL,
-	GDT_KERNEL_CODE,
-	GDT_KERNEL_DATA,
-	GDT_USER_CODE,
-	GDT_USER_DATA,
-	GDT_TSS,
-	GDT_FS,
-	GDT_GS
+    GDT_NULL,
+    GDT_KERNEL_CODE,
+    GDT_KERNEL_DATA,
+    GDT_USER_CODE,
+    GDT_USER_DATA,
+    GDT_TSS,
+    GDT_FS,
+    GDT_GS
 };
 
 #define GDT_DESCRIPTOR_SIZE 8
-#define GDT_OFFSET(desc) ((desc) * GDT_DESCRIPTOR_SIZE)
+#define GDT_OFFSET(desc)    ((desc)*GDT_DESCRIPTOR_SIZE)
 
 #include <radix/types.h>
 

@@ -20,7 +20,6 @@
 #define RADIX_IPI_H
 
 #include <radix/asm/ipi.h>
-
 #include <radix/cpumask.h>
 
 #define send_panic_ipi       __arch_send_panic_ipi

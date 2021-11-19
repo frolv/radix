@@ -21,11 +21,7 @@
 
 #include <radix/console.h>
 
-enum {
-	KLOG_INFO,
-	KLOG_WARNING,
-	KLOG_ERROR
-};
+enum { KLOG_INFO, KLOG_WARNING, KLOG_ERROR };
 
 int klog(int level, const char *format, ...);
 void klog_set_console(struct console *c);

@@ -19,7 +19,6 @@
 #include <radix/asm/apic.h>
 #include <radix/asm/gdt.h>
 #include <radix/asm/idt.h>
-
 #include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
@@ -42,21 +41,18 @@ static addr_t smp_tramp_start = (addr_t)&__smp_tramp_start;
 static addr_t smp_tramp_end = (addr_t)&__smp_tramp_end;
 
 struct gdt_desc {
-	uint16_t size;
-	uint32_t addr;
+    uint16_t size;
+    uint32_t addr;
 } __packed;
 
 extern struct gdt_desc ap_gdt_desc;
 
 /* initial GDT for application processors */
 static uint64_t ap_gdt[] = {
-	0x0000000000000000,
-	0x00CF9A000000FFFF,
-	0x00CF92000000FFFF
-};
+    0x0000000000000000, 0x00CF9A000000FFFF, 0x00CF92000000FFFF};
 
 static struct {
-	int cpu_number;
+    int cpu_number;
 } ap_boot_info;
 
 /*
@@ -68,43 +64,41 @@ static struct {
  */
 void arch_smp_boot(void)
 {
-	struct page *smp_tramp;
-	size_t smp_tramp_size, gdtr_offset;
-	struct gdt_desc *gd;
+    struct page *smp_tramp;
+    size_t smp_tramp_size, gdtr_offset;
+    struct gdt_desc *gd;
 
-	if (!system_smp_capable())
-		return;
+    if (!system_smp_capable())
+        return;
 
-	smp_tramp = alloc_page(PA_LOWMEM);
-	if (IS_ERR(smp_tramp))
-		panic("could not allocate memory for smp trampoline: %s\n",
-		      strerror(ERR_VAL(smp_tramp)));
+    smp_tramp = alloc_page(PA_LOWMEM);
+    if (IS_ERR(smp_tramp))
+        panic("could not allocate memory for smp trampoline: %s\n",
+              strerror(ERR_VAL(smp_tramp)));
 
-	smp_tramp_size = ALIGN(smp_tramp_end - smp_tramp_start, 8);
-	gdtr_offset = (addr_t)&ap_gdt_desc - smp_tramp_start;
+    smp_tramp_size = ALIGN(smp_tramp_end - smp_tramp_start, 8);
+    gdtr_offset = (addr_t)&ap_gdt_desc - smp_tramp_start;
 
-	/* identity map the trampoline page for when APs enable paging */
-	map_page_kernel(virt_to_phys(smp_tramp_start),
-	                virt_to_phys(smp_tramp_start),
-                        PROT_WRITE, PAGE_CP_DEFAULT);
+    /* identity map the trampoline page for when APs enable paging */
+    map_page_kernel(virt_to_phys(smp_tramp_start),
+                    virt_to_phys(smp_tramp_start),
+                    PROT_WRITE,
+                    PAGE_CP_DEFAULT);
 
-	memcpy(smp_tramp->mem, (void *)smp_tramp_start, smp_tramp_size);
+    memcpy(smp_tramp->mem, (void *)smp_tramp_start, smp_tramp_size);
 
-	/* point the gdt descriptor to the AP GDT */
-	gd = smp_tramp->mem + gdtr_offset;
-	gd->size = sizeof ap_gdt;
-	gd->addr = virt_to_phys(ap_gdt);
+    /* point the gdt descriptor to the AP GDT */
+    gd = smp_tramp->mem + gdtr_offset;
+    gd->size = sizeof ap_gdt;
+    gd->addr = virt_to_phys(ap_gdt);
 
-	apic_start_smp(page_to_pfn(smp_tramp));
+    apic_start_smp(page_to_pfn(smp_tramp));
 
-	unmap_page(smp_tramp_start);
-	free_pages(smp_tramp);
+    unmap_page(smp_tramp_start);
+    free_pages(smp_tramp);
 }
 
-void prepare_ap_boot(int cpu_number)
-{
-	ap_boot_info.cpu_number = cpu_number;
-}
+void prepare_ap_boot(int cpu_number) { ap_boot_info.cpu_number = cpu_number; }
 
 void ap_switch_stack(void *stack);
 void ap_stop(void);
@@ -119,32 +113,32 @@ DECLARE_PER_CPU(void *, cpu_stack);
  */
 void ap_entry(void)
 {
-	int cpu;
-	struct page *p;
-	void *stack_top;
-	addr_t offset;
+    int cpu;
+    struct page *p;
+    void *stack_top;
+    addr_t offset;
 
-	cpu = ap_boot_info.cpu_number;
-	offset = __percpu_offset[cpu];
+    cpu = ap_boot_info.cpu_number;
+    offset = __percpu_offset[cpu];
 
-	gdt_init_cpu(cpu, offset);
-	this_cpu_write(processor_id, cpu);
-	this_cpu_write(__this_cpu_offset, offset);
+    gdt_init_cpu(cpu, offset);
+    this_cpu_write(processor_id, cpu);
+    this_cpu_write(__this_cpu_offset, offset);
 
-	p = alloc_page(PA_STANDARD);
-	stack_top = p->mem + PAGE_SIZE;
-	this_cpu_write(cpu_stack, stack_top);
+    p = alloc_page(PA_STANDARD);
+    stack_top = p->mem + PAGE_SIZE;
+    this_cpu_write(cpu_stack, stack_top);
 
-	ap_switch_stack(stack_top);
+    ap_switch_stack(stack_top);
 }
 
 /* ap_shutdown: halt the executing processor */
 static void ap_shutdown(void)
 {
-	klog(KLOG_ERROR, SMPBOOT "shutting down processor %d", processor_id());
+    klog(KLOG_ERROR, SMPBOOT "shutting down processor %d", processor_id());
 
-	set_cpu_offline(processor_id());
-	ap_stop();
+    set_cpu_offline(processor_id());
+    ap_stop();
 }
 
 /*
@@ -153,27 +147,27 @@ static void ap_shutdown(void)
  */
 void ap_init(void)
 {
-	/*
-	 * Notify the BSP that the AP is active and running independently,
-	 * allowing the next processor to be started.
-	 * Beyond this point, multiple processors run simultaneously
-	 * and synchronization is necessary.
-	 */
-	set_ap_active();
+    /*
+     * Notify the BSP that the AP is active and running independently,
+     * allowing the next processor to be started.
+     * Beyond this point, multiple processors run simultaneously
+     * and synchronization is necessary.
+     */
+    set_ap_active();
 
-	read_cpu_info();
+    read_cpu_info();
 
-	if (cpu_init(1) != 0)
-		ap_shutdown();
+    if (cpu_init(1) != 0)
+        ap_shutdown();
 
-	if (percpu_init(1) != 0)
-		ap_shutdown();
+    if (percpu_init(1) != 0)
+        ap_shutdown();
 
-	idt_init();
-	sched_init();
+    idt_init();
+    sched_init();
 
-	// Hop over to the first task on this processor.
-	schedule(SCHED_REPLACE);
+    // Hop over to the first task on this processor.
+    schedule(SCHED_REPLACE);
 }
 
 #endif  // CONFIG(SMP)

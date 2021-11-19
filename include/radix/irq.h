@@ -26,17 +26,19 @@
 typedef void (*irq_handler_t)(void *);
 
 struct irq_descriptor {
-	irq_handler_t           handler;
-	void                    *device;
-	unsigned long           flags;
-	struct irq_descriptor   *next;
+    irq_handler_t handler;
+    void *device;
+    unsigned long flags;
+    struct irq_descriptor *next;
 };
 
-#define IRQ_ALLOW_SHARED        (1 << 0)
+#define IRQ_ALLOW_SHARED (1 << 0)
 
-__must_check int request_irq(void *device, irq_handler_t handler,
+__must_check int request_irq(void *device,
+                             irq_handler_t handler,
                              unsigned long flags);
-__must_check int request_fixed_irq(unsigned int irq, void *device,
+__must_check int request_fixed_irq(unsigned int irq,
+                                   void *device,
                                    irq_handler_t handler);
 void release_irq(unsigned int irq, void *device);
 
@@ -50,9 +52,9 @@ void release_irq(unsigned int irq, void *device);
 
 #define SYSCALL_INTERRUPT 0x80
 
-#define SYSCALL_VECTOR  __ARCH_SYSCALL_VECTOR
+#define SYSCALL_VECTOR __ARCH_SYSCALL_VECTOR
 
-#define irq_init        __arch_irq_init
-#define in_irq          __arch_in_irq
+#define irq_init __arch_irq_init
+#define in_irq   __arch_in_irq
 
 #endif /* RADIX_IRQ_H */

@@ -33,74 +33,74 @@
 //
 //   mov REGS_SP(%edx, 100), %esp  ->  mov 108(%edx), %esp
 //
-#define REGS_DI(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_DI, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_DI(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_DI, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_SI(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_SI, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_SI(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_SI, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_SP(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_SP, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_SP(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_SP, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_BP(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_BP, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_BP(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_BP, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_BX(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_BX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_BX(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_BX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_DX(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_DX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_DX(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_DX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_CX(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_CX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_CX(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_CX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_AX(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_AX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_AX(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_AX, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_GS(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_GS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_GS(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_GS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_FS(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_FS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_FS(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_FS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_ES(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_ES, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_ES(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_ES, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_DS(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_DS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_DS(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_DS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_CS(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_CS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_CS(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_CS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_SS(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_SS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_SS(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_SS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
-#define REGS_IP(base, ...)   \
-	__REGS_OFFSET_COUNT( \
-		__OFFSET_IP, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+#define REGS_IP(base, ...) \
+    __REGS_OFFSET_COUNT(   \
+        __OFFSET_IP, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
 #define REGS_FLAGS(base, ...) \
-	__REGS_OFFSET_COUNT(  \
-		__OFFSET_FLAGS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
+    __REGS_OFFSET_COUNT(      \
+        __OFFSET_FLAGS, base, ARG_COUNT(##__VA_ARGS__), ##__VA_ARGS__)
 
 // The offsets of values within an x86 `struct regs` (asm/regs.h) from a base.
-#define __OFFSET_DI     0
-#define __OFFSET_SI     4
-#define __OFFSET_SP     8
+#define __OFFSET_DI    0
+#define __OFFSET_SI    4
+#define __OFFSET_SP    8
 #define __OFFSET_BP    12
 #define __OFFSET_BX    16
 #define __OFFSET_DX    20
@@ -116,19 +116,18 @@
 #define __OFFSET_FLAGS 60
 
 #define __REGS_OFFSET(reg_offset, base, addl_offset) \
-	(reg_offset + addl_offset)(base)
+    (reg_offset + addl_offset)(base)
 
 #define __REGS_OFFSET_0(reg_offset, base, ...) \
-	__REGS_OFFSET(reg_offset, base, 0)
+    __REGS_OFFSET(reg_offset, base, 0)
 #define __REGS_OFFSET_1(reg_offset, base, ...) \
-	__REGS_OFFSET(reg_offset, base, __VA_ARGS__)
+    __REGS_OFFSET(reg_offset, base, __VA_ARGS__)
 
 #define __REGS_OFFSET_COUNT_EVAL(reg_offset, base, count, ...) \
-	__REGS_OFFSET_##count(reg_offset, base, __VA_ARGS__)
+    __REGS_OFFSET_##count(reg_offset, base, __VA_ARGS__)
 #define __REGS_OFFSET_COUNT(reg_offset, base, count, ...) \
-	__REGS_OFFSET_COUNT_EVAL(reg_offset, base, count, __VA_ARGS__)
+    __REGS_OFFSET_COUNT_EVAL(reg_offset, base, count, __VA_ARGS__)
 
-#endif // __ASSEMBLY__
+#endif  // __ASSEMBLY__
 
-#endif // ARCH_I386_RADIX_REGS_ASM_H
-
+#endif  // ARCH_I386_RADIX_REGS_ASM_H

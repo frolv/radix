@@ -20,10 +20,10 @@
 
 char *strchr(const char *s, int c)
 {
-	while (*s) {
-		if (*s == c)
-			return (char *)s;
-		++s;
-	}
-	return NULL;
+    while (*s) {
+        if (*s == c)
+            return (char *)s;
+        ++s;
+    }
+    return NULL;
 }

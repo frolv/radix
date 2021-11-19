@@ -36,13 +36,13 @@
 
 static __always_inline unsigned int fns(uint32_t x, unsigned int bit)
 {
-	int ret;
+    int ret;
 
-	if (!bit)
-		return 0;
+    if (!bit)
+        return 0;
 
-	ret = ffs(x >> bit);
-	return ret ? bit + ret : 0;
+    ret = ffs(x >> bit);
+    return ret ? bit + ret : 0;
 }
 
 #define pow2(x) (1U << (x))

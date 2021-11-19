@@ -19,38 +19,38 @@
 #ifndef LIB_RLIBC_STDIO_PRINTF_H
 #define LIB_RLIBC_STDIO_PRINTF_H
 
-#define FLAGS_ZERO      (1 << 0)        /* pad with zeros */
-#define FLAGS_LOWER     (1 << 1)        /* lowercase in hex */
-#define FLAGS_SHORT     (1 << 2)        /* short int */
-#define FLAGS_LONG      (1 << 3)        /* long int */
-#define FLAGS_LLONG     (1 << 4)        /* long long int */
-#define FLAGS_SPECIAL   (1 << 5)        /* add special characters */
+#define FLAGS_ZERO    (1 << 0) /* pad with zeros */
+#define FLAGS_LOWER   (1 << 1) /* lowercase in hex */
+#define FLAGS_SHORT   (1 << 2) /* short int */
+#define FLAGS_LONG    (1 << 3) /* long int */
+#define FLAGS_LLONG   (1 << 4) /* long long int */
+#define FLAGS_SPECIAL (1 << 5) /* add special characters */
 
 enum format_type {
-	FORMAT_NONE,
-	FORMAT_INVALID,
-	FORMAT_CHAR,
-	FORMAT_STR,
-	FORMAT_INT,
-	FORMAT_UINT,
-	FORMAT_PERCENT
+    FORMAT_NONE,
+    FORMAT_INVALID,
+    FORMAT_CHAR,
+    FORMAT_STR,
+    FORMAT_INT,
+    FORMAT_UINT,
+    FORMAT_PERCENT
 };
 
 struct printf_format {
-	unsigned int    type:8;
-	unsigned int    base:8;
-	unsigned int    flags:8;
-	signed int      width:24;
-	signed int      precision:16;
+    unsigned int type : 8;
+    unsigned int base : 8;
+    unsigned int flags : 8;
+    signed int width : 24;
+    signed int precision : 16;
 } __attribute__((packed));
 
-#define va_int_type(ap, p, sign)                                        \
-({                                                                      \
-	(p.flags & FLAGS_LLONG) ? va_arg(ap, sign long long)       :    \
-	(p.flags & FLAGS_LONG)  ? (sign long)va_arg(ap, sign long) :    \
-	(p.flags & FLAGS_SHORT) ? (sign short)va_arg(ap, sign int) :    \
-	                          (sign int)va_arg(ap, sign int);       \
-})
+#define va_int_type(ap, p, sign)                                     \
+    ({                                                               \
+        (p.flags & FLAGS_LLONG)   ? va_arg(ap, sign long long)       \
+        : (p.flags & FLAGS_LONG)  ? (sign long)va_arg(ap, sign long) \
+        : (p.flags & FLAGS_SHORT) ? (sign short)va_arg(ap, sign int) \
+                                  : (sign int)va_arg(ap, sign int);  \
+    })
 
 int get_format(const char *format, struct printf_format *p);
 

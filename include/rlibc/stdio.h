@@ -19,8 +19,9 @@
 #ifndef RLIBC_STDIO_H
 #define RLIBC_STDIO_H
 
-#include <stdarg.h>
 #include <radix/types.h>
+
+#include <stdarg.h>
 
 #define EOF (-1)
 
