@@ -19,6 +19,7 @@
 #ifndef RADIX_LIST_H
 #define RADIX_LIST_H
 
+#include <radix/assert.h>
 #include <radix/compiler.h>
 
 struct list {
@@ -33,6 +34,11 @@ static __always_inline void list_init(struct list *list)
 	list->next = list->prev = list;
 }
 
+static __always_inline int list_empty(struct list *head)
+{
+	return head->next == head;
+}
+
 /*
  * Insert elem into the list between the entries head and prev.
  * This is internal for the two functions below.
@@ -40,6 +46,8 @@ static __always_inline void list_init(struct list *list)
 static __always_inline void __insert(struct list *elem, struct list *prev,
                                      struct list *next)
 {
+	assert(list_empty(elem));
+
 	elem->next = next;
 	elem->prev = prev;
 	next->prev = elem;
@@ -70,11 +78,6 @@ static __always_inline void list_del(struct list *elem)
 	elem->prev->next = elem->next;
 	elem->next->prev = elem->prev;
 	elem->prev = elem->next = elem;
-}
-
-static __always_inline int list_empty(struct list *head)
-{
-	return head->next == head;
 }
 
 #define list_entry(ptr, type, member) \

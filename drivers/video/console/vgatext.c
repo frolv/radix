@@ -51,6 +51,7 @@ static struct consfn vgatext_fn;
 
 void vgatext_register(void)
 {
+	list_init(&vgatext_console.list);
 	console_register(&vgatext_console, "vgatext", &vgatext_fn, 1);
 	klog_set_console(&vgatext_console);
 }
