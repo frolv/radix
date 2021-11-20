@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/idt.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,25 @@
 #ifndef ARCH_I386_RADIX_IDT_H
 #define ARCH_I386_RADIX_IDT_H
 
+#include <radix/asm/gdt.h>
 #include <radix/types.h>
 
 #define IDT_ENTRIES 256
 
 void idt_init_early(void);
 void idt_init(void);
-void idt_set(size_t intno, void (*intfn)(void), uint16_t sel, uint8_t flags);
 
-#endif /* ARCH_I386_RADIX_IDT_H */
+// Sets a single interrupt vector in the IDT.
+void idt_set(size_t vector,
+             void (*intfn)(void),
+             uint16_t selector,
+             uint8_t gate);
+
+// Clears an interrupt vector.
+static inline void idt_unset(size_t vector) { idt_set(vector, NULL, 0, 0); }
+
+#define IDT_32BIT_TASK_GATE      0x85
+#define IDT_32BIT_INTERRUPT_GATE 0x8e
+#define IDT_32BIT_TRAP_GATE      0x8f
+
+#endif  // ARCH_I386_RADIX_IDT_H

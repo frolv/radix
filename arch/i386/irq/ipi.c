@@ -30,12 +30,28 @@ void tlb_shootdown(void);
 void timer_action(void);
 void sched_wake(void);
 
+// Configures IPI vectors.
 void arch_ipi_init(void)
 {
-    idt_set(IPI_VEC_PANIC, panic_shutdown, 0x08, 0x8E);
-    idt_set(IPI_VEC_TLB_SHOOTDOWN, tlb_shootdown, 0x08, 0x8E);
-    idt_set(IPI_VEC_TIMER_ACTION, timer_action, 0x08, 0x8E);
-    idt_set(IPI_VEC_SCHED_WAKE, sched_wake, 0x08, 0x8E);
+    idt_set(IPI_VEC_PANIC,
+            panic_shutdown,
+            GDT_OFFSET(GDT_KERNEL_CODE),
+            IDT_32BIT_INTERRUPT_GATE);
+
+    idt_set(IPI_VEC_TLB_SHOOTDOWN,
+            tlb_shootdown,
+            GDT_OFFSET(GDT_KERNEL_CODE),
+            IDT_32BIT_INTERRUPT_GATE);
+
+    idt_set(IPI_VEC_TIMER_ACTION,
+            timer_action,
+            GDT_OFFSET(GDT_KERNEL_CODE),
+            IDT_32BIT_INTERRUPT_GATE);
+
+    idt_set(IPI_VEC_SCHED_WAKE,
+            sched_wake,
+            GDT_OFFSET(GDT_KERNEL_CODE),
+            IDT_32BIT_INTERRUPT_GATE);
 }
 
 void i386_send_panic_ipi(void)

@@ -750,7 +750,10 @@ void lapic_error_handler(void)
 
 static void lapic_interrupt_setup(void)
 {
-    idt_set(APIC_VEC_ERROR, lapic_error, 0x08, 0x8E);
+    idt_set(APIC_VEC_ERROR,
+            lapic_error,
+            GDT_OFFSET(GDT_KERNEL_CODE),
+            IDT_32BIT_TRAP_GATE);
 }
 
 static void __lapic_send_ipi(uint8_t vec,
@@ -932,7 +935,10 @@ static void lapic_timer_schedule_irq(uint64_t ticks)
 static int lapic_timer_enable(void)
 {
     set_percpu_irq_timer_data(this_cpu_ptr(&lapic_timer_percpu));
-    idt_set(APIC_VEC_TIMER, event_irq, 0x08, 0x8E);
+    idt_set(APIC_VEC_TIMER,
+            event_irq,
+            GDT_OFFSET(GDT_KERNEL_CODE),
+            IDT_32BIT_INTERRUPT_GATE);
     lapic_timer.flags |= TIMER_ENABLED;
     return 0;
 }
@@ -940,7 +946,7 @@ static int lapic_timer_enable(void)
 static int lapic_timer_disable(void)
 {
     lapic_reg_write(APIC_REG_TIMER_INITIAL, 0);
-    idt_set(APIC_VEC_TIMER, NULL, 0, 0);
+    idt_unset(APIC_VEC_TIMER);
     lapic_timer.flags &= ~TIMER_ENABLED;
     return 0;
 }
