@@ -1,6 +1,6 @@
 /*
  * arch/i386/irq/interrupts.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,14 +38,16 @@ static void irq_nop(void *device);
 #define DEFAULT_SHARED_VECTOR IRQ_TO_VECTOR(9)
 
 /* interrupt handler functions */
-static struct irq_descriptor irq_descriptors[NUM_INTERRUPT_VECTORS] = {
-    [0 ... NUM_INTERRUPT_VECTORS - 1] = {
+static struct irq_descriptor irq_descriptors[X86_NUM_INTERRUPT_VECTORS] = {
+    [0 ... X86_NUM_INTERRUPT_VECTORS - 1] = {
         .handler = irq_nop, .device = NULL, .flags = 0, .next = NULL}};
 
-static uint8_t num_irq_descriptors[NUM_INTERRUPT_VECTORS] = {
-    [0 ... NUM_INTERRUPT_VECTORS - 1] = 1};
+static uint8_t num_irq_descriptors[X86_NUM_INTERRUPT_VECTORS] = {
+    [0 ... X86_NUM_INTERRUPT_VECTORS - 1] = 1};
 
 static unsigned int next_shared_vector;
+
+static spinlock_t irq_vector_spinlock = SPINLOCK_INIT;
 
 static void __add_irq_desc(struct irq_descriptor *head,
                            struct irq_descriptor *desc)
@@ -85,10 +87,11 @@ static int __find_available_vector(unsigned long flags)
     unsigned int vector;
 
     vector = IRQ_BASE + system_pic->irq_count;
-    for (; vector < NUM_INTERRUPT_VECTORS; ++vector) {
+    for (; vector <= X86_LAST_ASSIGNABLE_VECTOR; ++vector) {
         desc = &irq_descriptors[vector];
-        if (!(desc->flags & IRQ_RESERVED) && desc->handler == irq_nop)
+        if (!(desc->flags & IRQ_RESERVED) && desc->handler == irq_nop) {
             return vector;
+        }
     }
 
     /* no IRQs available and device doesn't allow sharing */
@@ -108,16 +111,17 @@ static void __update_next_shared_vector(void)
 
     if (!next_shared_vector) {
         next_shared_vector = IRQ_BASE + system_pic->irq_count;
-        end = NUM_INTERRUPT_VECTORS - 1;
+        end = X86_LAST_ASSIGNABLE_VECTOR;
     } else if (next_shared_vector == IRQ_BASE + system_pic->irq_count) {
-        end = NUM_INTERRUPT_VECTORS - 1;
+        end = X86_LAST_ASSIGNABLE_VECTOR;
     } else {
         end = next_shared_vector - 1;
     }
 
     for (; next_shared_vector != end; ++next_shared_vector) {
-        if (next_shared_vector >= NUM_INTERRUPT_VECTORS)
+        if (next_shared_vector > X86_LAST_ASSIGNABLE_VECTOR) {
             next_shared_vector = IRQ_BASE + system_pic->irq_count;
+        }
 
         desc = &irq_descriptors[next_shared_vector];
         if (!(desc->flags & IRQ_RESERVED) &&
@@ -131,11 +135,14 @@ static void __update_next_shared_vector(void)
 
 int __arch_request_irq(struct irq_descriptor *desc)
 {
-    int vector;
+    unsigned long irqstate;
+    spin_lock_irq(&irq_vector_spinlock, &irqstate);
 
-    vector = __find_available_vector(desc->flags);
-    if (vector < 0)
+    int vector = __find_available_vector(desc->flags);
+    if (vector < 0) {
+        spin_unlock_irq(&irq_vector_spinlock, irqstate);
         return vector;
+    }
 
     if (irq_descriptors[vector].handler == irq_nop) {
         memcpy(&irq_descriptors[vector], desc, sizeof *desc);
@@ -146,6 +153,7 @@ int __arch_request_irq(struct irq_descriptor *desc)
     }
     __update_next_shared_vector();
 
+    spin_unlock_irq(&irq_vector_spinlock, irqstate);
     return VECTOR_TO_IRQ(vector);
 }
 
@@ -154,18 +162,24 @@ int __arch_request_fixed_irq(unsigned int irq,
                              irq_handler_t handler)
 {
     struct irq_descriptor *desc;
+    unsigned long irqstate;
     unsigned int vector;
 
-    if (irq >= system_pic->irq_count)
+    if (irq >= system_pic->irq_count) {
         return EINVAL;
+    }
+
+    spin_lock_irq(&irq_vector_spinlock, &irqstate);
 
     vector = IRQ_TO_VECTOR(irq);
     if (irq_descriptors[vector].handler == irq_nop) {
         desc = &irq_descriptors[vector];
     } else {
         desc = kmalloc(sizeof *desc);
-        if (!desc)
+        if (!desc) {
+            spin_unlock_irq(&irq_vector_spinlock, irqstate);
             return ENOMEM;
+        }
 
         __add_irq_desc(&irq_descriptors[vector], desc);
         ++num_irq_descriptors[vector];
@@ -175,6 +189,7 @@ int __arch_request_fixed_irq(unsigned int irq,
     desc->device = device;
     desc->next = NULL;
 
+    spin_unlock_irq(&irq_vector_spinlock, irqstate);
     return 0;
 }
 
@@ -184,17 +199,19 @@ int __arch_request_fixed_irq(unsigned int irq,
  */
 void __arch_release_irq(unsigned int irq, void *device)
 {
-    struct irq_descriptor *desc, *tmp;
-    unsigned int vector;
+    unsigned long irqstate;
+    spin_lock_irq(&irq_vector_spinlock, &irqstate);
 
-    vector = IRQ_TO_VECTOR(irq);
-    desc = __find_irq_desc(vector, device);
-    if (!desc)
+    unsigned int vector = IRQ_TO_VECTOR(irq);
+    struct irq_descriptor *desc = __find_irq_desc(vector, device);
+    if (!desc) {
+        spin_unlock_irq(&irq_vector_spinlock, irqstate);
         return;
+    }
 
     if (desc == &irq_descriptors[vector]) {
         if (desc->next) {
-            tmp = desc->next;
+            struct irq_descriptor *tmp = desc->next;
             memcpy(desc, desc->next, sizeof *desc);
             --num_irq_descriptors[vector];
             kfree(tmp);
@@ -202,29 +219,28 @@ void __arch_release_irq(unsigned int irq, void *device)
             desc->handler = irq_nop;
             desc->device = NULL;
             desc->flags = 0;
-            if (irq <= system_pic->irq_count)
+            if (irq <= system_pic->irq_count) {
                 system_pic->mask(irq);
+            }
         }
     } else {
         __del_irq_desc(&irq_descriptors[vector].next, desc);
         kfree(desc);
         --num_irq_descriptors[vector];
     }
+
+    spin_unlock_irq(&irq_vector_spinlock, irqstate);
 }
 
-/*
- * interrupt_handler:
- * Common interrupt handler. Calls handler functions for specified interrupt.
- */
-void interrupt_handler(__unused struct regs *regs, int intno)
+// Common interrupt handler. Calls handler functions for specified interrupt.
+void interrupt_handler(__unused struct interrupt_context *intctx, int vector)
 {
-    struct irq_descriptor *desc;
+    system_pic->eoi(vector);
 
-    system_pic->eoi(intno);
-
-    desc = &irq_descriptors[intno];
-    for (; desc; desc = desc->next)
+    struct irq_descriptor *desc = &irq_descriptors[vector];
+    for (; desc; desc = desc->next) {
         desc->handler(desc->device);
+    }
 }
 
 int in_interrupt(void) { return !!this_cpu_read(interrupt_depth); }
@@ -234,8 +250,9 @@ void interrupt_init(void)
     size_t irq;
 
     /* reserve all PIC interrupts */
-    for (irq = 0; irq < system_pic->irq_count; ++irq)
+    for (irq = 0; irq < system_pic->irq_count; ++irq) {
         irq_descriptors[IRQ_TO_VECTOR(irq)].flags |= IRQ_RESERVED;
+    }
 
     irq_descriptors[APIC_VEC_NMI].flags |= IRQ_RESERVED;
     irq_descriptors[APIC_VEC_SMI].flags |= IRQ_RESERVED;

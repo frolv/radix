@@ -20,9 +20,8 @@
 #define ARCH_I386_RADIX_IDT_H
 
 #include <radix/asm/gdt.h>
+#include <radix/irq.h>
 #include <radix/types.h>
-
-#define IDT_ENTRIES 256
 
 void idt_init_early(void);
 void idt_init(void);

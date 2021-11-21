@@ -22,15 +22,6 @@
 #include <radix/mm_types.h>
 #include <radix/types.h>
 
-#define APIC_VEC_TIMER    0x22
-#define APIC_VEC_NMI      0xE0
-#define APIC_VEC_SMI      0xE1
-#define APIC_VEC_EXTINT   0xE2
-#define APIC_VEC_ERROR    0xE3
-#define APIC_VEC_THERMAL  0xE4
-#define APIC_VEC_CMCI     0xE5
-#define APIC_VEC_SPURIOUS 0xFF
-
 extern paddr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
 extern unsigned int ioapics_available;

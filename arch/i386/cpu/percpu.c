@@ -1,6 +1,6 @@
 /*
  * arch/i386/cpu/percpu.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,10 @@
 #include <radix/percpu.h>
 #include <radix/smp.h>
 
+#include <stdbool.h>
+
+#include "exceptions.h"
+
 #define BOOT_PERCPU_OFFSET 0
 
 DEFINE_PER_CPU(unsigned long, __this_cpu_offset);
@@ -30,21 +34,16 @@ void arch_percpu_init_early(void)
     this_cpu_write(__this_cpu_offset, BOOT_PERCPU_OFFSET);
 }
 
-/*
- * arch_percpu_init:
- * Initialize all architecture-specific per-CPU variables.
- */
-int arch_percpu_init(int ap)
+// Initialize all architecture-specific per-CPU variables.
+int arch_percpu_init(bool is_ap)
 {
     addr_t offset;
 
-    if (ap) {
-        /* TODO */
+    if (is_ap) {
+        this_cpu_write(unhandled_exceptions, 0);
     } else {
-        /*
-         * Complete BSP per-CPU initialization by setting its
-         * fsbase to its newly allocated per-CPU section offset.
-         */
+        // Complete BSP per-CPU initialization by setting its
+        // fsbase to its newly allocated per-CPU section offset.
         offset = __percpu_offset[processor_id()];
         gdt_set_fsbase(offset);
         this_cpu_write(__this_cpu_offset, offset);
