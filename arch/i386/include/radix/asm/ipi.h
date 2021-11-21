@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/ipi.h
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,6 @@
 #ifndef ARCH_I386_RADIX_IPI_H
 #define ARCH_I386_RADIX_IPI_H
 
-#define IPI_VEC_PANIC         0xF0
-#define IPI_VEC_TLB_SHOOTDOWN 0xF1
-#define IPI_VEC_TIMER_ACTION  0xF2
-#define IPI_VEC_SCHED_WAKE    0xF3
-
 #define __arch_send_panic_ipi       i386_send_panic_ipi
 #define __arch_send_timer_ipi       i386_send_timer_ipi
 #define __arch_send_sched_wake(cpu) i386_send_sched_wake(cpu)
@@ -32,4 +27,4 @@ void i386_send_panic_ipi(void);
 void i386_send_timer_ipi(void);
 void i386_send_sched_wake(int cpu);
 
-#endif /* ARCH_I386_RADIX_IPI_H */
+#endif  // ARCH_I386_RADIX_IPI_H

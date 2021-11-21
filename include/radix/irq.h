@@ -45,16 +45,12 @@ void release_irq(unsigned int irq, void *device);
 #define mask_irq(irq)   __arch_mask_irq(irq)
 #define unmask_irq(irq) __arch_unmask_irq(irq)
 
+#define irq_init __arch_irq_init
+#define in_irq   __arch_in_irq
+
 #endif /* __KERNEL__ */
 
 #include <radix/asm/irq.h>
 #include <radix/irqstate.h>
-
-#define SYSCALL_INTERRUPT 0x80
-
-#define SYSCALL_VECTOR __ARCH_SYSCALL_VECTOR
-
-#define irq_init __arch_irq_init
-#define in_irq   __arch_in_irq
 
 #endif /* RADIX_IRQ_H */

@@ -360,7 +360,7 @@ int ioapic_set_bus(struct ioapic *ioapic, unsigned int pin, int bus_type)
 
 int ioapic_set_irq(struct ioapic *ioapic, unsigned int pin, int irq)
 {
-    if (pin >= ioapic->irq_count || irq > NUM_INTERRUPT_VECTORS - IRQ_BASE)
+    if (pin >= ioapic->irq_count || irq > X86_NUM_INTERRUPT_VECTORS - IRQ_BASE)
         return EINVAL;
 
     ioapic->pins[pin].irq = irq;
@@ -724,7 +724,7 @@ void lapic_error_handler(void)
 {
     uint32_t esr;
 
-    system_pic->eoi(0);
+    system_pic->eoi(APIC_VEC_ERROR);
 
     /* clear existing errors and update ESR */
     lapic_reg_write(APIC_REG_ESR, 0);
@@ -805,7 +805,7 @@ static void lapic_send_ipi_phys(uint8_t vec,
 
 static int lapic_send_ipi_flat(unsigned int vec, cpumask_t cpumask)
 {
-    if (vec < IRQ_BASE || vec > NUM_INTERRUPT_VECTORS)
+    if (vec < IRQ_BASE || vec > X86_NUM_INTERRUPT_VECTORS)
         return EINVAL;
 
     lapic_send_ipi(vec, cpumask & 0xFF, 0, APIC_INT_MODE_FIXED);
@@ -822,7 +822,7 @@ static int lapic_send_ipi_cluster(unsigned int vec, cpumask_t cpumask)
     int cluster, ids, cpu_id;
     cpumask_t online;
 
-    if (vec < IRQ_BASE || vec > NUM_INTERRUPT_VECTORS)
+    if (vec < IRQ_BASE || vec > X86_NUM_INTERRUPT_VECTORS)
         return EINVAL;
 
     online = cpumask_online();

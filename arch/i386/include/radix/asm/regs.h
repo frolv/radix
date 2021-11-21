@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/regs.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,10 @@
 #include <radix/mm_types.h>
 #include <radix/types.h>
 
+// Registers in an x86 system. Must be kept in sync with regs_asm.h and
+// arch/i386/irq/isr.S.
 struct regs {
-    /* gprs */
+    // GPRs
     uint32_t di;
     uint32_t si;
     uint32_t sp;
@@ -33,7 +35,7 @@ struct regs {
     uint32_t cx;
     uint32_t ax;
 
-    /* segment registers */
+    // Segment registers
     uint32_t gs;
     uint32_t fs;
     uint32_t es;
@@ -43,10 +45,16 @@ struct regs {
 
     uint32_t ip;
     uint32_t flags;
+
+    // TODO(frolv): FPU, SSE, etc.
 };
 
+// The layout of the stack during an interrupt, as set up by _interrupt_common
+// in arch/i386/irq/isr.S.
 struct interrupt_context {
     struct regs regs;
+    uint32_t handler;
+    uint32_t code;
     uint32_t ip;
     uint32_t cs;
     uint32_t flags;
@@ -56,4 +64,4 @@ struct interrupt_context {
 
 void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg);
 
-#endif /* ARCH_I386_RADIX_REGS_H */
+#endif  // ARCH_I386_RADIX_REGS_H

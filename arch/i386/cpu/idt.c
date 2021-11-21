@@ -24,9 +24,9 @@
 #include "exceptions.h"
 #include "pic8259.h"
 
-static uint64_t idt[IDT_ENTRIES];
+static uint64_t idt[X86_NUM_INTERRUPT_VECTORS];
 
-extern uint64_t irq_fn[NUM_INTERRUPT_VECTORS - NUM_EXCEPTION_VECTORS];
+extern uint64_t irq_fn[X86_NUM_ASSIGNABLE_VECTORS];
 extern void idt_load(void *base, size_t s);
 
 static uint64_t idt_pack(uintptr_t intfn, uint16_t selector, uint8_t gate)
@@ -44,7 +44,10 @@ static uint64_t idt_pack(uintptr_t intfn, uint16_t selector, uint8_t gate)
 }
 
 // Sets a single interrupt vector in the IDT.
-void idt_set(size_t vector, void (*intfn)(void), uint16_t selector, uint8_t gate)
+void idt_set(size_t vector,
+             void (*intfn)(void),
+             uint16_t selector,
+             uint8_t gate)
 {
     idt[vector] = idt_pack((uintptr_t)intfn, selector, gate);
 }

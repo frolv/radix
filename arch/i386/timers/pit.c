@@ -176,7 +176,10 @@ static int pit_oneshot_enable(void)
          PIT_CHANNEL_0 | PIT_ACCESS_MODE_LO_HI | PIT_MODE_TERMINAL);
     pit_data_port_write(PIT_CHANNEL_0_PORT, 0);
 
-    idt_set(IRQ_TO_VECTOR(PIT_IRQ), event_irq, 0x08, 0x8E);
+    idt_set(IRQ_TO_VECTOR(PIT_IRQ),
+            event_irq,
+            GDT_OFFSET(GDT_KERNEL_CODE),
+            IDT_32BIT_INTERRUPT_GATE);
     unmask_irq(PIT_IRQ);
     pit_oneshot.flags |= TIMER_ENABLED;
 
@@ -186,7 +189,7 @@ static int pit_oneshot_enable(void)
 static int pit_oneshot_disable(void)
 {
     mask_irq(PIT_IRQ);
-    idt_set(IRQ_TO_VECTOR(PIT_IRQ), NULL, 0, 0);
+    idt_unset(IRQ_TO_VECTOR(PIT_IRQ));
     pit_data_port_write(PIT_CHANNEL_0_PORT, 0);
     pit_oneshot.flags &= ~TIMER_ENABLED;
 
