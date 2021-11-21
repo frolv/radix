@@ -72,6 +72,18 @@ void task_free(struct task *task)
     free_cache(task_cache, task);
 }
 
+// TODO(frolv): This is very basic for now. There are many more factors to take
+// into account.
+int task_comparator(const struct task *a, const struct task *b)
+{
+    if (a->prio_level != b->prio_level) {
+        return b->prio_level - a->prio_level;
+    }
+
+    // Prefer the task which has less time remaining.
+    return a->remaining_time - b->remaining_time;
+}
+
 // TODO(frolv): Try something more sophisticated.
 static uint32_t next_pid = 1;
 

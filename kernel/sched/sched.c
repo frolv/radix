@@ -39,9 +39,10 @@
 
 #include "idle.h"
 
-#define SCHED_PRIO_LEVELS 20
-#define SCHED_NUM_RECENT  10
-#define PRIO_BOOST_PERIOD (500 * NSEC_PER_MSEC)
+#define SCHED_PRIO_LEVELS    20
+#define SCHED_MIN_PRIO_LEVEL (SCHED_PRIO_LEVELS - 1)
+#define SCHED_NUM_RECENT     10
+#define PRIO_BOOST_PERIOD    (500 * NSEC_PER_MSEC)
 
 #define SCHED "sched: "
 
@@ -52,6 +53,10 @@ static DEFINE_PER_CPU(struct list, prio_queues[SCHED_PRIO_LEVELS]);
 static DEFINE_PER_CPU(spinlock_t,
                       queue_locks[SCHED_PRIO_LEVELS]) = {SPINLOCK_INIT};
 
+// Queue of tasks which have become unblocked.
+static DEFINE_PER_CPU(struct list, unblock_queue);
+static DEFINE_PER_CPU(spinlock_t, unblock_queue_lock) = SPINLOCK_INIT;
+
 // List of tasks recently run on this CPU to assist with cache-efficient
 // scheduling.
 // TODO(frolv): Think about this some more.
@@ -60,12 +65,15 @@ static DEFINE_PER_CPU(struct task *, recent_tasks[SCHED_NUM_RECENT]) = {NULL};
 static DEFINE_PER_CPU(struct task *, prio_boost_task) = NULL;
 static DEFINE_PER_CPU(int, active_tasks) = 0;
 
+static DEFINE_PER_CPU(uint64_t, time_spent_idling) = 0;
+
 static void __prio_boost(void *p);
 
 // Initialize this processor's MLFQ priority boosting task.
 static int __priority_boost_task_init(void)
 {
     int cpu = processor_id();
+
     struct task *pb =
         kthread_create(__prio_boost, NULL, 0, "prio_boost_%u", cpu);
     if (IS_ERR(pb)) {
@@ -90,11 +98,15 @@ int sched_init(void)
 {
     this_cpu_write(current_task, NULL);
     this_cpu_write(active_tasks, 0);
+    this_cpu_write(time_spent_idling, 0);
 
     for (int i = 0; i < SCHED_PRIO_LEVELS; ++i) {
         list_init(raw_cpu_ptr(&prio_queues[i]));
         spin_init(raw_cpu_ptr(&queue_locks[i]));
     }
+
+    list_init(raw_cpu_ptr(&unblock_queue));
+    spin_init(raw_cpu_ptr(&unblock_queue_lock));
 
     if (idle_task_init() != 0) {
         return 1;
@@ -116,17 +128,15 @@ static __always_inline uint64_t __prio_timeslice(int prio)
 }
 
 // Finds the most suitable CPU on which to run the new task `t`.
-static int __find_best_cpu(struct task *t)
+static int __find_best_cpu(const struct task *t)
 {
-    int cpu, best, min_tasks, curr_tasks;
-    cpumask_t potential;
+    cpumask_t potential = cpumask_online() & t->cpu_restrict;
+    int min_tasks = INT_MAX;
+    int best = -1;
 
-    potential = cpumask_online() & t->cpu_restrict;
-    min_tasks = INT_MAX;
-    best = -1;
-
+    int cpu;
     for_each_cpu (cpu, potential) {
-        curr_tasks = cpu_var(active_tasks, cpu);
+        int curr_tasks = cpu_var(active_tasks, cpu);
 
         // If the CPU is not running anything, choose it.
         if (!curr_tasks) {
@@ -142,8 +152,21 @@ static int __find_best_cpu(struct task *t)
     return best;
 }
 
-void __add_task_to_cpu(struct task *task, int cpu)
+int sched_add(struct task *task)
 {
+    task->cpu_affinity = 0;
+    task->prio_level = 0;
+    task->sched_ts = 0;
+    task->state = TASK_READY;
+    task->remaining_time = __prio_timeslice(task->prio_level);
+
+    int cpu = __find_best_cpu(task);
+    if (cpu == -1) {
+        return 1;
+    }
+
+    atomic_inc(cpu_ptr(&active_tasks, cpu));
+
     unsigned long irqstate;
     spinlock_t *lock = cpu_ptr(&queue_locks[task->prio_level], cpu);
 
@@ -151,47 +174,95 @@ void __add_task_to_cpu(struct task *task, int cpu)
     list_ins(cpu_ptr(&prio_queues[task->prio_level], cpu), &task->queue);
     spin_unlock_irq(lock, irqstate);
 
-    atomic_inc(cpu_ptr(&active_tasks, cpu));
-
     if (is_idle(cpu)) {
         send_sched_wake(cpu);
     }
-}
 
-int sched_add(struct task *t)
-{
-    int cpu = __find_best_cpu(t);
-    if (cpu == -1) {
-        return 1;
-    }
-
-    t->cpu_affinity = 0;
-    t->prio_level = 0;
-    t->sched_ts = 0;
-    t->state = TASK_READY;
-    t->remaining_time = __prio_timeslice(t->prio_level);
-
-    __add_task_to_cpu(t, cpu);
     return 0;
 }
 
-static struct task *__select_next_task(void)
+// Inserts a task into the local processor's priority queues.
+static void __insert_into_prio_queue(struct task *task)
 {
-    unsigned long irqstate;
+    spinlock_t *lock = raw_cpu_ptr(&queue_locks[task->prio_level]);
+    spin_lock(lock);
+    list_ins(raw_cpu_ptr(&prio_queues[task->prio_level]), &task->queue);
+    task->state = TASK_READY;
+    spin_unlock(lock);
+}
 
-    // Find the highest priority task available and choose that.
+// Finds the highest priority task in the scheduler's unblock queue, if any
+// exist. If `reconsider` is not NULL, compare tasks to it as well. Other tasks
+// in the unblock queue are returned to the scheduler's priority queues.
+//
+// Following this function, the unblock queue will be empty.
+static struct task *__select_task_from_unblock_queue(struct task *reconsider)
+{
+    const struct task *curr = current_task();
+    struct task *best = reconsider;
+
+    spinlock_t *lock = raw_cpu_ptr(&unblock_queue_lock);
+    struct list *unblock_q = raw_cpu_ptr(&unblock_queue);
+
+    spin_lock(lock);
+
+    // Drain the unblock queue, finding the highest priority task. Add all other
+    // tasks back into the scheduler's regular priority queues.
+    while (!list_empty(unblock_q)) {
+        struct task *task = list_first_entry(unblock_q, struct task, queue);
+        list_del(&task->queue);
+
+        if (best == NULL) {
+            best = task;
+            continue;
+        }
+
+        // Due to the nature of SMP, it's possible that the current task has
+        // become unblocked by another CPU and ended up in the unblock queue
+        // while the scheduler is replacing it. If the current task is seen in
+        // the queue, still consider it, but don't add it back to a priority
+        // queue if it isn't chosen as it will be added later.
+        if (task_comparator(best, task) > 0) {
+            best->state = TASK_READY;
+            if (best != curr) {
+                __insert_into_prio_queue(best);
+            }
+            best = task;
+        } else {
+            task->state = TASK_READY;
+            if (task != curr) {
+                __insert_into_prio_queue(task);
+            }
+        }
+    }
+
+    spin_unlock(lock);
+    return best;
+}
+
+static struct task *__select_next_task(struct task *reconsider)
+{
+    // Try to pull a task from the unblock queue, comparing against the
+    // reconsidered task, if any.
+    struct task *t = __select_task_from_unblock_queue(reconsider);
+    if (t != NULL) {
+        return t;
+    }
+
+    // If no unblocked tasks exist, choose the highest priority task available
+    // in the regular priority queues.
     for (int prio = 0; prio < SCHED_PRIO_LEVELS; ++prio) {
         struct list *queue = raw_cpu_ptr(&prio_queues[prio]);
         spinlock_t *lock = raw_cpu_ptr(&queue_locks[prio]);
 
-        spin_lock_irq(lock, &irqstate);
+        spin_lock(lock);
         if (!list_empty(queue)) {
-            struct task *t = list_first_entry(queue, struct task, queue);
+            t = list_first_entry(queue, struct task, queue);
             list_del(&t->queue);
-            spin_unlock_irq(lock, irqstate);
+            spin_unlock(lock);
             return t;
         }
-        spin_unlock_irq(lock, irqstate);
+        spin_unlock(lock);
     }
 
     return NULL;
@@ -226,10 +297,17 @@ shift_tasks:
 static bool __update_task_timeslice(struct task *task, uint64_t sched_ts)
 {
     uint64_t elapsed = sched_ts - task->sched_ts;
+
+    if (task->flags & TASK_FLAGS_IDLE) {
+        raw_cpu_add(time_spent_idling, elapsed);
+        task->remaining_time = __prio_timeslice(SCHED_MIN_PRIO_LEVEL);
+        return true;
+    }
+
     if (elapsed + MIN_EVENT_DELTA >= task->remaining_time) {
         // The task has used up its allotted time at this priority.
         // Move it down to the next level.
-        task->prio_level = min(task->prio_level + 1, SCHED_PRIO_LEVELS - 1);
+        task->prio_level = min(task->prio_level + 1, SCHED_MIN_PRIO_LEVEL);
         task->remaining_time = __prio_timeslice(task->prio_level);
         return true;
     }
@@ -242,14 +320,12 @@ static bool __update_task_timeslice(struct task *task, uint64_t sched_ts)
 // if applicable.
 static void __handle_outgoing_task(struct task *outgoing)
 {
-    if (outgoing == NULL || outgoing == this_cpu_read(idle_task)) {
+    if (outgoing == NULL || (outgoing->flags & TASK_FLAGS_IDLE)) {
         // Nothing to do.
         return;
     }
 
-    spinlock_t *lock;
-
-    if (outgoing->state != TASK_RUNNING) {
+    if (!task_is_active(outgoing)) {
         atomic_dec(raw_cpu_ptr(&active_tasks));
     }
 
@@ -262,21 +338,16 @@ static void __handle_outgoing_task(struct task *outgoing)
 
     __update_recent_tasks(outgoing);
 
-    if (outgoing->state != TASK_BLOCKED) {
-        lock = raw_cpu_ptr(&queue_locks[outgoing->prio_level]);
-        spin_lock(lock);
-        list_ins(raw_cpu_ptr(&prio_queues[outgoing->prio_level]),
-                 &outgoing->queue);
-        outgoing->state = TASK_READY;
-        spin_unlock(lock);
+    if (task_is_active(outgoing)) {
+        __insert_into_prio_queue(outgoing);
     }
 }
 
-static void __prepare_next_task(struct task *next, uint64_t now)
+static void __prepare_next_task(struct task *next, uint64_t sched_ts)
 {
     next->state = TASK_RUNNING;
     next->cpu_affinity |= CPUMASK_SELF;
-    next->sched_ts = now;
+    next->sched_ts = sched_ts;
 
     cpu_set_kernel_stack(next->stack_top);
     this_cpu_write(current_task, next);
@@ -284,7 +355,7 @@ static void __prepare_next_task(struct task *next, uint64_t now)
     switch_address_space(next->vmm);
 
     // TODO(frolv): Figure out how to handle failed sched event insertions.
-    int err = sched_event_add(now + next->remaining_time);
+    int err = sched_event_add(sched_ts + next->remaining_time);
     if (err != 0) {
         panic("could not create scheduler event for cpu %u: %s\n",
               processor_id(),
@@ -292,6 +363,7 @@ static void __prepare_next_task(struct task *next, uint64_t now)
     }
 }
 
+// The main scheduler function. Picks a task to run.
 void schedule(enum sched_action action)
 {
     assert(action == SCHED_SELECT || action == SCHED_REPLACE);
@@ -303,22 +375,47 @@ void schedule(enum sched_action action)
     uint64_t sched_ts = time_ns();
     struct task *curr = current_task();
 
+    bool curr_has_expired = true;
+    bool curr_is_schedulable = false;
+
     if (curr) {
-        __update_task_timeslice(curr, sched_ts);
+        curr_has_expired = __update_task_timeslice(curr, sched_ts);
+        curr_is_schedulable =
+            curr->state != TASK_BLOCKED && (curr->flags & TASK_FLAGS_IDLE) == 0;
     }
 
-    __handle_outgoing_task(curr);
-
-    if (action == SCHED_REPLACE) {
-        sched_event_del();
+    // Decide whether to reconsider the current task as a scheduling option.
+    // This is done this when the following conditions are met:
+    //
+    //   1. The task did not voluntarily yield (i.e action is SELECT).
+    //   2. The task is not blocked or otherwise unschedulable.
+    //   3. The task still has time remaining to run.
+    //
+    // The most common scenario in which these are true is when a blocked task
+    // is unblocked and the scheduler must choose whether to preempt the current
+    // task in favor of it.
+    struct task *reconsider = NULL;
+    if (action == SCHED_SELECT && curr_is_schedulable && !curr_has_expired) {
+        reconsider = curr;
     }
 
-    struct task *next = __select_next_task();
+    struct task *next = __select_next_task(reconsider);
     if (!next) {
-        next = this_cpu_read(idle_task);
+        // If the current task was not previously reconsidered, but there are no
+        // other options, choose it.
+        if (curr_is_schedulable) {
+            next = curr;
+        } else {
+            next = this_cpu_read(idle_task);
+        }
+    }
+
+    if (curr != next) {
+        __handle_outgoing_task(curr);
     }
 
     __prepare_next_task(next, sched_ts);
+
     set_cpu_active(processor_id());
 
     if (action == SCHED_REPLACE && curr != next) {
@@ -326,8 +423,30 @@ void schedule(enum sched_action action)
     }
 }
 
-// Iterate over all tasks in the specified queue, boosting the priority
-// of those which have not run in a sufficiently long period.
+void sched_unblock(struct task *task)
+{
+    assert(task != NULL);
+    assert(task->state == TASK_BLOCKED);
+
+    int cpu = __find_best_cpu(task);
+    if (cpu == -1) {
+        panic("Could not find CPU to unblock task %s", task->cmdline[0]);
+    }
+
+    atomic_inc(cpu_ptr(&active_tasks, cpu));
+
+    unsigned long irqstate;
+    spinlock_t *lock = cpu_ptr(&unblock_queue_lock, cpu);
+
+    spin_lock_irq(lock, &irqstate);
+    list_ins(cpu_ptr(&unblock_queue, cpu), &task->queue);
+    spin_unlock_irq(lock, irqstate);
+
+    send_sched_wake(cpu);
+}
+
+// Iterate over all tasks in the specified queue, boosting the priority of those
+// which have not run in a sufficiently long period.
 static __always_inline void __prio_boost_queue(struct list *queue,
                                                spinlock_t *lock,
                                                uint64_t now)
@@ -381,19 +500,4 @@ static __noreturn void __prio_boost(__unused void *p)
         // TODO(frolv): Replace this with a sleep.
         schedule(SCHED_REPLACE);
     }
-}
-
-void sched_unblock(struct task *task)
-{
-    assert(task != NULL);
-    assert(task->state == TASK_BLOCKED);
-
-    // TODO(frolv): Temporary code so that mutexes work.
-    int cpu = __find_best_cpu(task);
-    if (cpu == -1) {
-        panic("Could not find CPU to unblock task %s", task->cmdline[0]);
-    }
-
-    task->state = TASK_READY;
-    __add_task_to_cpu(task, cpu);
 }

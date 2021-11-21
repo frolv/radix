@@ -41,9 +41,9 @@ void mutex_lock(struct mutex *m)
 
     while (1) {
         // Attempt to acquire the mutex. There are two acquisition
-        // possibilities: either there is no owner (i.e. owner == 0), or
-        // this thread had been waiting for the mutex and the previous
-        // owner handed it over by setting this thread as the new owner.
+        // possibilities: either there is no owner (i.e. owner == 0), or this
+        // thread had been waiting for the mutex and the previous owner handed
+        // it over by setting this thread as the new owner.
         uintptr_t owner = atomic_cmpxchg(&m->owner, 0, (uintptr_t)curr);
         if (owner == 0 || owner == (uintptr_t)curr) {
             break;
@@ -85,8 +85,8 @@ void mutex_unlock(struct mutex *m)
 
     atomic_swap(&m->owner, (uintptr_t)next);
 
-    // Add the unblocked back into the scheduler before disabling interrupts
-    // to ensure that it doesn't get lost if the current task is preempted.
+    // Add the unblocked task into the scheduler before disabling interrupts to
+    // ensure that it doesn't get lost if the current task is preempted.
     if (next != NULL) {
         sched_unblock(next);
     }

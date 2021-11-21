@@ -26,13 +26,28 @@
 #include <radix/percpu.h>
 #include <radix/types.h>
 
+#include <stdbool.h>
+
 struct vmm_space;
 
 enum task_state {
+    // The task is ready to be scheduled.
     TASK_READY,
+
+    // The task is currently running on a CPU.
     TASK_RUNNING,
+
+    //
+    // States > RUNNING are considered inactive.
+    //
+
+    // The task is waiting on a resource and unschedulable.
     TASK_BLOCKED,
+
+    // The task has completed execution and exited.
     TASK_FINISHED,
+
+    // Currently unused.
     TASK_ZOMBIE,
 };
 
@@ -44,7 +59,7 @@ struct task {
     enum task_state state;
     int priority;
     int prio_level;
-    int errno;
+    uint32_t flags;
     pid_t pid;
     uid_t uid;
     gid_t gid;
@@ -57,12 +72,26 @@ struct task {
     struct task *parent;
     cpumask_t cpu_affinity;
     cpumask_t cpu_restrict;
-    char **cmdline;
-    char *cwd;
     uint64_t sched_ts;
     uint64_t remaining_time;
+    char **cmdline;
+    char *cwd;
+    int errno;
     int exit_status;
 };
+
+static inline bool task_is_active(const struct task *t)
+{
+    return t->state <= TASK_RUNNING;
+}
+
+#define TASK_FLAGS_IDLE (1 << 0)
+
+// Compares two tasks in terms of priority.
+//
+// Returns a negative number if A is higher priority, positive if B is higher,
+// or 0 if the two are equal.
+int task_comparator(const struct task *a, const struct task *b);
 
 DECLARE_PER_CPU(struct task *, current_task);
 #define current_task() (this_cpu_read(current_task))

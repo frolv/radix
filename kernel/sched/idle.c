@@ -51,6 +51,7 @@ int idle_task_init(void)
     idle->cpu_restrict = CPUMASK_SELF;
     idle->prio_level = 19;
     idle->remaining_time = 100 * NSEC_PER_MSEC;
+    idle->flags |= TASK_FLAGS_IDLE;
 
     this_cpu_write(idle_task, idle);
     return 0;
