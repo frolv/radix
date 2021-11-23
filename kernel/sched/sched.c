@@ -28,6 +28,7 @@
 #include <radix/limits.h>
 #include <radix/mm.h>
 #include <radix/sched.h>
+#include <radix/sleep.h>
 #include <radix/smp.h>
 #include <radix/spinlock.h>
 #include <radix/tasking.h>
@@ -42,7 +43,8 @@
 #define SCHED_PRIO_LEVELS    20
 #define SCHED_MIN_PRIO_LEVEL (SCHED_PRIO_LEVELS - 1)
 #define SCHED_NUM_RECENT     10
-#define PRIO_BOOST_PERIOD    (500 * NSEC_PER_MSEC)
+
+#define PRIO_BOOST_PERIOD (500 * NSEC_PER_MSEC)
 
 #define SCHED "sched: "
 
@@ -87,10 +89,7 @@ static int __priority_boost_task_init(void)
 
     this_cpu_write(prio_boost_task, pb);
 
-    // TODO(frolv): The kernel requires sleep() support before a prio boost
-    // task can effectively run.
-    // kthread_start(pb);
-
+    kthread_start(pb);
     return 0;
 }
 
@@ -497,7 +496,6 @@ static __noreturn void __prio_boost(__unused void *p)
         this->prio_level = 0;
         this->remaining_time = __prio_timeslice(0);
 
-        // TODO(frolv): Replace this with a sleep.
-        schedule(SCHED_REPLACE);
+        sleep(2 * PRIO_BOOST_PERIOD);
     }
 }

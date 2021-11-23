@@ -1,5 +1,5 @@
 /*
- * include/radix/event.h
+ * kernel/sleep.c
  * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,24 +16,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RADIX_EVENT_H
-#define RADIX_EVENT_H
+#include <radix/kernel.h>
+#include <radix/sched.h>
+#include <radix/sleep.h>
 
-#include <radix/task.h>
-#include <radix/time.h>
+void __sleep_blocking(uint64_t ns)
+{
+    struct task *curr = current_task();
+    unsigned long irqstate;
 
-#define MIN_EVENT_DELTA (50 * NSEC_PER_USEC)
+    // Disable interrupts when going to sleep so the task doesn't get preempted
+    // between adding the sleep event and yielding.
+    irq_save(irqstate);
 
-void event_init(void);
-void event_start(void);
-void cpu_event_init(void);
-void event_handler(void);
+    int err = sleep_event_add(curr, time_ns() + ns);
+    if (err != 0) {
+        // TODO(frolv): Figure out how to deal with an error.
+        panic("failed to add sleep event: %d", err);
+    }
 
-void timekeeping_event_set_period(uint64_t period);
+    curr->state = TASK_BLOCKED;
+    schedule(SCHED_REPLACE);
 
-int sched_event_add(uint64_t timestamp);
-void sched_event_del(void);
-
-int sleep_event_add(struct task *task, uint64_t timestamp);
-
-#endif /* RADIX_EVENT_H */
+    irq_restore(irqstate);
+}

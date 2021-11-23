@@ -83,7 +83,7 @@ static void event_process(struct event *evt)
         break;
 
     case EVENT_SLEEP:
-        // TODO(frolv): Implement this.
+        sched_unblock(evt->sl_task);
         break;
 
     case EVENT_TIME:
@@ -204,7 +204,7 @@ check_prev:
 // occurs after a period longer than the IRQ timer's max_ns.
 //
 // Precondition: This is called with event_lock held.
-static void __schdule_dummy_event(uint64_t delta)
+static void __schedule_dummy_event(uint64_t delta)
 {
     struct event *dummy = raw_cpu_read(dummy_event);
     struct list *eventq = raw_cpu_ptr(&event_queue);
@@ -222,7 +222,7 @@ static void __event_schedule(struct event *evt)
     uint64_t max_ns = irq_timer_max_ns();
 
     if (delta > max_ns) {
-        __schdule_dummy_event(max_ns - NSEC_PER_USEC);
+        __schedule_dummy_event(max_ns - NSEC_PER_USEC);
     } else {
         schedule_timer_irq(delta);
     }
@@ -349,6 +349,21 @@ void sched_event_del(void)
 
     this_cpu_write(sched_event, NULL);
     event_free(evt);
+}
+
+int sleep_event_add(struct task *task, uint64_t timestamp)
+{
+    struct event *evt = event_alloc();
+    if (IS_ERR(evt)) {
+        return ERR_VAL(evt);
+    }
+
+    evt->timestamp = timestamp;
+    evt->flags = EVENT_SLEEP;
+    evt->sl_task = task;
+
+    __event_add(evt);
+    return 0;
 }
 
 // Initialize per-CPU event structures and data. Must be run by each CPU in the
