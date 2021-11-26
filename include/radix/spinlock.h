@@ -23,13 +23,19 @@
 #include <radix/compiler.h>
 #include <radix/irqstate.h>
 
-typedef unsigned long spinlock_t;
+// Define an opaque struct type to prevent accidental access from outside of the
+// spinlock API.
+typedef struct {
+    unsigned long locked;
+} spinlock_t;
 
-#define SPINLOCK_INIT 0
+// clang-format off
+#define SPINLOCK_INIT { 0 }
+// clang-format on
 
 static __always_inline int __spinlock_try_acquire(spinlock_t *lock)
 {
-    return atomic_swap(lock, 1) == 0;
+    return atomic_swap(&lock->locked, 1) == 0;
 }
 
 static __always_inline void __spinlock_acquire(spinlock_t *lock)
@@ -40,12 +46,12 @@ static __always_inline void __spinlock_acquire(spinlock_t *lock)
 
 static __always_inline void __spinlock_release(spinlock_t *lock)
 {
-    atomic_write(lock, 0);
+    atomic_write(&lock->locked, 0);
 }
 
 static __always_inline void spin_init(spinlock_t *lock)
 {
-    atomic_write(lock, 0);
+    atomic_write(&lock->locked, 0);
 }
 
 static __always_inline void spin_lock(spinlock_t *lock)
