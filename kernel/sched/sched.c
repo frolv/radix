@@ -380,7 +380,7 @@ void schedule(enum sched_action action)
     if (curr) {
         curr_has_expired = __update_task_timeslice(curr, sched_ts);
         curr_is_schedulable =
-            curr->state != TASK_BLOCKED && (curr->flags & TASK_FLAGS_IDLE) == 0;
+            task_is_active(curr) && (curr->flags & TASK_FLAGS_IDLE) == 0;
     }
 
     // Decide whether to reconsider the current task as a scheduling option.
@@ -447,8 +447,7 @@ void sched_unblock(struct task *task)
 // Iterate over all tasks in the specified queue, boosting the priority of those
 // which have not run in a sufficiently long period.
 static __always_inline void __prio_boost_queue(struct list *queue,
-                                               spinlock_t *lock,
-                                               uint64_t now)
+                                               spinlock_t *lock)
 {
     struct list *l, *tmp;
     struct task *t;
@@ -460,6 +459,7 @@ static __always_inline void __prio_boost_queue(struct list *queue,
 
     struct list *max_prio = raw_cpu_ptr(&prio_queues[0]);
     spinlock_t *max_lock = raw_cpu_ptr(&queue_locks[0]);
+    uint64_t now = time_ns();
 
     spin_lock_irq(lock, &irqstate);
     list_for_each_safe (l, tmp, queue) {
@@ -483,12 +483,10 @@ static __noreturn void __prio_boost(__unused void *p)
 {
     while (1) {
         struct task *this = current_task();
-        uint64_t now = time_ns();
 
         for (int prio = 1; prio < SCHED_PRIO_LEVELS; ++prio) {
             __prio_boost_queue(raw_cpu_ptr(&prio_queues[prio]),
-                               raw_cpu_ptr(&queue_locks[prio]),
-                               now);
+                               raw_cpu_ptr(&queue_locks[prio]));
         }
 
         // Reset the boost task's timeslice so that its own prio_level
