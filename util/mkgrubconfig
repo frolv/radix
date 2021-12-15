@@ -4,6 +4,7 @@
 
 echo "menuentry \"$1\" {"
 echo "    multiboot /boot/$2"
+echo "    module /boot/$2.initrd initrd"
 echo "}"
 
 echo 'menuentry "System shutdown" {'

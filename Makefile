@@ -1,6 +1,9 @@
 PROJECT_NAME = radix
 KERNEL_NAME = k$(PROJECT_NAME)
 
+BUILD_DIR = build
+KERNEL_FILE = $(BUILD_DIR)/$(KERNEL_NAME)
+
 DEFAULT_HOST := $(shell util/default-host)
 BUILD_HOST ?= $(DEFAULT_HOST)
 HOSTARCH := $(shell util/target-to-arch $(BUILD_HOST))
@@ -79,7 +82,10 @@ LIBK_DEPS := $(LIBK_OBJS:%.o=%.d)
 
 all: kernel
 
-kernel: $(KERNEL_NAME)
+kernel: $(KERNEL_FILE)
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
 $(CONFIG_H): $(CONFIG_FILE)
 
@@ -130,7 +136,7 @@ rconfig-lint: rconfig
 -include $(KERNEL_DEPS)
 -include $(DRIVER_DEPS)
 
-$(KERNEL_NAME): $(CONFIG_H) $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) \
+$(KERNEL_FILE): $(BUILD_DIR) $(CONFIG_H) $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) \
 	$(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
 		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
@@ -151,19 +157,33 @@ drivers: $(DRIVER_OBJS)
 .S.o:
 	$(CC) -c $< -o $@ $(ASFLAGS) $(INCLUDE)
 
-ISODIR := iso
+ISODIR := $(BUILD_DIR)/iso
 ISONAME := $(PROJECT_NAME)-$(HOSTARCH).iso
+ISOFILE := $(BUILD_DIR)/$(ISONAME)
+
+INITRD_DIR := $(BUILD_DIR)/initrd
+INITRD_BIN := $(BUILD_DIR)/$(KERNEL_NAME).initrd
+
+# Files added to the kernel's ramdisk.
+INITRD_FILES := foofile
+
+.PHONY: initrd
+initrd: $(INITRD_FILES)
+	mkdir -p $(INITRD_DIR)
+	cp $^ $(INITRD_DIR)
+	tar --format=ustar -C $(INITRD_DIR) -cf $(INITRD_BIN) $^
 
 #
 # Build kernel ISO image using GRUB.
 #
+
 .PHONY: iso
-iso: kernel
+iso: kernel initrd
 	mkdir -p $(ISODIR)/boot/grub
-	cp $(KERNEL_NAME) $(ISODIR)/boot
+	cp $(KERNEL_FILE) $(INITRD_BIN) $(ISODIR)/boot
 	util/mkgrubconfig $(PROJECT_NAME) $(KERNEL_NAME) \
 		> $(ISODIR)/boot/grub/grub.cfg
-	grub-mkrescue -o $(ISONAME) $(ISODIR)
+	grub-mkrescue -o $(ISOFILE) $(ISODIR)
 
 .PHONY: ctags
 ctags:
@@ -177,7 +197,7 @@ clean: clean-all-kernel
 clean-all: clean-all-kernel clean-all-config
 
 .PHONY: clean-all-kernel
-clean-all-kernel: clean-kernel clean-libk clean-drivers clean-iso
+clean-all-kernel: clean-kernel clean-libk clean-drivers clean-iso clean-initrd
 
 .PHONY: clean-config
 clean-config: clean-all-config
@@ -187,7 +207,7 @@ clean-all-config: clean-configfiles clean-rconfig
 
 .PHONY: clean-kernel
 clean-kernel:
-	$(RM) $(KERNEL_OBJS) $(KERNEL_NAME)
+	$(RM) $(KERNEL_OBJS) $(KERNEL_FILE)
 
 .PHONY: clean-libk
 clean-libk:
@@ -200,7 +220,11 @@ clean-drivers:
 
 .PHONY: clean-iso
 clean-iso:
-	$(RM) -r $(ISODIR) $(ISONAME)
+	$(RM) -r $(ISODIR) $(ISOFILE)
+
+.PHONY: clean-initrd
+clean-initrd:
+	$(RM) -r $(INITRD_DIR) $(INITRD_BIN)
 
 .PHONY: clean-configfiles
 clean-configfiles:

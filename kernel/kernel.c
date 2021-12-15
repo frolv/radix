@@ -20,6 +20,7 @@
 #include <radix/compiler.h>
 #include <radix/cpu.h>
 #include <radix/event.h>
+#include <radix/initrd.h>
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
@@ -35,9 +36,30 @@
 
 #include "mm/slab.h"
 
-static void kernel_boot_thread(__unused void *p)
+static void parse_multiboot_modules(struct multiboot_info *mbt)
 {
+    multiboot_module_t *modules = (void *)phys_to_virt(mbt->mods_addr);
+
+    for (unsigned i = 0; i < mbt->mods_count; ++i) {
+        const char *cmdline = (char *)phys_to_virt(modules[i].cmdline);
+
+        if (strcmp(cmdline, "initrd") == 0) {
+            const void *data = (void *)phys_to_virt(modules[i].mod_start);
+            size_t size = modules[i].mod_end - modules[i].mod_start;
+            read_initrd(data, size);
+        } else {
+            klog(KLOG_ERROR, "MBT: unknown multiboot module: %s", cmdline);
+        }
+    }
+}
+
+static void kernel_boot_thread(void *p)
+{
+    struct multiboot_info *mbt = p;
+
     klog(KLOG_INFO, "Post-scheduler boot starting");
+
+    parse_multiboot_modules(mbt);
 
     event_start();
     smp_init();
@@ -69,7 +91,7 @@ int kmain(struct multiboot_info *mbt)
     // Create a task to continue the boot sequence, then hand over to the
     // scheduler.
     struct task *boot =
-        kthread_create(kernel_boot_thread, NULL, 0, "kernel_boot_task");
+        kthread_create(kernel_boot_thread, mbt, 0, "kernel_boot_task");
     boot->cpu_restrict = CPUMASK_SELF;
     kthread_start(boot);
 

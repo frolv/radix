@@ -1,11 +1,10 @@
 *.o
 *.d
-iso
 root
-kradix
-radix*.iso
 *.swp
 tags
+
+build/
 
 # rconfig
 config/.rconfig.*
