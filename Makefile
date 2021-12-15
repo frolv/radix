@@ -207,16 +207,16 @@ clean-all-config: clean-configfiles clean-rconfig
 
 .PHONY: clean-kernel
 clean-kernel:
-	$(RM) $(KERNEL_OBJS) $(KERNEL_FILE)
+	$(RM) $(KERNEL_OBJS) $(KERNEL_DEPS) $(KERNEL_FILE)
 
 .PHONY: clean-libk
 clean-libk:
-	$(RM) $(LIBK_OBJS)
+	$(RM) $(LIBK_OBJS) $(LIBK_DEPS)
 
 # temp
 .PHONY: clean-drivers
 clean-drivers:
-	$(RM) $(DRIVER_OBJS)
+	$(RM) $(DRIVER_OBJS) $(DRIVER_DEPS)
 
 .PHONY: clean-iso
 clean-iso:
