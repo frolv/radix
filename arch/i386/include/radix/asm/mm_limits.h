@@ -25,9 +25,15 @@
 #error <radix/asm/mm_limits.h> cannot be included directly
 #endif
 
-// Kernel's available virtual address range.
-#define __ARCH_KERNEL_VIRT_BASE   0xC0000000UL
+// Base virtual address at which kernel code is loaded.
+#define __ARCH_KERNEL_VIRT_BASE 0xC0000000UL
+
+// Base virtual address for the kernel's dynamic address space.
 #define __ARCH_RESERVED_VIRT_BASE 0xD0000000UL
+
+// Virtual address range for user processes.
+#define __ARCH_USER_VIRT_BASE 0x0100000UL
+#define __ARCH_USER_VIRT_SIZE (__ARCH_KERNEL_VIRT_BASE - __ARCH_USER_VIRT_BASE)
 
 #if CONFIG(X86_PAE)
 

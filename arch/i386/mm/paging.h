@@ -1,5 +1,5 @@
 /*
- * arch/i386/setup.c
+ * arch/i386/mm/paging.h
  * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,35 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <radix/asm/apic.h>
-#include <radix/cpu.h>
-#include <radix/timer.h>
+#ifndef ARCH_I386_MM_PAGING_H
+#define ARCH_I386_MM_PAGING_H
 
-#include <acpi/acpi.h>
+void paging_init_user(void);
 
-#include "mm/paging.h"
-
-/*
- * arch_main_setup:
- * Initialize x86-specific features and data structures.
- */
-void arch_main_setup(void)
-{
-    paging_init_user();
-
-    acpi_init();
-    bsp_init();
-
-    hpet_register();
-    acpi_pm_register();
-    rtc_register();
-
-    /* If there is no APIC, the PIT must be used as a scheduling timer. */
-    if (cpu_supports(CPUID_APIC)) {
-        lapic_timer_calibrate();
-        lapic_timer_register();
-        pit_register();
-    } else {
-        pit_oneshot_register();
-    }
-}
+#endif  // ARCH_I386_MM_PAGING_H

@@ -1,6 +1,6 @@
 /*
  * arch/i386/mm/pagefault.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
  * do_kernel_pf:
  * Resolve a page fault triggered by a kernel thread.
  */
-static void do_kernel_pf(addr_t fault_addr, int error)
+static void do_kernel_pf(addr_t fault_addr, addr_t fault_ip, int error)
 {
     struct vmm_area *area;
     struct page *p;
@@ -44,12 +44,18 @@ static void do_kernel_pf(addr_t fault_addr, int error)
     access = error & X86_PF_WRITE ? "write to" : "read from";
 
     if (error & X86_PF_PROTECTION) {
-        panic("illegal %s virtual address %p\n", access, fault_addr);
+        panic("illegal %s virtual address %p [eip: %p]\n",
+              access,
+              fault_addr,
+              fault_ip);
     }
 
     area = vmm_get_allocated_area(NULL, fault_addr);
     if (!area) {
-        panic("attempt to %s non-allocated page %p\n", access, page);
+        panic("attempt to %s unallocated page %p [eip: %p]\n",
+              access,
+              page,
+              fault_ip);
     }
 
     /*
@@ -71,11 +77,10 @@ static void do_kernel_pf(addr_t fault_addr, int error)
     }
 
     map_page_kernel(page, page_to_phys(p), PROT_WRITE, PAGE_CP_DEFAULT);
-    mark_page_mapped(p, page);
     vmm_add_area_pages(area, p);
 }
 
-void page_fault_handler(__unused struct regs *regs, int error)
+void page_fault_handler(struct regs *regs, int error)
 {
     addr_t fault_addr;
 
@@ -83,6 +88,6 @@ void page_fault_handler(__unused struct regs *regs, int error)
     if (error & X86_PF_USER) {
         /* TODO */
     } else {
-        do_kernel_pf(fault_addr, error);
+        do_kernel_pf(fault_addr, (addr_t)regs->ip, error);
     }
 }

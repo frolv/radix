@@ -65,6 +65,7 @@ pgdir_1:
 	.fill PTRS_PER_PGDIR, 8, 0x0
 pgdir_2:
 	.fill PTRS_PER_PGDIR, 8, 0x0
+.global kernel_pgdir
 kernel_pgdir:
 	.fill PTRS_PER_PGDIR, 8, 0x0
 
@@ -141,32 +142,32 @@ paging_init:
 
 	# Temporarily identity map the first kernel page table.
 	movl $(PHYS(kernel_pgtbl)), %ecx
-	orl $0x00000103, %ecx
+	orl $0x00000003, %ecx
 	movl %ecx, PHYS(pgdir_0)
 	movl %ecx, PHYS(kernel_pgdir)
 
 	# Map the second kernel page table.
 	movl $(PHYS(kernel_pgtbl) + PAGE_SIZE), %ecx
-	orl $0x00000103, %ecx
+	orl $0x00000003, %ecx
 	movl %ecx, PHYS(kernel_pgdir) + 8
 
 	# Recursive map the paging structures.
 	movl $(PHYS(kernel_pgdir)), %ecx
-	orl $0x00000103, %ecx
+	orl $0x00000003, %ecx
 	movl %ecx, PHYS(kernel_pgdir) + 511 * 8
 	movl $(PHYS(pgdir_2)), %ecx
-	orl $0x00000103, %ecx
+	orl $0x00000003, %ecx
 	movl %ecx, PHYS(kernel_pgdir) + 510 * 8
 	movl $(PHYS(pgdir_1)), %ecx
-	orl $0x00000103, %ecx
+	orl $0x00000003, %ecx
 	movl %ecx, PHYS(kernel_pgdir) + 509 * 8
 	movl $(PHYS(pgdir_0)), %ecx
-	orl $0x00000103, %ecx
+	orl $0x00000003, %ecx
 	movl %ecx, PHYS(kernel_pgdir) + 508 * 8
 
 	movl $(PHYS(kernel_pdpt)), %ecx
 	movl %ecx, %cr3
-	orl $0x00000103, %ecx
+	orl $0x00000003, %ecx
 	movl %ecx, PHYS(kernel_pgdir) + 507 * 8
 
 	# Enable PAE.

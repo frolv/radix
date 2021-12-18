@@ -1,5 +1,5 @@
 /*
- * arch/i386/mm/pagetable.c
+ * arch/i386/mm/paging.c
  * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,13 +16,97 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "paging.h"
+
 #include <radix/config.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
+#include <radix/slab.h>
 #include <radix/vmm.h>
 
 #include <rlibc/string.h>
+
+// The page directory containing the kernel's page mappings.
+extern pde_t kernel_pgdir[PTRS_PER_PGDIR];
+
+// Allocates a new page directory for a process and copies entries from the
+// kernel's page directory into it, from index `start` to `end`.
+//
+// The page directory is returned mapped into the current address space to allow
+// it to be further modified prior to starting the process. After all
+// modifications are complete, the directory must be unmapped by calling
+// unmap_cloned_pgdir().
+static pde_t *clone_kernel_pgdir(size_t start, size_t end)
+{
+    assert(start < end);
+    assert(end < PTRS_PER_PGDIR);
+
+    struct page *p = alloc_page(PA_PAGETABLE);
+    if (IS_ERR(p)) {
+        return ERR_PTR(ERR_VAL(p));
+    }
+
+    pde_t *pgdir = vmalloc(PAGE_SIZE);
+    if (!pgdir) {
+        return ERR_PTR(ENOMEM);
+    }
+
+    const paddr_t phys = page_to_phys(p);
+
+    int err =
+        i386_map_page_kernel((addr_t)pgdir, phys, PROT_WRITE, PAGE_CP_DEFAULT);
+    if (err) {
+        return ERR_PTR(err);
+    }
+
+    memset(pgdir, 0, start * sizeof *pgdir);
+    memcpy(pgdir + start, kernel_pgdir + start, (end - start) * sizeof *pgdir);
+    memset(pgdir + end, 0, PAGE_SIZE - (end * sizeof *pgdir));
+
+    return pgdir;
+}
+
+// Unmaps a page directory page from clone_kernel_pgdir() from the current
+// address space.
+//
+// This does not release the physical memory allocated for the directory --
+// only its current virtual address, which is not needed beyond initial setup.
+static void unmap_cloned_pgdir(pde_t *pgdir)
+{
+    i386_unmap_pages((addr_t)pgdir, 1);
+    vfree(pgdir);
+}
+
+// Releases the physical pages of the mapped page tables in the page directory
+// located at address `phys` between entries `start` and `end`. This does not
+// free the pages mapped within those page tables; they are managed by the VMM
+// subsystem.
+static int free_page_directory(paddr_t phys, size_t start, size_t end)
+{
+    pde_t *pgdir = vmalloc(PAGE_SIZE);
+    if (!pgdir) {
+        return ENOMEM;
+    }
+
+    int err =
+        i386_map_page_kernel((addr_t)pgdir, phys, PROT_READ, PAGE_CP_DEFAULT);
+    if (err) {
+        return err;
+    }
+
+    for (size_t i = start; i < end; ++i) {
+        pdeval_t value = PDE(pgdir[i]);
+        if (value & PAGE_PRESENT) {
+            free_pages(phys_to_page(value & PAGE_MASK));
+        }
+    }
+
+    i386_unmap_pages((addr_t)pgdir, 1);
+    vfree(pgdir);
+
+    return 0;
+}
 
 static int ___map_page(pde_t *pgdir,
                        pte_t *pgtbl,
@@ -44,8 +128,7 @@ static int ___map_page(pde_t *pgdir,
         if (IS_ERR(new))
             return ERR_VAL(new);
 
-        pgdir[pdi] =
-            make_pde(page_to_phys(new) | PAGE_GLOBAL | PAGE_RW | PAGE_PRESENT);
+        pgdir[pdi] = make_pde(page_to_phys(new) | PAGE_RW | PAGE_PRESENT);
         tlb_flush_page_lazy((addr_t)pgtbl);
         memset(pgtbl, 0, PGTBL_SIZE);
     }
@@ -106,6 +189,12 @@ int __unmap_pages(pde_t *pgdir, size_t pdi, pte_t *pgtbl, addr_t virt, size_t n)
 #define get_page_table(ind, n) (pte_t *)(pgdir_base(ind) + (n)*PAGE_SIZE)
 #define get_page_dir(pdpti)    (pde_t *)(0xFFFFC000 + (pdpti)*PAGE_SIZE)
 
+#define KERNEL_PDPT_ADDRESS 0xffffb000
+
+// PDPTs are small (32 bytes). Instead of wasting an entire page for each one,
+// allocate them from a cache.
+static struct slab_cache *pdpt_cache;
+
 static __always_inline void get_paging_indices(addr_t virt,
                                                size_t *pdpti,
                                                size_t *pdi,
@@ -114,6 +203,14 @@ static __always_inline void get_paging_indices(addr_t virt,
     *pdpti = PDPT_INDEX(virt);
     *pdi = PGDIR_INDEX(virt);
     *pti = PGTBL_INDEX(virt);
+}
+
+static pdpte_t *get_pdpt(void)
+{
+    struct task *curr = current_task();
+    struct pdpt *pdpt =
+        curr && curr->vmm ? curr->vmm->paging_ctx : (void *)KERNEL_PDPT_ADDRESS;
+    return pdpt->entries;
 }
 
 /*
@@ -127,6 +224,12 @@ static pte_t *pgtbl_entry(addr_t virt)
     pte_t *pgtbl;
 
     get_paging_indices(virt, &pdpti, &pdi, &pti);
+
+    pdpte_t *pdpt = get_pdpt();
+    if (!(PDPTE(pdpt[pdpti]) & PAGE_PRESENT)) {
+        return NULL;
+    }
+
     pgdir = get_page_dir(pdpti);
 
     if (PDE(pgdir[pdi]) & PAGE_PRESENT) {
@@ -135,6 +238,19 @@ static pte_t *pgtbl_entry(addr_t virt)
     }
 
     return NULL;
+}
+
+static int add_page_directory(pdpte_t *pdpt, size_t pdpti)
+{
+    struct page *p = alloc_page(PA_PAGETABLE);
+    if (IS_ERR(p)) {
+        return ERR_VAL(p);
+    }
+
+    pdpt[pdpti] = make_pdpte(page_to_phys(p) | PAGE_PRESENT);
+    memset(get_page_dir(pdpti), 0, PAGE_SIZE);
+
+    return 0;
 }
 
 void i386_set_pde(addr_t virt, pde_t pde)
@@ -149,11 +265,21 @@ static int __map_page(addr_t virt, paddr_t phys, pteval_t flags)
     pde_t *pgdir;
     pte_t *pgtbl;
 
-    /* addresses must be page-aligned */
-    if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE))
+    // Addresses must be page-aligned.
+    if (!ALIGNED(virt, PAGE_SIZE) || !ALIGNED(phys, PAGE_SIZE)) {
         return EINVAL;
+    }
 
     get_paging_indices(virt, &pdpti, &pdi, &pti);
+
+    pdpte_t *pdpt = get_pdpt();
+    if (!(PDPTE(pdpt[pdpti]) & PAGE_PRESENT)) {
+        int err = add_page_directory(pdpt, pdpti);
+        if (err) {
+            return err;
+        }
+    }
+
     pgdir = get_page_dir(pdpti);
     pgtbl = get_page_table(pdpti, pdi);
     return ___map_page(pgdir, pgtbl, pdi, pti, virt, phys, flags);
@@ -177,8 +303,14 @@ int i386_unmap_pages(addr_t virt, size_t n)
     pdi = PGDIR_INDEX(virt);
     pgdir = get_page_dir(pdpti);
 
-    if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+    pdpte_t *pdpt = get_pdpt();
+    if (!(PDPTE(pdpt[pdpti]) & PAGE_PRESENT)) {
         return EINVAL;
+    }
+
+    if (!(PDE(pgdir[pdi]) & PAGE_PRESENT)) {
+        return EINVAL;
+    }
 
     pgtbl = get_page_table(pdpti, pdi);
     while (n) {
@@ -186,19 +318,76 @@ int i386_unmap_pages(addr_t virt, size_t n)
         n -= unmapped;
         virt += unmapped * PAGE_SIZE;
 
-        /* advance to the next page directory */
+        // Advance to the next page directory.
         if (++pdi == PTRS_PER_PGDIR) {
-            if (++pdpti == PTRS_PER_PDPT)
+            if (++pdpti == PTRS_PER_PDPT) {
                 break;
+            }
+            if (!(PDPTE(pdpt[pdpti]) & PAGE_PRESENT)) {
+                break;
+            }
             pgdir = get_page_dir(pdpti);
             pdi = 0;
         }
-        if (!(PDE(pgdir[pdi]) & PAGE_PRESENT))
+        if (!(PDE(pgdir[pdi]) & PAGE_PRESENT)) {
             break;
+        }
         pgtbl = get_page_table(pdpti, pdi);
     }
 
     return 0;
+}
+
+int arch_vmm_setup(struct vmm_space *vmm)
+{
+    struct pdpt *p = alloc_cache(pdpt_cache);
+    if (IS_ERR(p)) {
+        return ERR_VAL(p);
+    }
+
+    // Clone the kernel's page directory for the process, excluding the final
+    // four entries, which are the recursively mapped page directories.
+    pde_t *kernel_pd = clone_kernel_pgdir(0, PTRS_PER_PGDIR - 4);
+    if (IS_ERR(kernel_pd)) {
+        return ERR_VAL(kernel_pd);
+    }
+
+    const paddr_t phys = virt_to_phys(kernel_pd);
+
+    p->entries[PDPT_ENTRY_C0] = make_pdpte(phys | PAGE_RW | PAGE_PRESENT);
+
+    // Recursively map the cloned directory.
+    kernel_pd[PTRS_PER_PGDIR - 1] = make_pde(phys | PAGE_RW | PAGE_PRESENT);
+
+    unmap_cloned_pgdir(kernel_pd);
+
+    vmm->paging_base = virt_to_phys(p);
+    vmm->paging_ctx = p;
+
+    return 0;
+}
+
+void arch_vmm_release(struct vmm_space *vmm)
+{
+    struct pdpt *pdpt = vmm->paging_ctx;
+
+    for (size_t i = 0; i < PTRS_PER_PDPT; ++i) {
+        pdpteval_t value = PDPTE(pdpt->entries[i]);
+        if (!(value & PAGE_PRESENT)) {
+            continue;
+        }
+
+        const addr_t phys = value & PAGE_MASK;
+
+        if (i != PDPT_ENTRY_C0) {
+            // Free all allocated page tables from the non-kernel directories.
+            free_page_directory(phys, 0, PTRS_PER_PGDIR);
+        }
+
+        free_pages(phys_to_page(phys));
+    }
+
+    free_cache(pdpt_cache, pdpt);
 }
 
 #else  // CONFIG(X86_PAE)
@@ -281,6 +470,29 @@ int i386_unmap_pages(addr_t virt, size_t n)
     }
 
     return 0;
+}
+
+int arch_vmm_setup(struct vmm_space *vmm)
+{
+    pde_t *kernel_pd = clone_kernel_pgdir(PGDIR_INDEX(KERNEL_VIRTUAL_BASE),
+                                          PTRS_PER_PGDIR - 1);
+
+    // Recursively map the cloned directory.
+    const paddr_t phys = virt_to_phys(kernel_pd);
+    kernel_pd[PTRS_PER_PGDIR - 1] = make_pde(phys | PAGE_RW | PAGE_PRESENT);
+
+    unmap_cloned_pgdir(kernel_pd);
+
+    vmm->paging_base = phys;
+    vmm->paging_ctx = NULL;
+
+    return 0;
+}
+
+void arch_vmm_release(struct vmm_space *vmm)
+{
+    free_page_directory(vmm->paging_base, 0, PGDIR_INDEX(KERNEL_VIRTUAL_BASE));
+    free_pages(phys_to_page(vmm->paging_base));
 }
 
 #endif  // CONFIG(X86_PAE)
@@ -448,8 +660,18 @@ int i386_set_cache_policy(addr_t virt, enum cache_policy policy)
 
 void i386_switch_address_space(struct vmm_space *vmm)
 {
-    if (!vmm)
-        return;
+    if (vmm) {
+        cpu_write_cr3(vmm->paging_base);
+    }
+}
 
-    cpu_write_cr3(vmm->paging_base);
+void paging_init_user(void)
+{
+#if CONFIG(X86_PAE)
+    pdpt_cache = create_cache("pdpt_cache",
+                              sizeof(struct pdpt),
+                              sizeof(struct pdpt),
+                              SLAB_PANIC,
+                              NULL);
+#endif  // CONFIG(X86_PAE)
 }

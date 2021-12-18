@@ -30,12 +30,14 @@ static __always_inline void *memset(void *s, int c, size_t n)
 {
     int a, b;
 
-    asm volatile(
-        "rep\n\t"
-        "stosb"
-        : "=&c"(a), "=&D"(b)
-        : "a"(c), "1"(s), "0"(n)
-        : "memory");
+    if (n > 0) {
+        asm volatile(
+            "rep\n\t"
+            "stosb"
+            : "=&c"(a), "=&D"(b)
+            : "a"(c), "1"(s), "0"(n)
+            : "memory");
+    }
 
     return s;
 }
@@ -45,18 +47,20 @@ static __always_inline void *memcpy(void *dst, const void *src, size_t n)
 {
     int a, b, c;
 
-    asm volatile(
-        "rep\n\t"
-        "movsl\n\t"
-        "movl %4, %%ecx\n\t"
-        "andl $3, %%ecx\n\t"
-        "jz 1f\n\t"
-        "rep\n\t"
-        "movsb\n\t"
-        "1:"
-        : "=&c"(a), "=&D"(b), "=&S"(c)
-        : "0"(n / sizeof(long)), "g"(n), "1"(dst), "2"(src)
-        : "memory");
+    if (n > 0) {
+        asm volatile(
+            "rep\n\t"
+            "movsl\n\t"
+            "movl %4, %%ecx\n\t"
+            "andl $3, %%ecx\n\t"
+            "jz 1f\n\t"
+            "rep\n\t"
+            "movsb\n\t"
+            "1:"
+            : "=&c"(a), "=&D"(b), "=&S"(c)
+            : "0"(n / sizeof(long)), "g"(n), "1"(dst), "2"(src)
+            : "memory");
+    }
 
     return dst;
 }

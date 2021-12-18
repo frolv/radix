@@ -26,11 +26,19 @@
 #include <radix/multiboot.h>
 #include <radix/types.h>
 
+// Base virtual address at which kernel code is loaded.
 #define KERNEL_VIRTUAL_BASE __ARCH_KERNEL_VIRT_BASE
 #define KERNEL_SIZE         0x00400000
-#define RESERVED_VIRT_BASE  __ARCH_RESERVED_VIRT_BASE
-#define RESERVED_SIZE       (PAGING_BASE - RESERVED_VIRT_BASE)
-#define MEM_LIMIT           __ARCH_MEM_LIMIT
+
+// Base virtual address for the kernel's dynamic address space.
+#define RESERVED_VIRT_BASE __ARCH_RESERVED_VIRT_BASE
+#define RESERVED_SIZE      (PAGING_BASE - RESERVED_VIRT_BASE)
+
+// Virtual address range for user processes.
+#define USER_VIRTUAL_BASE __ARCH_USER_VIRT_BASE
+#define USER_VIRTUAL_SIZE __ARCH_USER_VIRT_SIZE
+
+#define MEM_LIMIT __ARCH_MEM_LIMIT
 
 /*
  * Recursive mapping is used for paging structures, so they occupy the top part
@@ -74,7 +82,6 @@ void buddy_init(struct multiboot_info *mbt);
 
 struct page *alloc_pages(unsigned int flags, size_t ord);
 void free_pages(struct page *p);
-void mark_page_mapped(struct page *p, addr_t virt);
 
 static __always_inline struct page *alloc_page(unsigned int flags)
 {

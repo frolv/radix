@@ -23,6 +23,7 @@
 #error only <radix/mm_types.h> can be included directly
 #endif
 
+#include <radix/asm/page_defs.h>
 #include <radix/config.h>
 #include <radix/types.h>
 
@@ -58,6 +59,15 @@ typedef struct {
 typedef struct {
     pdpteval_t pdpte;
 } pdpte_t;
+
+#define PDPT_ENTRY_00 0
+#define PDPT_ENTRY_40 1
+#define PDPT_ENTRY_80 2
+#define PDPT_ENTRY_C0 3
+
+struct pdpt {
+    pdpte_t entries[PTRS_PER_PDPT];
+};
 
 #endif  // CONFIG(X86_PAE)
 

@@ -96,12 +96,12 @@ typedef struct multiboot_info {
 } multiboot_info_t;
 
 /* The module structure. */
-typedef struct module {
+typedef struct multiboot_module {
     unsigned long mod_start;
     unsigned long mod_end;
-    unsigned long string;
+    unsigned long cmdline;
     unsigned long reserved;
-} module_t;
+} multiboot_module_t;
 
 /* The memory map. Be careful that the offset 0 is base_addr_low
  *         but no size. */

@@ -1,6 +1,6 @@
 /*
  * kernel/mm/vmm.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,58 +25,69 @@
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
+// A block of virtual addresses in a virtual address space.
+//
+// When a vmm_block is *not* allocated:
+//
+//   1. global_list is in the list of all vmm_blocks in the address space.
+//   2. area.list is either in the list of all unallocated vmm_blocks of a
+//      certain size, or empty. See size_node below.
+//   3. size_node is either the position of the block in the tree of unallocated
+//      blocks by size, or not in any tree. When it is the latter, there are
+//      other vmm_blocks of the same size in the address space, one of which is
+//      the tree node, with the rest stored in its area.list.
+//   4. addr_node is in the tree of unallocated vmm_blocks sorted by base
+//      address.
+//   5. mapped is NULL.
+//
+// When a vmm_block *is* allocated:
+//
+//   1. global_list is in the list of all vmm_blocks in the address space.
+//      (This doesn't change.)
+//   2. area.list is in the list of all allocated vmm_blocks in the address
+//      space.
+//   3. size_node is not used.
+//   4. addr_node is in the tree of all allocated vmm_blocks in the address
+//      space, sorted by base address.
+//   5. mapped is either NULL or a pointer to a struct page representing a group
+//      of physical pages allocated for this vmm_block. The struct page's list
+//      stores all of the other physical page groups allocated for this block.
+//
 struct vmm_block {
     struct vmm_area area;
     struct page *mapped;
     struct vmm_space *vmm;
-    unsigned long flags;
-    unsigned long padding;
+    uint32_t flags;
+    uint32_t pad0;
     struct list global_list;
     struct rb_node size_node;
     struct rb_node addr_node;
 };
 
-/*
- * Alright. There's a bit of list/tree stuff going on here, so listen carefully.
- *
- * When a vmm_block is *not* allocated:
- * 1. global_list is in the list of all vmm_blocks in the address space.
- * 2. area.list is either in the list of all unallocated vmm_blocks of a
- *    certain size, or empty. See size_node below.
- * 3. size_node is either the position of the block in the tree of unallocated
- *    blocks by size, or not in any tree. When it is the latter, there are other
- *    vmm_blocks of the same size in the address space, one of which is the tree
- *    node, with the rest stored in its area.list.
- * 4. addr_node is in the tree of unallocated vmm_blocks sorted by base address.
- * 5. mapped is NULL.
- *
- * When a vmm_block *is* allocated:
- * 1. global_list is in the list of all vmm_blocks in the address space.
- *    (This doesn't change.)
- * 2. area.list is in the list of all allocated vmm_blocks in the address space.
- * 3. size_node is not used.
- * 4. addr_node is in the tree of all allocated vmm_blocks in the address space,
- *    sorted by base address.
- * 5. mapped is either NULL or a pointer to a struct page representing a group
- *    of physical pages allocated for this vmm_block. The struct page's list
- *    stores all of the other physical page groups allocated for this block.
- */
+#define VMM_ALLOCATED (1 << 31)
 
-#define VMM_ALLOCATED (1 << 0)
+// Subset of the vmm API flags which is stored in block objects.
+#define VMM_BLOCK_FLAGS (VMM_READ | VMM_WRITE | VMM_EXEC)
 
-#define vmm_block_alloc()     alloc_cache(vmm_block_cache)
-#define vmm_block_free(block) free_cache(vmm_block_cache, block)
+#define vmm_alloc_block()     alloc_cache(vmm_block_cache)
+#define vmm_free_block(block) free_cache(vmm_block_cache, block)
 
 static struct slab_cache *vmm_block_cache;
 static struct slab_cache *vmm_space_cache;
 
-static struct vmm_structures vmm_kernel = {
-    .block_list = LIST_INIT(vmm_kernel.block_list),
-    .alloc_list = LIST_INIT(vmm_kernel.alloc_list),
-    .addr_tree = RB_ROOT,
-    .size_tree = RB_ROOT,
-    .alloc_tree = RB_ROOT};
-static spinlock_t vmm_kernel_lock = SPINLOCK_INIT;
+static struct vmm_space vmm_kernel = {
+    .structures =
+        {
+            .block_list = LIST_INIT(vmm_kernel.structures.block_list),
+            .alloc_list = LIST_INIT(vmm_kernel.structures.alloc_list),
+            .addr_tree = RB_ROOT,
+            .size_tree = RB_ROOT,
+            .alloc_tree = RB_ROOT,
+        },
+    .vmm_list = LIST_INIT(vmm_kernel.vmm_list),
+    .lock = SPINLOCK_INIT,
+    .pages = 0,
+};
 
 static void vmm_block_init(void *p)
 {
@@ -206,30 +217,27 @@ static __always_inline void vmm_tree_delete(struct vmm_structures *s,
     vmm_size_tree_delete(&s->size_tree, block);
 }
 
-/*
- * vmm_find_by_size:
- * Find the smallest block in `s->size_tree` which is greater than
- * or equal to `size`.
- */
-static struct vmm_block *vmm_find_by_size(struct vmm_structures *s, size_t size)
+// Finds the smallest unallocated block in an address space which is greater
+// than or equal to `size`.
+static struct vmm_block *vmm_find_by_size(const struct vmm_space *vmm,
+                                          size_t size)
 {
-    struct vmm_block *block, *best;
-    struct rb_node *curr;
-
-    curr = s->size_tree.root_node;
-    best = NULL;
+    struct rb_node *curr = vmm->structures.size_tree.root_node;
+    struct vmm_block *best = NULL;
 
     while (curr) {
-        block = rb_entry(curr, struct vmm_block, size_node);
+        struct vmm_block *block = rb_entry(curr, struct vmm_block, size_node);
 
         if (size == block->area.size) {
             return block;
-        } else if (size > block->area.size) {
+        }
+
+        if (size > block->area.size) {
             curr = curr->right;
         } else {
-            if (!best || block->area.size < best->area.size)
+            if (!best || block->area.size < best->area.size) {
                 best = block;
-
+            }
             curr = curr->left;
         }
     }
@@ -237,27 +245,44 @@ static struct vmm_block *vmm_find_by_size(struct vmm_structures *s, size_t size)
     return best;
 }
 
-/*
- * vmm_find_addr:
- * Check if virtual address `addr` has been allocated in the given
- * address space.
- */
-static struct vmm_block *vmm_find_addr(struct vmm_structures *s, addr_t addr)
+// Finds the unallocated block in the provided address space which contains the
+// given address, if it exists.
+static struct vmm_block *vmm_find_by_addr(const struct vmm_space *vmm,
+                                          addr_t addr)
 {
-    struct vmm_block *block;
-    struct rb_node *curr;
-
-    curr = s->alloc_tree.root_node;
+    struct rb_node *curr = vmm->structures.addr_tree.root_node;
 
     while (curr) {
-        block = rb_entry(curr, struct vmm_block, addr_node);
+        struct vmm_block *block = rb_entry(curr, struct vmm_block, addr_node);
 
-        if (addr < block->area.base)
+        if (addr < block->area.base) {
             curr = curr->left;
-        else if (addr >= block->area.base + block->area.size)
+        } else if (addr >= block->area.base + block->area.size) {
             curr = curr->right;
-        else
+        } else {
             return block;
+        }
+    }
+
+    return NULL;
+}
+
+// Checks if virtual address `addr` has been allocated in the given vmm space.
+static struct vmm_block *vmm_find_allocated(const struct vmm_space *vmm,
+                                            addr_t addr)
+{
+    struct rb_node *curr = vmm->structures.alloc_tree.root_node;
+
+    while (curr) {
+        struct vmm_block *block = rb_entry(curr, struct vmm_block, addr_node);
+
+        if (addr < block->area.base) {
+            curr = curr->left;
+        } else if (addr >= block->area.base + block->area.size) {
+            curr = curr->right;
+        } else {
+            return block;
+        }
     }
 
     return NULL;
@@ -278,7 +303,7 @@ void vmm_init(void)
                                    SLAB_PANIC,
                                    vmm_space_init);
 
-    first = vmm_block_alloc();
+    first = vmm_alloc_block();
     if (IS_ERR(first))
         panic("failed to allocate intial vmm_block: %s\n",
               strerror(ERR_VAL(first)));
@@ -287,37 +312,35 @@ void vmm_init(void)
     first->area.size = RESERVED_SIZE;
     first->vmm = NULL;
 
-    list_add(&vmm_kernel.block_list, &first->global_list);
-    vmm_tree_insert(&vmm_kernel, first);
+    list_add(&vmm_kernel.structures.block_list, &first->global_list);
+    vmm_tree_insert(&vmm_kernel.structures, first);
 }
 
-/*
- * vmm_split:
- * Split a single vmm_block into multiple blocks, one of which
- * starts at address `base` and is of length `size`.
- * Return this block.
- *
- * `block` MUST be large enough to fit `base` + `size`.
- */
+// Splits a single vmm_block into multiple blocks, one of which starts at
+// address `base` and is of length `size`. Returns this block.
+//
+// `block` MUST be large enough to fit `base` + `size`.
 static struct vmm_block *vmm_split(struct vmm_block *block,
                                    addr_t base,
                                    size_t size)
 {
-    struct vmm_structures *s;
+    assert(ALIGNED(size, PAGE_SIZE));
+
     struct vmm_block *new;
-    size_t new_size, end;
 
-    s = block->vmm ? &block->vmm->structures : &vmm_kernel;
-    new_size = base - block->area.base;
-    end = block->area.base + block->area.size;
+    struct vmm_structures *s =
+        block->vmm ? &block->vmm->structures : &vmm_kernel.structures;
+    const size_t before_size = base - block->area.base;
+    const addr_t block_end = block->area.base + block->area.size;
 
-    /* create a new block [block->area.base, base) */
-    if (new_size) {
-        new = vmm_block_alloc();
-        if (IS_ERR(new))
+    // Create a new block [block->area.base, base).
+    if (before_size > 0) {
+        new = vmm_alloc_block();
+        if (IS_ERR(new)) {
             return new;
+        }
 
-        block->area.size = new_size;
+        block->area.size = before_size;
         vmm_size_tree_delete(&s->size_tree, block);
         vmm_size_tree_insert(&s->size_tree, block);
 
@@ -327,24 +350,24 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
         list_add(&block->global_list, &new->global_list);
         block = new;
     } else if (size != block->area.size) {
-        /* base == block->area.base */
+        // base == block->area.base
         block->area.size = size;
         vmm_tree_delete(s, block);
     }
 
-    new_size = end - (block->area.base + block->area.size);
+    const size_t after_size = block_end - (block->area.base + block->area.size);
 
-    /* create a new block [block->area.base + block->area.size, end) */
-    if (new_size) {
-        new = vmm_block_alloc();
+    // Create a new block [block->area.base + block->area.size, end).
+    if (after_size > 0) {
+        new = vmm_alloc_block();
         if (IS_ERR(new)) {
-            block->area.size += new_size;
+            block->area.size += after_size;
             vmm_tree_insert(s, block);
             return new;
         }
 
         new->area.base = block->area.base + block->area.size;
-        new->area.size = new_size;
+        new->area.size = after_size;
         new->vmm = block->vmm;
         list_add(&block->global_list, &new->global_list);
         vmm_tree_insert(s, new);
@@ -353,525 +376,351 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
     return block;
 }
 
-/*
- * vmm_split_small:
- * Split a vmm_block into multiple blocks, one of which
- * starts at `base` and has size `size` < PAGE_SIZE.
- */
-static struct vmm_block *vmm_split_small(struct vmm_block *block,
-                                         addr_t base,
-                                         size_t size)
-{
-    struct vmm_block *new, *ret;
-
-    /*
-     * Blocks with size < PAGE_SIZE are not allowed to cross page
-     * boundaries. If `block` and `base` are on different pages,
-     * `block` is shrunk to end at the start of `base`s page, and a
-     * new block is created to span [page, base).
-     */
-    if (block->area.size >= PAGE_SIZE) {
-        new = vmm_block_alloc();
-        ret = vmm_block_alloc();
-
-        if (IS_ERR(new))
-            return new;
-        if (IS_ERR(ret))
-            return ret;
-
-        block->area.size -= PAGE_SIZE;
-        vmm_size_tree_delete(&vmm_kernel.size_tree, block);
-        vmm_size_tree_insert(&vmm_kernel.size_tree, block);
-
-        new->area.base = base &PAGE_MASK;
-        new->area.size = PAGE_SIZE - size;
-        new->vmm = NULL;
-        list_add(&block->global_list, &new->global_list);
-        vmm_tree_insert(&vmm_kernel, new);
-
-        ret->area.base = base;
-        ret->area.size = size;
-        ret->vmm = NULL;
-        list_add(&new->global_list, &ret->global_list);
-    } else {
-        ret = vmm_block_alloc();
-        if (IS_ERR(ret))
-            return ret;
-
-        block->area.size -= size;
-        vmm_size_tree_delete(&vmm_kernel.size_tree, block);
-        vmm_size_tree_insert(&vmm_kernel.size_tree, block);
-
-        ret->area.base = base;
-        ret->area.size = size;
-        ret->vmm = NULL;
-        list_add(&block->global_list, &ret->global_list);
-
-        /* a page has already been allocated; `ret` will share it */
-        if (block->mapped) {
-            ret->mapped = block->mapped;
-            PM_REFCOUNT_INC(block->mapped);
-        }
-    }
-
-    return ret;
-}
-
-/*
- * vmm_try_coalesce:
- * Attempt to merge `block` with its unallocated neighbours
- * to form a larger vmm_block, and return the new block.
- */
+// Attempt to merge `block` with its unallocated neighbors to form a larger
+// vmm_block, and return the new block.
 static struct vmm_block *vmm_try_coalesce(struct vmm_block *block)
 {
-    struct vmm_block *neighbour;
-    struct vmm_structures *s;
-    spinlock_t *lock;
+    struct vmm_block *neighbor;
     addr_t new_base;
     size_t new_size;
 
-    if (block->vmm) {
-        s = &block->vmm->structures;
-        lock = &block->vmm->structures_lock;
-    } else {
-        s = &vmm_kernel;
-        lock = &vmm_kernel_lock;
-    }
+    struct vmm_space *vmm = block->vmm ? block->vmm : &vmm_kernel;
+    struct vmm_structures *s = &vmm->structures;
 
-    spin_lock(lock);
+    spin_lock(&vmm->lock);
 
     rb_delete(&s->addr_tree, &block->addr_node);
     list_del(&block->area.list);
-    block->flags &= ~VMM_ALLOCATED;
+    block->flags &= ~(VMM_ALLOCATED | VMM_BLOCK_FLAGS);
 
     new_base = block->area.base;
     new_size = block->area.size;
 
-    /* merge with lower address blocks */
+    // Merge with lower address blocks.
     while (block->global_list.prev != &s->block_list) {
-        neighbour = list_prev_entry(block, global_list);
-        if (neighbour->flags & VMM_ALLOCATED ||
-            neighbour->area.size < PAGE_SIZE)
+        neighbor = list_prev_entry(block, global_list);
+        if (neighbor->flags & VMM_ALLOCATED) {
             break;
+        }
 
-        new_base = neighbour->area.base;
-        new_size += neighbour->area.size;
+        new_base = neighbor->area.base;
+        new_size += neighbor->area.size;
 
-        list_del(&neighbour->global_list);
-        vmm_tree_delete(s, neighbour);
-        vmm_block_free(neighbour);
+        list_del(&neighbor->global_list);
+        vmm_tree_delete(s, neighbor);
+        vmm_free_block(neighbor);
     }
 
-    /* merge with higher address blocks */
+    // Merge with higher address blocks.
     while (block->global_list.next != &s->block_list) {
-        neighbour = list_next_entry(block, global_list);
-        if (neighbour->flags & VMM_ALLOCATED ||
-            neighbour->area.size < PAGE_SIZE)
+        neighbor = list_next_entry(block, global_list);
+        if (neighbor->flags & VMM_ALLOCATED) {
             break;
+        }
 
-        new_size += neighbour->area.size;
+        new_size += neighbor->area.size;
 
-        list_del(&neighbour->global_list);
-        vmm_tree_delete(s, neighbour);
-        vmm_block_free(neighbour);
+        list_del(&neighbor->global_list);
+        vmm_tree_delete(s, neighbor);
+        vmm_free_block(neighbor);
     }
 
     block->area.base = new_base;
     block->area.size = new_size;
     vmm_tree_insert(s, block);
 
-    spin_unlock(lock);
+    spin_unlock(&vmm->lock);
 
     return block;
 }
 
-/*
- * vmm_try_coalesce_small:
- * Attempt to merge small vmm_block `block` with adjacent unallocated
- * vmm_blocks which share the same virtual page.
- */
-static struct vmm_block *vmm_try_coalesce_small(struct vmm_block *block)
-{
-    struct vmm_block *neighbour;
-    addr_t new_base, page;
-    size_t new_size;
-
-    spin_lock(&vmm_kernel_lock);
-
-    rb_delete(&vmm_kernel.addr_tree, &block->addr_node);
-    list_del(&block->area.list);
-    block->flags &= ~VMM_ALLOCATED;
-
-    new_base = block->area.base;
-    new_size = block->area.size;
-    page = block->area.base & PAGE_SIZE;
-
-    /* merge with lower address blocks on the same page */
-    while (block->global_list.prev != &vmm_kernel.block_list) {
-        neighbour = list_prev_entry(block, global_list);
-        if (neighbour->flags & VMM_ALLOCATED ||
-            (neighbour->area.base & PAGE_SIZE) != page)
-            break;
-
-        new_base = neighbour->area.base;
-        new_size += neighbour->area.size;
-
-        list_del(&neighbour->global_list);
-        vmm_tree_delete(&vmm_kernel, neighbour);
-        vmm_block_free(neighbour);
-    }
-
-    /* merge with higher address blocks on the same page */
-    while (block->global_list.next != &vmm_kernel.block_list) {
-        neighbour = list_next_entry(block, global_list);
-        if (neighbour->flags & VMM_ALLOCATED ||
-            (neighbour->area.base & PAGE_SIZE) != page)
-            break;
-
-        new_size += neighbour->area.size;
-
-        list_del(&neighbour->global_list);
-        vmm_tree_delete(&vmm_kernel, neighbour);
-        vmm_block_free(neighbour);
-    }
-
-    block->area.base = new_base;
-    block->area.size = new_size;
-    vmm_tree_insert(&vmm_kernel, block);
-
-    spin_unlock(&vmm_kernel_lock);
-
-    return block;
-}
-
-/*
- * __vmm_small_set_mapped:
- * Find all vmm_blocks that share a page with `block`
- * and mark them as being mapped.
- */
-static __always_inline void __vmm_small_set_mapped(struct vmm_block *block)
-{
-    struct vmm_block *b;
-    addr_t page;
-    unsigned int refcount, n;
-
-    page = block->area.base & PAGE_MASK;
-    refcount = PM_PAGE_REFCOUNT(block->mapped);
-    n = 0;
-
-    list_for_each_entry_r (b, &block->global_list, global_list) {
-        if ((b->area.base & PAGE_MASK) != page)
-            break;
-        b->mapped = block->mapped;
-        if (b->flags & VMM_ALLOCATED)
-            ++n;
-    }
-
-    list_for_each_entry (b, &block->global_list, global_list) {
-        if ((b->area.base & PAGE_MASK) != page)
-            break;
-        b->mapped = block->mapped;
-        if (b->flags & VMM_ALLOCATED)
-            ++n;
-    }
-
-    PM_SET_REFCOUNT(block->mapped, refcount + n);
-}
-
-static __always_inline void __vmm_add_area_pages(struct vmm_block *block,
-                                                 struct page *p)
-{
-    if (!block->mapped) {
-        block->mapped = p;
-        if (block->area.size < PAGE_SIZE)
-            __vmm_small_set_mapped(block);
-    } else {
-        list_ins(&block->mapped->list, &p->list);
-    }
-}
-
-/*
- * vmm_alloc_block_pages:
- * Allocate physical pages for the whole address range of the given vmm_block.
- * Note: this is almost always a _bad_ idea.
- */
+// Allocates physical pages for an entire virtual range of kernel address space.
+// Note: This is generally a bad idea.
 static void vmm_alloc_block_pages(struct vmm_block *block)
 {
-    struct page *p;
-    addr_t base, end;
-    size_t ord;
-    int pages;
+    // TODO(frolv): Don't use NULL to represent the kernel address space.
+    assert(block->vmm == NULL);
 
-    base = block->area.base;
-    end = block->area.base + block->area.size;
-    pages = block->area.size / PAGE_SIZE;
+    addr_t base = block->area.base;
+    const addr_t end = block->area.base + block->area.size;
+    int pages = block->area.size / PAGE_SIZE;
 
     while (base < end) {
-        ord = min(log2(pages), PA_MAX_ORDER);
+        int ord = min(log2(pages), PA_MAX_ORDER);
+        struct page *p = alloc_pages(PA_USER, ord);
 
-        p = alloc_pages(PA_USER, ord);
-        /*
-         * It's OK if this fails; there will be a second chance
-         * when the page fault handler is hit.
-         */
-        if (IS_ERR(p))
+        // It's okay if this fails; there will be a second chance when the page
+        // fault handler is hit.
+        if (IS_ERR(p)) {
             return;
+        }
 
         map_pages_kernel(
             base, page_to_phys(p), PROT_WRITE, PAGE_CP_DEFAULT, pow2(ord));
-        mark_page_mapped(p, base);
-        __vmm_add_area_pages(block, p);
+        vmm_add_area_pages(&block->area, p);
 
         pages -= pow2(ord);
         base += pow2(ord) * PAGE_SIZE;
     }
 }
 
-/*
- * vmm_alloc_size_kernel:
- * Allocate a vmm_block of size `size` from the kernel address space.
- */
-static struct vmm_area *vmm_alloc_size_kernel(size_t size, unsigned long flags)
+static void free_pages_refcount(struct page *p)
 {
-    struct vmm_block *block;
-    addr_t base;
-    int err;
-    size_t align;
+    PM_REFCOUNT_DEC(p);
+    if (PM_PAGE_REFCOUNT(p) == 0) {
+        free_pages(p);
+    }
+}
 
-    if (size > PAGE_SIZE / 2) {
-        size = ALIGN(size, PAGE_SIZE);
-    } else if (size > VMM_AREA_MIN_SIZE) {
-        align = pow2(log2(size));
-        size = ALIGN(size, align);
-    } else {
-        size = VMM_AREA_MIN_SIZE;
+static void vmm_free_pages(struct vmm_block *block)
+{
+    if (!block->mapped) {
+        return;
     }
 
-    spin_lock(&vmm_kernel_lock);
+    struct vmm_space *vmm = block->vmm ? block->vmm : &vmm_kernel;
 
-    block = vmm_find_by_size(&vmm_kernel, size);
+    while (!list_empty(&block->mapped->list)) {
+        struct page *p =
+            list_first_entry(&block->mapped->list, struct page, list);
+        vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(p));
+        list_del(&p->list);
+        free_pages_refcount(p);
+    }
+
+    vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(block->mapped));
+    free_pages_refcount(block->mapped);
+    block->mapped = NULL;
+}
+
+struct vmm_space *vmm_new(void)
+{
+    struct vmm_space *vmm = alloc_cache(vmm_space_cache);
+    if (IS_ERR(vmm)) {
+        return NULL;
+    }
+
+    struct vmm_block *initial = vmm_alloc_block();
+    if (IS_ERR(initial)) {
+        free_cache(vmm_space_cache, vmm);
+        return NULL;
+    }
+
+    // Set up the initial block encompassing the entire user address space.
+    initial->area.base = USER_VIRTUAL_BASE;
+    initial->area.size = USER_VIRTUAL_SIZE;
+    initial->vmm = vmm;
+
+    list_add(&vmm->structures.block_list, &initial->global_list);
+    vmm_tree_insert(&vmm->structures, initial);
+
+    arch_vmm_setup(vmm);
+
+    return vmm;
+}
+
+void vmm_release(struct vmm_space *vmm)
+{
+    assert(spin_try_lock(&vmm->lock));
+
+    arch_vmm_release(vmm);
+
+    // Free all the blocks in the space. No need to remove them from the trees
+    // as the vmm_space is being freed directly afterwards.
+    while (!list_empty(&vmm->structures.block_list)) {
+        struct vmm_block *block = list_first_entry(
+            &vmm->structures.block_list, struct vmm_block, global_list);
+        list_del(&block->global_list);
+        vmm_free_pages(block);
+        vmm_free_block(block);
+    }
+
+    free_cache(vmm_space_cache, vmm);
+}
+
+struct vmm_area *vmm_alloc_size(struct vmm_space *vmm,
+                                size_t size,
+                                uint32_t flags)
+{
+    if (!vmm) {
+        vmm = &vmm_kernel;
+    }
+
+    unsigned long irqstate;
+    int err;
+
+    size = ALIGN(size, PAGE_SIZE);
+    spin_lock_irq(&vmm->lock, &irqstate);
+
+    struct vmm_block *block = vmm_find_by_size(vmm, size);
     if (!block) {
         err = ENOMEM;
         goto out_err;
     }
 
-    base = block->area.base + block->area.size - size;
+    addr_t base = block->area.base + block->area.size - size;
 
-    if (size < PAGE_SIZE)
-        block = vmm_split_small(block, base, size);
-    else
-        block = vmm_split(block, base, size);
-
+    block = vmm_split(block, base, size);
     if (IS_ERR(block)) {
         err = ERR_VAL(block);
         goto out_err;
     }
 
-    block->flags |= VMM_ALLOCATED;
-    list_ins(&vmm_kernel.alloc_list, &block->area.list);
-    vmm_addr_tree_insert(&vmm_kernel.alloc_tree, block);
+    uint32_t block_flags = flags & VMM_BLOCK_FLAGS;
+    block->flags |= (VMM_ALLOCATED | block_flags);
 
-    spin_unlock(&vmm_kernel_lock);
+    list_ins(&vmm->structures.alloc_list, &block->area.list);
+    vmm_addr_tree_insert(&vmm->structures.alloc_tree, block);
 
-    if (flags & VMM_ALLOC_UPFRONT)
+    spin_unlock_irq(&vmm->lock, irqstate);
+
+    if (flags & VMM_ALLOC_UPFRONT) {
         vmm_alloc_block_pages(block);
+    }
 
     return &block->area;
 
 out_err:
-    spin_unlock(&vmm_kernel_lock);
+    spin_unlock_irq(&vmm->lock, irqstate);
     return ERR_PTR(err);
 }
 
-static struct vmm_area *__vmm_alloc_size(struct vmm_space *vmm,
-                                         size_t size,
-                                         unsigned long flags)
+struct vmm_area *vmm_alloc_addr(struct vmm_space *vmm,
+                                addr_t addr,
+                                size_t size,
+                                uint32_t flags)
 {
-    if (flags & VMM_ALLOC_UPFRONT)
-        return ERR_PTR(EINVAL);
+    if (!vmm) {
+        vmm = &vmm_kernel;
+    }
+
+    unsigned long irqstate;
 
     size = ALIGN(size, PAGE_SIZE);
+    spin_lock_irq(&vmm->lock, &irqstate);
 
-    (void)vmm;
-    return ERR_PTR(ENOMEM);
-}
-
-/*
- * vmm_alloc_size:
- * Allocate a block of virtual pages of at least `size`
- * from the address space specified by `vmm`.
- */
-struct vmm_area *vmm_alloc_size(struct vmm_space *vmm,
-                                size_t size,
-                                unsigned long flags)
-{
-    if (!vmm)
-        return vmm_alloc_size_kernel(size, flags);
-    else
-        return __vmm_alloc_size(vmm, size, flags);
-}
-
-static void __vmm_free_pages(struct vmm_space *vmm, struct vmm_block *block)
-{
-    struct page *p;
-
-    if (!block->mapped)
-        return;
-
-    while (!list_empty(&block->mapped->list)) {
-        p = list_first_entry(&block->mapped->list, struct page, list);
-        vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(p));
-        list_del(&p->list);
-        free_pages(p);
+    struct vmm_block *block = vmm_find_by_addr(vmm, addr);
+    if (!block) {
+        spin_unlock_irq(&vmm->lock, irqstate);
+        return ERR_PTR(ENOMEM);
     }
-    vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(block->mapped));
-    free_pages(block->mapped);
-    block->mapped = NULL;
-}
 
-static void __vmm_free_kernel_pages(struct vmm_block *block)
-{
-    struct page *p;
-
-    if (!block->mapped)
-        return;
-
-    while (!list_empty(&block->mapped->list)) {
-        p = list_first_entry(&block->mapped->list, struct page, list);
-        list_del(&p->list);
-        free_pages(p);
+    const addr_t block_end = block->area.base + block->area.size;
+    if (addr + size > block_end) {
+        spin_unlock_irq(&vmm->lock, irqstate);
+        return ERR_PTR(ENOMEM);
     }
-    free_pages(block->mapped);
-    block->mapped = NULL;
-}
 
-/*
- * __vmm_free_small_page:
- * Check if a physical page mapped to multiple small vmm_blocks
- * can be freed and free it if so.
- */
-static void __vmm_free_small_page(struct vmm_block *block)
-{
-    struct vmm_block *b;
-
-    if (!block->mapped)
-        return;
-
-    PM_REFCOUNT_DEC(block->mapped);
-    if (!PM_PAGE_REFCOUNT(block->mapped)) {
-        /* clear `mapped` for all vmm_blocks that share the page */
-        list_for_each_entry_r (b, &block->global_list, global_list) {
-            if (b->mapped != block->mapped)
-                break;
-            b->mapped = NULL;
-        }
-
-        list_for_each_entry (b, &block->global_list, global_list) {
-            if (b->mapped != block->mapped)
-                break;
-            b->mapped = NULL;
-        }
-
-        free_pages(block->mapped);
-        block->mapped = NULL;
+    block = vmm_split(block, addr, size);
+    if (IS_ERR(block)) {
+        spin_unlock_irq(&vmm->lock, irqstate);
+        return ERR_PTR(ERR_VAL(block));
     }
+
+    uint32_t block_flags = flags & VMM_BLOCK_FLAGS;
+    block->flags |= (VMM_ALLOCATED | block_flags);
+
+    list_ins(&vmm->structures.alloc_list, &block->area.list);
+    vmm_addr_tree_insert(&vmm->structures.alloc_tree, block);
+
+    spin_unlock_irq(&vmm->lock, irqstate);
+    return &block->area;
 }
 
-/* __vmm_free_kernel: free `block` in kernel address space */
-static void __vmm_free_kernel(struct vmm_block *block)
-{
-    if (block->area.size < PAGE_SIZE) {
-        __vmm_free_small_page(block);
-        vmm_try_coalesce_small(block);
-    } else {
-        __vmm_free_kernel_pages(block);
-        vmm_try_coalesce(block);
-    }
-}
-
-/* vmm_free: free the vmm_area `area` */
 void vmm_free(struct vmm_area *area)
 {
     struct vmm_block *block;
 
     block = (struct vmm_block *)area;
-    if (!(block->flags & VMM_ALLOCATED))
+    if (!(block->flags & VMM_ALLOCATED)) {
         return;
-
-    if (!block->vmm) {
-        __vmm_free_kernel(block);
-    } else {
-        __vmm_free_pages(block->vmm, block);
-        vmm_try_coalesce(block);
     }
+
+    vmm_free_pages(block);
+    vmm_try_coalesce(block);
 }
 
 void *vmalloc(size_t size)
 {
-    struct vmm_area *area;
-
-    area = vmm_alloc_size_kernel(size, 0);
-    if (IS_ERR(area))
+    struct vmm_area *area = vmm_alloc_size(NULL, size, VMM_READ | VMM_WRITE);
+    if (IS_ERR(area)) {
         return NULL;
+    }
 
     return (void *)area->base;
 }
 
 void vfree(void *ptr)
 {
-    struct vmm_block *block;
-
-    block = vmm_find_addr(&vmm_kernel, (addr_t)ptr);
-    if (block)
-        __vmm_free_kernel(block);
+    struct vmm_block *block = vmm_find_allocated(&vmm_kernel, (addr_t)ptr);
+    if (block) {
+        vmm_free_pages(block);
+    }
 }
 
-/*
- * vmm_get_allocated_area:
- * Check if `addr` is allocated in address space `vmm`,
- * and return its vmm_area if so.
- */
+// Checks if `addr` is allocated in address space `vmm`, and returns its
+// vmm_area if so.
 struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr)
 {
-    struct vmm_block *block;
-
-    block = vmm_find_addr(vmm ? &vmm->structures : &vmm_kernel, addr);
+    struct vmm_block *block = vmm_find_allocated(vmm ? vmm : &vmm_kernel, addr);
     return (struct vmm_area *)block;
 }
 
-/*
- * vmm_add_area_pages:
- * Add the block of physical pages represented by `p` to `area`.
- */
+// Adds the block of physical pages represented by `p` to `area`.
 void vmm_add_area_pages(struct vmm_area *area, struct page *p)
 {
-    struct vmm_block *block;
-    struct vmm_space *vmm;
+    struct vmm_block *block = (struct vmm_block *)area;
+    struct vmm_space *vmm = block->vmm;
 
-    block = (struct vmm_block *)area;
-    vmm = block->vmm;
-    if (vmm)
+    if (vmm) {
         vmm->pages += pow2(PM_PAGE_BLOCK_ORDER(p));
+    }
 
-    __vmm_add_area_pages(block, p);
+    if (vmm == &vmm_kernel) {
+        p->mem = (void *)area->base;
+        p->status |= PM_PAGE_MAPPED;
+    }
+
+    PM_REFCOUNT_INC(p);
+
+    if (!block->mapped) {
+        block->mapped = p;
+    } else {
+        list_ins(&block->mapped->list, &p->list);
+    }
 }
 
 void vmm_space_dump(struct vmm_space *vmm)
 {
-    struct vmm_structures *s;
-    struct vmm_block *block;
-    int i;
-
-    s = vmm ? &vmm->structures : &vmm_kernel;
-    i = 0;
+    struct vmm_structures *s = vmm ? &vmm->structures : &vmm_kernel.structures;
+    int i = 0;
 
     printf("vmm_space:\n");
+    printf("idx\tvirtual range\t\tflags\n");
+
+    struct vmm_block *block;
     list_for_each_entry (block, &s->block_list, global_list) {
-        printf("%d\t%p-%p\t[%c]\n",
+        char flags[5];
+        strcpy(flags, "----");
+
+        if (block->flags & VMM_ALLOCATED) {
+            flags[0] = 'A';
+        }
+        if (block->flags & VMM_READ) {
+            flags[1] = 'R';
+        }
+        if (block->flags & VMM_WRITE) {
+            flags[2] = 'W';
+        }
+        if (block->flags & VMM_EXEC) {
+            flags[3] = 'X';
+        }
+
+        printf("%d\t%p-%p\t[%s]\n",
                i++,
                block->area.base,
                block->area.base + block->area.size,
-               block->flags & VMM_ALLOCATED ? 'A' : '-');
+               flags);
     }
 }
 
@@ -899,10 +748,12 @@ void vmm_block_dump(struct vmm_block *block)
            block->area.base + block->area.size,
            (block->area.base + block->area.size) / KIB(1));
 
-    if (!(p = block->mapped))
+    if (!(p = block->mapped)) {
         return;
+    }
 
     vmm_page_dump(p);
-    list_for_each_entry (p, &p->list, list)
+    list_for_each_entry (p, &p->list, list) {
         vmm_page_dump(p);
+    }
 }

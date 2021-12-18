@@ -324,17 +324,6 @@ static struct page *buddy_coalesce(struct buddy *zone, struct page *p)
     return p;
 }
 
-/*
- * mark_page_mapped:
- * Indicate that page `p` has been mapped to address `virt`.
- */
-void mark_page_mapped(struct page *p, addr_t virt)
-{
-    p->mem = (void *)virt;
-    p->status |= PM_PAGE_MAPPED;
-    PM_SET_REFCOUNT(p, 1);
-}
-
 static struct memory_map *mmap = NULL;
 
 #define NEXT_MAP(mmap) \

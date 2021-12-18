@@ -1,6 +1,6 @@
 /*
  * include/radix/vmm.h
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #define RADIX_VMM_H
 
 #include <radix/asm/mm_limits.h>
+#include <radix/error.h>
 #include <radix/list.h>
 #include <radix/mm_types.h>
 #include <radix/rbtree.h>
@@ -34,30 +35,51 @@ struct vmm_area {
 };
 
 struct vmm_structures {
-    struct list block_list;    /* all blocks in address space */
-    struct list alloc_list;    /* allocated blocks in address space */
-    struct rb_root addr_tree;  /* unallocated blocks by address */
-    struct rb_root size_tree;  /* unallocated blocks by size */
-    struct rb_root alloc_tree; /* allocated blocks by address */
+    // All blocks in the address space.
+    struct list block_list;
+
+    // Allocated blocks in the address space.
+    struct list alloc_list;
+
+    // Unallocated blocks sorted by base address.
+    struct rb_root addr_tree;
+
+    // Unallocated blocks sorted by size.
+    struct rb_root size_tree;
+
+    // Allocated blocks sorted by base address.
+    struct rb_root alloc_tree;
 };
 
 struct vmm_space {
     struct vmm_structures structures;
     struct list vmm_list;
-    spinlock_t structures_lock;
+    spinlock_t lock;
     paddr_t paging_base;
+    void *paging_ctx;
     int pages;
 };
 
 void vmm_init(void);
 
-#define VMM_AREA_MIN_SIZE 64
+// Creates a new vmm_space for a process.
+struct vmm_space *vmm_new(void);
 
-#define VMM_ALLOC_UPFRONT (1 << 0)
+// Releases a vmm_space.
+void vmm_release(struct vmm_space *vmm);
 
+#define VMM_READ          (1 << 0)
+#define VMM_WRITE         (1 << 1)
+#define VMM_EXEC          (1 << 2)
+#define VMM_ALLOC_UPFRONT (1 << 8)
+
+struct vmm_area *vmm_alloc_addr(struct vmm_space *vmm,
+                                addr_t addr,
+                                size_t size,
+                                uint32_t flags);
 struct vmm_area *vmm_alloc_size(struct vmm_space *vmm,
                                 size_t size,
-                                unsigned long flags);
+                                uint32_t flags);
 void vmm_free(struct vmm_area *area);
 
 void *vmalloc(size_t size);
@@ -66,4 +88,13 @@ void vfree(void *ptr);
 struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr);
 void vmm_add_area_pages(struct vmm_area *area, struct page *p);
 
-#endif /* RADIX_VMM_H */
+void vmm_space_dump(struct vmm_space *vmm);
+
+//
+// Architecture-specific functions.
+//
+
+int arch_vmm_setup(struct vmm_space *vmm);
+void arch_vmm_release(struct vmm_space *vmm);
+
+#endif  // RADIX_VMM_H
