@@ -14,6 +14,11 @@ config X86_PAE
 	default true
 	desc "Enable physical address extension (PAE)"
 
+config X86_NX
+	type bool
+	default true
+	desc "Enable No-Execute (NX) memory protection"
+
 section Interrupts
 
 config X86_MAX_IOAPICS

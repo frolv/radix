@@ -67,9 +67,9 @@
 #define _PAGE_BIT_PAT      7
 #define _PAGE_BIT_GLOBAL   8
 
-#if CONFIG(X86_PAE)
+#if CONFIG(X86_NX)
 #define _PAGE_BIT_NX 63
-#endif  // CONFIG(X86_PAE)
+#endif  // CONFIG(X86_NX)
 
 #define PAGE_PRESENT  (((pteval_t)1) << _PAGE_BIT_PRESENT)
 #define PAGE_RW       (((pteval_t)1) << _PAGE_BIT_RW)
@@ -81,8 +81,8 @@
 #define PAGE_PAT      (((pteval_t)1) << _PAGE_BIT_PAT)
 #define PAGE_GLOBAL   (((pteval_t)1) << _PAGE_BIT_GLOBAL)
 
-#if CONFIG(X86_PAE)
+#if CONFIG(X86_NX)
 #define PAGE_NX (((pteval_t)1) << _PAGE_BIT_NX)
-#endif  // CONFIG(X86_PAE)
+#endif  // CONFIG(X86_NX)
 
 #endif  // ARCH_I386_RADIX_PAGE_DEFS_H

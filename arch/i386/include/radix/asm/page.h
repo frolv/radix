@@ -29,6 +29,8 @@
 #include <radix/config.h>
 #include <radix/mm_types.h>
 
+#include <stdbool.h>
+
 #define PDE(x) ((x).pde)
 #define PTE(x) ((x).pte)
 
@@ -58,10 +60,43 @@ struct vmm_space;
 paddr_t i386_virt_to_phys(addr_t addr);
 void i386_set_pde(addr_t virt, pde_t pde);
 int i386_addr_mapped(addr_t virt);
-int i386_map_page_kernel(addr_t virt, paddr_t phys, int prot, int cp);
-int i386_map_page_user(addr_t virt, paddr_t phys, int prot, int cp);
-int i386_map_pages(
-    addr_t virt, paddr_t phys, int prot, int cp, int user, size_t n);
+
+int i386_map_page_kernel(addr_t virt,
+                         paddr_t phys,
+                         int prot,
+                         enum cache_policy cp);
+
+int i386_map_page_user(addr_t virt,
+                       paddr_t phys,
+                       int prot,
+                       enum cache_policy cp);
+
+int i386_map_pages(addr_t virt,
+                   paddr_t phys,
+                   size_t num_pages,
+                   int prot,
+                   enum cache_policy cp,
+                   bool user);
+
+int i386_map_pages_vmm(const struct vmm_space *vmm,
+                       addr_t virt,
+                       paddr_t phys,
+                       size_t num_pages,
+                       unsigned long prot,
+                       enum cache_policy cp);
+
+int i386_unmap_pages(addr_t virt, size_t n);
+
+int i386_set_cache_policy(addr_t virt, enum cache_policy policy);
+
+void i386_tlb_flush_all(int sync);
+void i386_tlb_flush_nonglobal(int sync);
+void i386_tlb_flush_nonglobal_lazy(void);
+void i386_tlb_flush_range(addr_t start, addr_t end, int sync);
+void i386_tlb_flush_range_lazy(addr_t start, addr_t end);
+void i386_tlb_flush_page(addr_t addr, int sync);
+void i386_tlb_flush_page_lazy(addr_t addr);
+
 int i386_unmap_pages(addr_t virt, size_t n);
 int i386_set_cache_policy(addr_t virt, enum cache_policy policy);
 
@@ -90,6 +125,7 @@ static __always_inline addr_t __arch_pa(addr_t v)
 #define __arch_map_page_kernel      i386_map_page_kernel
 #define __arch_map_page_user        i386_map_page_user
 #define __arch_map_pages            i386_map_pages
+#define __arch_map_pages_vmm        i386_map_pages_vmm
 #define __arch_unmap_pages          i386_unmap_pages
 #define __arch_set_cache_policy     i386_set_cache_policy
 #define __arch_switch_address_space i386_switch_address_space

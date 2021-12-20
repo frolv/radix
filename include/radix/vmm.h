@@ -86,7 +86,13 @@ void *vmalloc(size_t size);
 void vfree(void *ptr);
 
 struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr);
+
+// Marks a block of physical pages as allocated for a VMM area. This does not
+// map the pages to addresses in the area; that must be done separately.
 void vmm_add_area_pages(struct vmm_area *area, struct page *p);
+
+// Maps physical pages to an address within an allocated VMM area.
+int vmm_map_pages(struct vmm_area *area, addr_t addr, struct page *p);
 
 void vmm_space_dump(struct vmm_space *vmm);
 

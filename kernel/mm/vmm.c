@@ -38,7 +38,7 @@
 //      the tree node, with the rest stored in its area.list.
 //   4. addr_node is in the tree of unallocated vmm_blocks sorted by base
 //      address.
-//   5. mapped is NULL.
+//   5. allocated_pages is NULL.
 //
 // When a vmm_block *is* allocated:
 //
@@ -49,13 +49,14 @@
 //   3. size_node is not used.
 //   4. addr_node is in the tree of all allocated vmm_blocks in the address
 //      space, sorted by base address.
-//   5. mapped is either NULL or a pointer to a struct page representing a group
-//      of physical pages allocated for this vmm_block. The struct page's list
-//      stores all of the other physical page groups allocated for this block.
+//   5. allocated_pages is either NULL or a pointer to a struct page
+//      representing a block of physical pages allocated for this vmm_block.
+//      The struct page's list stores all of the other physical page blocks
+//      allocated for this block.
 //
 struct vmm_block {
     struct vmm_area area;
-    struct page *mapped;
+    struct page *allocated_pages;
     struct vmm_space *vmm;
     uint32_t flags;
     uint32_t pad0;
@@ -94,7 +95,7 @@ static void vmm_block_init(void *p)
     struct vmm_block *block = p;
 
     block->flags = 0;
-    block->mapped = NULL;
+    block->allocated_pages = NULL;
     list_init(&block->area.list);
     list_init(&block->global_list);
     rb_init(&block->size_node);
@@ -456,7 +457,7 @@ static void vmm_alloc_block_pages(struct vmm_block *block)
         }
 
         map_pages_kernel(
-            base, page_to_phys(p), PROT_WRITE, PAGE_CP_DEFAULT, pow2(ord));
+            base, page_to_phys(p), pow2(ord), PROT_WRITE, PAGE_CP_DEFAULT);
         vmm_add_area_pages(&block->area, p);
 
         pages -= pow2(ord);
@@ -474,23 +475,23 @@ static void free_pages_refcount(struct page *p)
 
 static void vmm_free_pages(struct vmm_block *block)
 {
-    if (!block->mapped) {
+    if (!block->allocated_pages) {
         return;
     }
 
     struct vmm_space *vmm = block->vmm ? block->vmm : &vmm_kernel;
 
-    while (!list_empty(&block->mapped->list)) {
+    while (!list_empty(&block->allocated_pages->list)) {
         struct page *p =
-            list_first_entry(&block->mapped->list, struct page, list);
+            list_first_entry(&block->allocated_pages->list, struct page, list);
         vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(p));
         list_del(&p->list);
         free_pages_refcount(p);
     }
 
-    vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(block->mapped));
-    free_pages_refcount(block->mapped);
-    block->mapped = NULL;
+    vmm->pages -= pow2(PM_PAGE_BLOCK_ORDER(block->allocated_pages));
+    free_pages_refcount(block->allocated_pages);
+    block->allocated_pages = NULL;
 }
 
 struct vmm_space *vmm_new(void)
@@ -683,11 +684,43 @@ void vmm_add_area_pages(struct vmm_area *area, struct page *p)
 
     PM_REFCOUNT_INC(p);
 
-    if (!block->mapped) {
-        block->mapped = p;
+    if (!block->allocated_pages) {
+        block->allocated_pages = p;
     } else {
-        list_ins(&block->mapped->list, &p->list);
+        list_ins(&block->allocated_pages->list, &p->list);
     }
+}
+
+int vmm_map_pages(struct vmm_area *area, addr_t addr, struct page *p)
+{
+    int pages = pow2(PM_PAGE_BLOCK_ORDER(p));
+
+    if (addr < area->base ||
+        addr + pages * PAGE_SIZE > area->base + area->size) {
+        return EINVAL;
+    }
+
+    const struct vmm_block *block = (const struct vmm_block *)area;
+
+    int prot = 0;
+    if (block->flags & VMM_READ) {
+        prot |= PROT_READ;
+    }
+    if (block->flags & VMM_WRITE) {
+        prot |= PROT_WRITE;
+    }
+    if (block->flags & VMM_EXEC) {
+        prot |= PROT_EXEC;
+    }
+
+    int err = map_pages_vmm(
+        block->vmm, addr, page_to_phys(p), pages, prot, PAGE_CP_DEFAULT);
+    if (err) {
+        return err;
+    }
+
+    vmm_add_area_pages(area, p);
+    return 0;
 }
 
 void vmm_space_dump(struct vmm_space *vmm)
@@ -748,7 +781,7 @@ void vmm_block_dump(struct vmm_block *block)
            block->area.base + block->area.size,
            (block->area.base + block->area.size) / KIB(1));
 
-    if (!(p = block->mapped)) {
+    if (!(p = block->allocated_pages)) {
         return;
     }
 

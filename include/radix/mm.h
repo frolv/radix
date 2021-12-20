@@ -1,6 +1,6 @@
 /*
  * include/radix/mm.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
 #include <radix/mm_types.h>
 #include <radix/multiboot.h>
 #include <radix/types.h>
+
+#include <stdbool.h>
 
 // Base virtual address at which kernel code is loaded.
 #define KERNEL_VIRTUAL_BASE __ARCH_KERNEL_VIRT_BASE
@@ -125,8 +127,9 @@ static __always_inline struct page *phys_to_page(paddr_t phys)
 #define set_pde(virt, pde) __arch_set_pde(virt, pde)
 #define addr_mapped(virt)  __arch_addr_mapped(virt)
 
-#define PROT_READ  0
-#define PROT_WRITE 1
+#define PROT_READ  (1 << 0)
+#define PROT_WRITE (1 << 1)
+#define PROT_EXEC  (1 << 2)
 
 /* CPU caching control */
 enum cache_policy {
@@ -139,15 +142,40 @@ enum cache_policy {
     PAGE_CP_WRITE_PROTECTED
 };
 
+struct vmm_space;
+
+// TODO(frolv): Rewrite these to use fewer macros.
+
 #define map_page_kernel(virt, phys, prot, cp) \
     __arch_map_page_kernel(virt, phys, prot, cp)
 #define map_page_user(virt, phys, prot, cp) \
     __arch_map_page_user(virt, phys, prot, cp)
 
-#define map_pages_kernel(virt, phys, prot, cp, n) \
-    __arch_map_pages(virt, phys, prot, cp, 0, n)
-#define map_pages_user(virt, phys, prot, cp, n) \
-    __arch_map_pages(virt, phys, prot, cp, 1, n)
+// Maps virtual to physical addresses within the kernel address space.
+static inline int map_pages_kernel(
+    addr_t virt, paddr_t phys, size_t num_pages, int prot, enum cache_policy cp)
+{
+    return __arch_map_pages(virt, phys, num_pages, prot, cp, /*user=*/false);
+}
+
+// Maps virtual to physical addresses within the address space of the current
+// process.
+static inline int map_pages_user(
+    addr_t virt, paddr_t phys, size_t num_pages, int prot, enum cache_policy cp)
+{
+    return __arch_map_pages(virt, phys, num_pages, prot, cp, /*user=*/true);
+}
+
+// Maps virtual to physical addresses within a given address space.
+static inline int map_pages_vmm(const struct vmm_space *vmm,
+                                addr_t virt,
+                                paddr_t phys,
+                                size_t num_pages,
+                                int prot,
+                                enum cache_policy cp)
+{
+    return __arch_map_pages_vmm(vmm, virt, phys, num_pages, prot, cp);
+}
 
 #define unmap_pages(virt, n) __arch_unmap_pages(virt, n)
 #define unmap_page(virt)     __arch_unmap_pages(virt, 1)
@@ -172,21 +200,6 @@ enum cache_policy {
 #define tlb_flush_range(lo, hi, sync) __arch_tlb_flush_range(lo, hi, sync)
 #define tlb_flush_page(addr, sync)    __arch_tlb_flush_page(addr, sync)
 
-/*
- * The lazy versions of the tlb_* functions use the approach of lazy TLB
- * invalidation. TLB entries are only invalidated immediately on the running
- * processor; if other processors attempt to access an invalid page in the
- * future, they will page fault. The page fault handler will then detect that
- * the fault occurred because of an invalid TLB entry, and remove it.
- * This has the advantage of avoiding the overhead of multiple inter-processor
- * interrupts when an entry is invalidated.
- * These functions should be preferred over their non-lazy counterparts,
- * when possible.
- *
- * `tlb_flush_all` does not have a lazy version. In the case that a call to
- * it is warranted, it is probably essential that all processors' TLBs get
- * flushed immediately.
- */
 #define tlb_flush_nonglobal_lazy()   __arch_tlb_flush_nonglobal_lazy()
 #define tlb_flush_range_lazy(lo, hi) __arch_tlb_flush_range_lazy(lo, hi)
 #define tlb_flush_page_lazy(addr)    __arch_tlb_flush_page_lazy(addr)
@@ -197,4 +210,4 @@ enum cache_policy {
 #define cache_flush_all()      __arch_cache_flush_all()
 #define cache_flush_page(addr) __arch_cache_flush_page(addr)
 
-#endif /* RADIX_MM_H */
+#endif  // RADIX_MM_H

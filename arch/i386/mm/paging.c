@@ -21,6 +21,8 @@
 #include <radix/config.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
+#include <radix/klog.h>
+#include <radix/limits.h>
 #include <radix/mm.h>
 #include <radix/slab.h>
 #include <radix/vmm.h>
@@ -54,8 +56,7 @@ static pde_t *clone_kernel_pgdir(size_t start, size_t end)
 
     const paddr_t phys = page_to_phys(p);
 
-    int err =
-        i386_map_page_kernel((addr_t)pgdir, phys, PROT_WRITE, PAGE_CP_DEFAULT);
+    int err = map_page_kernel((addr_t)pgdir, phys, PROT_WRITE, PAGE_CP_DEFAULT);
     if (err) {
         return ERR_PTR(err);
     }
@@ -89,8 +90,7 @@ static int free_page_directory(paddr_t phys, size_t start, size_t end)
         return ENOMEM;
     }
 
-    int err =
-        i386_map_page_kernel((addr_t)pgdir, phys, PROT_READ, PAGE_CP_DEFAULT);
+    int err = map_page_kernel((addr_t)pgdir, phys, PROT_READ, PAGE_CP_DEFAULT);
     if (err) {
         return err;
     }
@@ -112,7 +112,6 @@ static int ___map_page(pde_t *pgdir,
                        pte_t *pgtbl,
                        size_t pdi,
                        size_t pti,
-                       addr_t virt,
                        paddr_t phys,
                        pteval_t flags)
 {
@@ -129,20 +128,15 @@ static int ___map_page(pde_t *pgdir,
             return ERR_VAL(new);
 
         pgdir[pdi] = make_pde(page_to_phys(new) | PAGE_RW | PAGE_PRESENT);
-        tlb_flush_page_lazy((addr_t)pgtbl);
         memset(pgtbl, 0, PGTBL_SIZE);
     }
     pgtbl[pti] = make_pte(phys | flags | PAGE_PRESENT);
-    tlb_flush_page_lazy(virt);
 
     return 0;
 }
 
-/*
- * __unmap_pages:
- * Unmap `n` pages starting at address `virt` from the specified page table,
- * which has index `pdi` in the given page directory.
- */
+// Unmaps `n` pages starting at address `virt` from the specified page table,
+// which has index `pdi` in the given page directory.
 int __unmap_pages(pde_t *pgdir, size_t pdi, pte_t *pgtbl, addr_t virt, size_t n)
 {
     size_t initial_pti, curr_pti;
@@ -150,15 +144,19 @@ int __unmap_pages(pde_t *pgdir, size_t pdi, pte_t *pgtbl, addr_t virt, size_t n)
     int unmapped;
 
     initial_pti = PGTBL_INDEX(virt);
-    /* check if any previous pages in the current table are mapped */
+
+    // Check if any previous pages in the current table are mapped.
     for (curr_pti = 0; curr_pti < initial_pti; ++curr_pti) {
-        if (PTE(pgtbl[curr_pti]) & PAGE_PRESENT)
+        if (PTE(pgtbl[curr_pti]) & PAGE_PRESENT) {
             break;
+        }
     }
-    if (curr_pti == initial_pti)
+
+    if (curr_pti == initial_pti) {
         initial_pti = 0;
-    else
+    } else {
         curr_pti = initial_pti;
+    }
 
     unmapped = 0;
     while (n) {
@@ -170,7 +168,7 @@ int __unmap_pages(pde_t *pgdir, size_t pdi, pte_t *pgtbl, addr_t virt, size_t n)
         virt += PAGE_SIZE;
         if (++curr_pti == PTRS_PER_PGTBL) {
             if (initial_pti == 0) {
-                /* all pages in the table are unmapped */
+                // All pages in the table are unmapped.
                 phys = PDE(pgdir[pdi]) & PAGE_MASK;
                 free_pages(phys_to_page(phys));
                 pgdir[pdi] = make_pde(0);
@@ -181,6 +179,38 @@ int __unmap_pages(pde_t *pgdir, size_t pdi, pte_t *pgtbl, addr_t virt, size_t n)
     }
 
     return unmapped;
+}
+
+// Loads a page table from the specified index of a page directory and maps it
+// to the address of the `pgtbl` pointer in the current address space. If no
+// page table entry for the index is present, allocates a new one.
+static int load_and_map_page_table(pde_t *pgdir, size_t pdi, pte_t *pgtbl)
+{
+    bool allocated = false;
+
+    if (!(PDE(pgdir[pdi]) & PAGE_PRESENT)) {
+        struct page *p = alloc_page(PA_PAGETABLE);
+        if (IS_ERR(p)) {
+            return ERR_VAL(p);
+        }
+
+        pgdir[pdi] = make_pde(page_to_phys(p) | PAGE_RW | PAGE_PRESENT);
+        allocated = true;
+    }
+
+    paddr_t phys = PDE(pgdir[pdi]) & PAGE_MASK;
+
+    int err = map_page_kernel((addr_t)pgtbl, phys, PROT_WRITE, PAGE_CP_DEFAULT);
+    if (err) {
+        return err;
+    }
+
+    if (allocated) {
+        // A newly-allocated page table should be zeroed.
+        memset(pgtbl, 0, PAGE_SIZE);
+    }
+
+    return 0;
 }
 
 #if CONFIG(X86_PAE)
@@ -247,7 +277,7 @@ static int add_page_directory(pdpte_t *pdpt, size_t pdpti)
         return ERR_VAL(p);
     }
 
-    pdpt[pdpti] = make_pdpte(page_to_phys(p) | PAGE_PRESENT);
+    pdpt[pdpti] = make_pdpte(page_to_phys(p) | PAGE_RW | PAGE_PRESENT);
     memset(get_page_dir(pdpti), 0, PAGE_SIZE);
 
     return 0;
@@ -282,7 +312,125 @@ static int __map_page(addr_t virt, paddr_t phys, pteval_t flags)
 
     pgdir = get_page_dir(pdpti);
     pgtbl = get_page_table(pdpti, pdi);
-    return ___map_page(pgdir, pgtbl, pdi, pti, virt, phys, flags);
+    return ___map_page(pgdir, pgtbl, pdi, pti, phys, flags);
+}
+
+static int __map_pages_vmm(const struct vmm_space *vmm,
+                           addr_t virt,
+                           paddr_t phys,
+                           size_t num_pages,
+                           pteval_t flags)
+{
+    int status = 0;
+    pdpte_t *pdpt = ((struct pdpt *)vmm->paging_ctx)->entries;
+
+    // At any point in time, only one page directory and page table is accessed.
+    // Allocate virtual addresses for these up front, and remap them to physical
+    // addresses as needed.
+    pde_t *pgdir = vmalloc(PAGE_SIZE);
+    if (!pgdir) {
+        return ENOMEM;
+    }
+    pte_t *pgtbl = vmalloc(PAGE_SIZE);
+    if (!pgtbl) {
+        vfree(pgdir);
+        return ENOMEM;
+    }
+
+    // Indices of the previously accessed PDPT entry and PD entry, used to track
+    // when mapping into a new paging structure.
+    size_t prev_pdpti = UINT_MAX;
+    size_t prev_pdi = UINT_MAX;
+
+    // Map the address space's kernel page directory into the current space so
+    // it can be updated with recursive mappings if new page directories are
+    // allocated.
+    const paddr_t kernel_pd_phys = PDPTE(pdpt[PDPT_ENTRY_C0]) & PAGE_MASK;
+    pde_t *kernel_pd = vmalloc(PAGE_SIZE);
+    if (!kernel_pd) {
+        vfree(pgtbl);
+        vfree(pgdir);
+        return ENOMEM;
+    }
+
+    status = map_page_kernel(
+        (addr_t)kernel_pd, kernel_pd_phys, PROT_WRITE, PAGE_CP_DEFAULT);
+    if (status) {
+        vfree(kernel_pd);
+        vfree(pgtbl);
+        vfree(pgdir);
+        return status;
+    }
+
+    for (size_t i = 0; i < num_pages;
+         ++i, virt += PAGE_SIZE, phys += PAGE_SIZE) {
+        size_t pdpti, pdi, pti;
+        get_paging_indices(virt, &pdpti, &pdi, &pti);
+
+        // Check if advancing to a new page directory; if so, map it into the
+        // kernel address space.
+        if (pdpti != prev_pdpti) {
+            // Unmap the previous page directory.
+            unmap_pages((addr_t)pgdir, 1);
+
+            bool allocated_pgdir = false;
+
+            if (!(PDPTE(pdpt[pdpti]) & PAGE_PRESENT)) {
+                // Allocate a new page directory for the PDPT.
+                struct page *p = alloc_page(PA_PAGETABLE);
+                if (IS_ERR(p)) {
+                    status = ERR_VAL(p);
+                    break;
+                }
+
+                const addr_t pgdir_phys = page_to_phys(p);
+                pdpt[pdpti] = make_pdpte(pgdir_phys | PAGE_RW | PAGE_PRESENT);
+
+                // Recursively map the newly-allocated directory into the
+                // address space.
+                const size_t recursive_index = (PTRS_PER_PGDIR - 4) + pdpti;
+                kernel_pd[recursive_index] =
+                    make_pde(pgdir_phys | PAGE_RW | PAGE_PRESENT);
+
+                allocated_pgdir = true;
+            }
+
+            const paddr_t directory = PDPTE(pdpt[pdpti]) & PAGE_MASK;
+            if ((status = map_page_kernel(
+                     (addr_t)pgdir, directory, PROT_WRITE, PAGE_CP_DEFAULT))) {
+                break;
+            }
+
+            if (allocated_pgdir) {
+                // A newly-allocated page directory should be zeroed.
+                memset(pgdir, 0, PAGE_SIZE);
+            }
+        }
+
+        // Check if advancing to a new page table; if so, map it.
+        if (prev_pdi != pdi) {
+            unmap_pages((addr_t)pgtbl, 1);
+            if ((status = load_and_map_page_table(pgdir, pdi, pgtbl))) {
+                break;
+            }
+        }
+
+        pgtbl[pti] = make_pte(phys | flags | PAGE_PRESENT);
+
+        prev_pdpti = pdpti;
+        prev_pdi = pdi;
+    }
+
+    unmap_pages((addr_t)pgtbl, 1);
+    vfree(pgtbl);
+
+    unmap_pages((addr_t)pgdir, 1);
+    vfree(pgdir);
+
+    unmap_pages((addr_t)kernel_pd, 1);
+    vfree(kernel_pd);
+
+    return status;
 }
 
 /*
@@ -436,7 +584,65 @@ static int __map_page(addr_t virt, paddr_t phys, pteval_t flags)
 
     get_paging_indices(virt, &pdi, &pti);
     pgtbl = get_page_table(pdi);
-    return ___map_page(pgdir, pgtbl, pdi, pti, virt, phys, flags);
+    return ___map_page(pgdir, pgtbl, pdi, pti, phys, flags);
+}
+
+static int __map_pages_vmm(const struct vmm_space *vmm,
+                           addr_t virt,
+                           paddr_t phys,
+                           size_t num_pages,
+                           pteval_t flags)
+{
+    int status = 0;
+
+    // At any point in time, only one page directory and page table is accessed.
+    // Allocate virtual addresses for these up front, and remap them to physical
+    // addresses as needed.
+    pde_t *pgdir = vmalloc(PAGE_SIZE);
+    if (!pgdir) {
+        return ENOMEM;
+    }
+    if ((status = map_page_kernel(
+             (addr_t)pgdir, vmm->paging_base, PROT_WRITE, PAGE_CP_DEFAULT))) {
+        vfree(pgdir);
+        return status;
+    }
+
+    pte_t *pgtbl = vmalloc(PAGE_SIZE);
+    if (!pgtbl) {
+        unmap_pages((addr_t)pgdir, 1);
+        vfree(pgdir);
+        return ENOMEM;
+    }
+
+    // Index of the previously access page directory entry, used to track when
+    // mapping into a new page table.
+    size_t prev_pdi = UINT_MAX;
+
+    for (size_t i = 0; i < num_pages;
+         ++i, virt += PAGE_SIZE, phys += PAGE_SIZE) {
+        size_t pdi, pti;
+        get_paging_indices(virt, &pdi, &pti);
+
+        // Check if advancing to a new page table; if so, map it.
+        if (prev_pdi != pdi) {
+            unmap_pages((addr_t)pgtbl, 1);
+            if ((status = load_and_map_page_table(pgdir, pdi, pgtbl))) {
+                break;
+            }
+        }
+
+        pgtbl[pti] = make_pte(phys | flags | PAGE_PRESENT);
+        prev_pdi = pdi;
+    }
+
+    unmap_pages((addr_t)pgtbl, 1);
+    vfree(pgtbl);
+
+    unmap_pages((addr_t)pgdir, 1);
+    vfree(pgdir);
+
+    return status;
 }
 
 /*
@@ -525,14 +731,17 @@ int i386_addr_mapped(addr_t virt)
     return pte ? PTE(*pte) & PAGE_PRESENT : 0;
 }
 
-static int mp_args_to_flags(pteval_t *flags, int prot, int cp);
+static int mp_args_to_flags(pteval_t *flags, int prot, enum cache_policy cp);
 
 /*
  * i386_map_page_kernel:
  * Map a page with base virtual address `virt` to physical address `phys`
  * for kernel use.
  */
-int i386_map_page_kernel(addr_t virt, paddr_t phys, int prot, int cp)
+int i386_map_page_kernel(addr_t virt,
+                         paddr_t phys,
+                         int prot,
+                         enum cache_policy cp)
 {
     pteval_t flags;
     int err;
@@ -540,7 +749,12 @@ int i386_map_page_kernel(addr_t virt, paddr_t phys, int prot, int cp)
     if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
         return err;
 
-    return __map_page(virt, phys, flags | PAGE_GLOBAL);
+    if ((err = __map_page(virt, phys, flags | PAGE_GLOBAL))) {
+        return err;
+    }
+
+    tlb_flush_page_lazy(virt);
+    return 0;
 }
 
 /*
@@ -548,7 +762,10 @@ int i386_map_page_kernel(addr_t virt, paddr_t phys, int prot, int cp)
  * Map a page with base virtual address `virt` to physical address `phys`
  * for userspace.
  */
-int i386_map_page_user(addr_t virt, paddr_t phys, int prot, int cp)
+int i386_map_page_user(addr_t virt,
+                       paddr_t phys,
+                       int prot,
+                       enum cache_policy cp)
 {
     pteval_t flags;
     int err;
@@ -559,23 +776,46 @@ int i386_map_page_user(addr_t virt, paddr_t phys, int prot, int cp)
     return __map_page(virt, phys, flags | PAGE_USER);
 }
 
-int i386_map_pages(
-    addr_t virt, paddr_t phys, int prot, int cp, int user, size_t n)
+int i386_map_pages(addr_t virt,
+                   paddr_t phys,
+                   size_t num_pages,
+                   int prot,
+                   enum cache_policy cp,
+                   bool user)
 {
     pteval_t flags;
     int err;
 
-    if ((err = mp_args_to_flags(&flags, prot, cp)) != 0)
+    if ((err = mp_args_to_flags(&flags, prot, cp)) != 0) {
         return err;
+    }
 
     flags |= user ? PAGE_USER : PAGE_GLOBAL;
 
-    for (; n; --n, virt += PAGE_SIZE, phys += PAGE_SIZE) {
-        if ((err = __map_page(virt, phys, flags)) != 0)
+    for (size_t i = 0; i < num_pages;
+         ++i, virt += PAGE_SIZE, phys += PAGE_SIZE) {
+        if ((err = __map_page(virt, phys, flags)) != 0) {
             return err;
+        }
     }
 
     return 0;
+}
+
+int i386_map_pages_vmm(const struct vmm_space *vmm,
+                       addr_t virt,
+                       paddr_t phys,
+                       size_t num_pages,
+                       unsigned long prot,
+                       enum cache_policy cp)
+{
+    pteval_t flags;
+    int err = mp_args_to_flags(&flags, prot, cp);
+    if (err != 0) {
+        return err;
+    }
+
+    return __map_pages_vmm(vmm, virt, phys, num_pages, flags);
 }
 
 /*
@@ -583,7 +823,7 @@ int i386_map_pages(
  * Convert a cache policy to x86 page flags.
  * `flags` must already be initialized.
  */
-static int cp_to_flags(pteval_t *flags, int cp)
+static int cp_to_flags(pteval_t *flags, enum cache_policy cp)
 {
     switch (cp) {
     case PAGE_CP_DEFAULT:
@@ -617,14 +857,21 @@ static int cp_to_flags(pteval_t *flags, int cp)
     return 0;
 }
 
-static int mp_args_to_flags(pteval_t *flags, int prot, int cp)
+static int mp_args_to_flags(pteval_t *flags, int prot, enum cache_policy cp)
 {
     *flags = 0;
 
-    if (prot == PROT_WRITE)
-        *flags = PAGE_RW;
-    else if (prot != PROT_READ)
-        return EINVAL;
+    if (prot & PROT_WRITE) {
+        *flags |= PAGE_RW;
+    }
+
+#if 0
+#if CONFIG(X86_NX)
+    if (!(prot & PROT_EXEC)) {
+        *flags |= PAGE_NX;
+    }
+#endif  // CONFIG(X86_NX)
+#endif
 
     return cp_to_flags(flags, cp);
 }

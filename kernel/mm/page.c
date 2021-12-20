@@ -238,7 +238,7 @@ static struct page *__alloc_pages(struct buddy *zone,
             virt = (addr_t)vmalloc(npages * PAGE_SIZE);
 
         prot = flags & __PA_READONLY ? PROT_READ : PROT_WRITE;
-        map_pages_kernel(virt, page_to_phys(p), prot, PAGE_CP_DEFAULT, npages);
+        map_pages_kernel(virt, page_to_phys(p), npages, prot, PAGE_CP_DEFAULT);
 
         if (flags & __PA_ZERO)
             memset((void *)virt, 0, npages * PAGE_SIZE);

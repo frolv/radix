@@ -14,6 +14,7 @@ CONFIG_X86_64=false
 
 # section Memory
 CONFIG_X86_PAE=true
+CONFIG_X86_NX=true
 
 # section Interrupts
 CONFIG_X86_MAX_IOAPICS=8
