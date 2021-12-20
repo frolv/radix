@@ -56,7 +56,8 @@ static pde_t *clone_kernel_pgdir(size_t start, size_t end)
 
     const paddr_t phys = page_to_phys(p);
 
-    int err = map_page_kernel((addr_t)pgdir, phys, PROT_WRITE, PAGE_CP_DEFAULT);
+    int err =
+        map_page_kernel((addr_t)pgdir, phys, PROT_WRITE, PAGE_CP_UNCACHEABLE);
     if (err) {
         return ERR_PTR(err);
     }
@@ -90,7 +91,8 @@ static int free_page_directory(paddr_t phys, size_t start, size_t end)
         return ENOMEM;
     }
 
-    int err = map_page_kernel((addr_t)pgdir, phys, PROT_READ, PAGE_CP_DEFAULT);
+    int err =
+        map_page_kernel((addr_t)pgdir, phys, PROT_READ, PAGE_CP_UNCACHEABLE);
     if (err) {
         return err;
     }
@@ -200,7 +202,8 @@ static int load_and_map_page_table(pde_t *pgdir, size_t pdi, pte_t *pgtbl)
 
     paddr_t phys = PDE(pgdir[pdi]) & PAGE_MASK;
 
-    int err = map_page_kernel((addr_t)pgtbl, phys, PROT_WRITE, PAGE_CP_DEFAULT);
+    int err =
+        map_page_kernel((addr_t)pgtbl, phys, PROT_WRITE, PAGE_CP_UNCACHEABLE);
     if (err) {
         return err;
     }
@@ -354,7 +357,7 @@ static int __map_pages_vmm(const struct vmm_space *vmm,
     }
 
     status = map_page_kernel(
-        (addr_t)kernel_pd, kernel_pd_phys, PROT_WRITE, PAGE_CP_DEFAULT);
+        (addr_t)kernel_pd, kernel_pd_phys, PROT_WRITE, PAGE_CP_UNCACHEABLE);
     if (status) {
         vfree(kernel_pd);
         vfree(pgtbl);
@@ -396,8 +399,10 @@ static int __map_pages_vmm(const struct vmm_space *vmm,
             }
 
             const paddr_t directory = PDPTE(pdpt[pdpti]) & PAGE_MASK;
-            if ((status = map_page_kernel(
-                     (addr_t)pgdir, directory, PROT_WRITE, PAGE_CP_DEFAULT))) {
+            if ((status = map_page_kernel((addr_t)pgdir,
+                                          directory,
+                                          PROT_WRITE,
+                                          PAGE_CP_UNCACHEABLE))) {
                 break;
             }
 
@@ -602,8 +607,10 @@ static int __map_pages_vmm(const struct vmm_space *vmm,
     if (!pgdir) {
         return ENOMEM;
     }
-    if ((status = map_page_kernel(
-             (addr_t)pgdir, vmm->paging_base, PROT_WRITE, PAGE_CP_DEFAULT))) {
+    if ((status = map_page_kernel((addr_t)pgdir,
+                                  vmm->paging_base,
+                                  PROT_WRITE,
+                                  PAGE_CP_UNCACHEABLE))) {
         vfree(pgdir);
         return status;
     }
@@ -814,6 +821,8 @@ int i386_map_pages_vmm(const struct vmm_space *vmm,
     if (err != 0) {
         return err;
     }
+
+    flags |= PAGE_USER;
 
     return __map_pages_vmm(vmm, virt, phys, num_pages, flags);
 }
