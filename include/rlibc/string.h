@@ -54,6 +54,8 @@ char *strncat(char *__restrict dst, const char *__restrict src, size_t n);
 
 char *strchr(const char *s, int c);
 
+char *strdup(const char *s);
+
 const char *strerror(int errno);
 
 char *strrev(char *s);
