@@ -196,7 +196,8 @@ static int load_and_map_page_table(pde_t *pgdir, size_t pdi, pte_t *pgtbl)
             return ERR_VAL(p);
         }
 
-        pgdir[pdi] = make_pde(page_to_phys(p) | PAGE_RW | PAGE_PRESENT);
+        pgdir[pdi] =
+            make_pde(page_to_phys(p) | PAGE_USER | PAGE_RW | PAGE_PRESENT);
         allocated = true;
     }
 
@@ -387,7 +388,8 @@ static int __map_pages_vmm(const struct vmm_space *vmm,
                 }
 
                 const addr_t pgdir_phys = page_to_phys(p);
-                pdpt[pdpti] = make_pdpte(pgdir_phys | PAGE_RW | PAGE_PRESENT);
+                pdpt[pdpti] =
+                    make_pdpte(pgdir_phys | PAGE_USER | PAGE_RW | PAGE_PRESENT);
 
                 // Recursively map the newly-allocated directory into the
                 // address space.
