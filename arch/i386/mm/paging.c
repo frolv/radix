@@ -16,8 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "paging.h"
-
 #include <radix/config.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
@@ -223,7 +221,7 @@ static int load_and_map_page_table(pde_t *pgdir, size_t pdi, pte_t *pgtbl)
 #define get_page_table(ind, n) (pte_t *)(pgdir_base(ind) + (n)*PAGE_SIZE)
 #define get_page_dir(pdpti)    (pde_t *)(0xFFFFC000 + (pdpti)*PAGE_SIZE)
 
-#define KERNEL_PDPT_ADDRESS 0xffffb000
+extern struct pdpt kernel_pdpt;
 
 // PDPTs are small (32 bytes). Instead of wasting an entire page for each one,
 // allocate them from a cache.
@@ -243,7 +241,7 @@ static pdpte_t *get_pdpt(void)
 {
     struct task *curr = current_task();
     struct pdpt *pdpt =
-        curr && curr->vmm ? curr->vmm->paging_ctx : (void *)KERNEL_PDPT_ADDRESS;
+        curr && curr->vmm ? curr->vmm->paging_ctx : &kernel_pdpt;
     return pdpt->entries;
 }
 
@@ -923,9 +921,13 @@ void i386_switch_address_space(struct vmm_space *vmm)
     }
 }
 
-void paging_init_user(void)
+void arch_vmm_init(struct vmm_space *kernel_vmm_space)
 {
+    kernel_vmm_space->paging_base = cpu_read_cr3();
+
 #if CONFIG(X86_PAE)
+    kernel_vmm_space->paging_ctx = &kernel_pdpt;
+
     pdpt_cache = create_cache("pdpt_cache",
                               sizeof(struct pdpt),
                               sizeof(struct pdpt),

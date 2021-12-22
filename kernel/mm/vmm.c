@@ -76,19 +76,23 @@ struct vmm_block {
 static struct slab_cache *vmm_block_cache;
 static struct slab_cache *vmm_space_cache;
 
-static struct vmm_space vmm_kernel = {
+static struct vmm_space kernel_vmm_space = {
     .structures =
         {
-            .block_list = LIST_INIT(vmm_kernel.structures.block_list),
-            .alloc_list = LIST_INIT(vmm_kernel.structures.alloc_list),
+            .block_list = LIST_INIT(kernel_vmm_space.structures.block_list),
+            .alloc_list = LIST_INIT(kernel_vmm_space.structures.alloc_list),
             .addr_tree = RB_ROOT,
             .size_tree = RB_ROOT,
             .alloc_tree = RB_ROOT,
         },
-    .vmm_list = LIST_INIT(vmm_kernel.vmm_list),
+    .vmm_list = LIST_INIT(kernel_vmm_space.vmm_list),
     .lock = SPINLOCK_INIT,
+    .paging_base = 0,
+    .paging_ctx = NULL,
     .pages = 0,
 };
+
+struct vmm_space *vmm_kernel(void) { return &kernel_vmm_space; }
 
 static void vmm_block_init(void *p)
 {
@@ -305,16 +309,19 @@ void vmm_init(void)
                                    vmm_space_init);
 
     first = vmm_alloc_block();
-    if (IS_ERR(first))
+    if (IS_ERR(first)) {
         panic("failed to allocate intial vmm_block: %s\n",
               strerror(ERR_VAL(first)));
+    }
 
     first->area.base = RESERVED_VIRT_BASE;
     first->area.size = RESERVED_SIZE;
-    first->vmm = NULL;
+    first->vmm = &kernel_vmm_space;
 
-    list_add(&vmm_kernel.structures.block_list, &first->global_list);
-    vmm_tree_insert(&vmm_kernel.structures, first);
+    list_add(&kernel_vmm_space.structures.block_list, &first->global_list);
+    vmm_tree_insert(&kernel_vmm_space.structures, first);
+
+    arch_vmm_init(&kernel_vmm_space);
 }
 
 // Splits a single vmm_block into multiple blocks, one of which starts at
@@ -329,8 +336,7 @@ static struct vmm_block *vmm_split(struct vmm_block *block,
 
     struct vmm_block *new;
 
-    struct vmm_structures *s =
-        block->vmm ? &block->vmm->structures : &vmm_kernel.structures;
+    struct vmm_structures *s = &block->vmm->structures;
     const size_t before_size = base - block->area.base;
     const addr_t block_end = block->area.base + block->area.size;
 
@@ -385,7 +391,7 @@ static struct vmm_block *vmm_try_coalesce(struct vmm_block *block)
     addr_t new_base;
     size_t new_size;
 
-    struct vmm_space *vmm = block->vmm ? block->vmm : &vmm_kernel;
+    struct vmm_space *vmm = block->vmm;
     struct vmm_structures *s = &vmm->structures;
 
     spin_lock(&vmm->lock);
@@ -439,8 +445,7 @@ static struct vmm_block *vmm_try_coalesce(struct vmm_block *block)
 // Note: This is generally a bad idea.
 static void vmm_alloc_block_pages(struct vmm_block *block)
 {
-    // TODO(frolv): Don't use NULL to represent the kernel address space.
-    assert(block->vmm == NULL);
+    assert(block->vmm == &kernel_vmm_space);
 
     addr_t base = block->area.base;
     const addr_t end = block->area.base + block->area.size;
@@ -479,7 +484,7 @@ static void vmm_free_pages(struct vmm_block *block)
         return;
     }
 
-    struct vmm_space *vmm = block->vmm ? block->vmm : &vmm_kernel;
+    struct vmm_space *vmm = block->vmm;
 
     while (!list_empty(&block->allocated_pages->list)) {
         struct page *p =
@@ -522,6 +527,10 @@ struct vmm_space *vmm_new(void)
 
 void vmm_release(struct vmm_space *vmm)
 {
+    if (vmm == &kernel_vmm_space) {
+        return;
+    }
+
     assert(spin_try_lock(&vmm->lock));
 
     arch_vmm_release(vmm);
@@ -543,9 +552,7 @@ struct vmm_area *vmm_alloc_size(struct vmm_space *vmm,
                                 size_t size,
                                 uint32_t flags)
 {
-    if (!vmm) {
-        vmm = &vmm_kernel;
-    }
+    assert(vmm != NULL);
 
     unsigned long irqstate;
     int err;
@@ -591,9 +598,7 @@ struct vmm_area *vmm_alloc_addr(struct vmm_space *vmm,
                                 size_t size,
                                 uint32_t flags)
 {
-    if (!vmm) {
-        vmm = &vmm_kernel;
-    }
+    assert(vmm != NULL);
 
     unsigned long irqstate;
 
@@ -644,7 +649,8 @@ void vmm_free(struct vmm_area *area)
 
 void *vmalloc(size_t size)
 {
-    struct vmm_area *area = vmm_alloc_size(NULL, size, VMM_READ | VMM_WRITE);
+    struct vmm_area *area =
+        vmm_alloc_size(&kernel_vmm_space, size, VMM_READ | VMM_WRITE);
     if (IS_ERR(area)) {
         return NULL;
     }
@@ -654,7 +660,8 @@ void *vmalloc(size_t size)
 
 void vfree(void *ptr)
 {
-    struct vmm_block *block = vmm_find_allocated(&vmm_kernel, (addr_t)ptr);
+    struct vmm_block *block =
+        vmm_find_allocated(&kernel_vmm_space, (addr_t)ptr);
     if (block) {
         vmm_free_pages(block);
     }
@@ -664,7 +671,8 @@ void vfree(void *ptr)
 // vmm_area if so.
 struct vmm_area *vmm_get_allocated_area(struct vmm_space *vmm, addr_t addr)
 {
-    struct vmm_block *block = vmm_find_allocated(vmm ? vmm : &vmm_kernel, addr);
+    struct vmm_block *block =
+        vmm_find_allocated(vmm ? vmm : &kernel_vmm_space, addr);
     return (struct vmm_area *)block;
 }
 
@@ -678,7 +686,7 @@ void vmm_add_area_pages(struct vmm_area *area, struct page *p)
         vmm->pages += pow2(PM_PAGE_BLOCK_ORDER(p));
     }
 
-    if (vmm == &vmm_kernel) {
+    if (vmm == &kernel_vmm_space) {
         p->mem = (void *)area->base;
         p->status |= PM_PAGE_MAPPED;
     }
@@ -726,7 +734,7 @@ int vmm_map_pages(struct vmm_area *area, addr_t addr, struct page *p)
 
 void vmm_space_dump(struct vmm_space *vmm)
 {
-    struct vmm_structures *s = vmm ? &vmm->structures : &vmm_kernel.structures;
+    struct vmm_structures *s = &vmm->structures;
     int i = 0;
 
     printf("vmm_space:\n");

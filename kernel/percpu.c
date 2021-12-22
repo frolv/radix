@@ -81,8 +81,9 @@ void percpu_area_setup(void)
         percpu_size = ALIGN(percpu_size, PAGE_SIZE);
     }
 
-    area = vmm_alloc_size(
-        NULL, percpu_size * MAX_CPUS, VMM_READ | VMM_WRITE | VMM_ALLOC_UPFRONT);
+    area = vmm_alloc_size(vmm_kernel(),
+                          percpu_size * MAX_CPUS,
+                          VMM_READ | VMM_WRITE | VMM_ALLOC_UPFRONT);
     if (IS_ERR(area)) {
         panic("failed to allocate space for per-CPU areas\n");
     }

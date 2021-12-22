@@ -60,6 +60,7 @@ struct vmm_space {
     int pages;
 };
 
+// Initializes the virtual memory management system.
 void vmm_init(void);
 
 // Creates a new vmm_space for a process.
@@ -67,6 +68,9 @@ struct vmm_space *vmm_new(void);
 
 // Releases a vmm_space.
 void vmm_release(struct vmm_space *vmm);
+
+// Returns the kernel's address space.
+struct vmm_space *vmm_kernel(void);
 
 #define VMM_READ          (1 << 0)
 #define VMM_WRITE         (1 << 1)
@@ -100,7 +104,13 @@ void vmm_space_dump(struct vmm_space *vmm);
 // Architecture-specific functions.
 //
 
+// Initializes the virtual memory management system.
+void arch_vmm_init(struct vmm_space *kernel_vmm_space);
+
+// Initializes an address space for a process.
 int arch_vmm_setup(struct vmm_space *vmm);
+
+// Frees an address space.
 void arch_vmm_release(struct vmm_space *vmm);
 
 #endif  // RADIX_VMM_H

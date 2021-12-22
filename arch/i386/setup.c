@@ -22,16 +22,12 @@
 
 #include <acpi/acpi.h>
 
-#include "mm/paging.h"
-
 /*
  * arch_main_setup:
  * Initialize x86-specific features and data structures.
  */
 void arch_main_setup(void)
 {
-    paging_init_user();
-
     acpi_init();
     bsp_init();
 

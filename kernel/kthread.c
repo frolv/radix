@@ -24,6 +24,7 @@
 #include <radix/sched.h>
 #include <radix/slab.h>
 #include <radix/tasking.h>
+#include <radix/vmm.h>
 
 #include <rlibc/stdio.h>
 
@@ -111,6 +112,8 @@ static struct task *__kthread_create(void (*func)(void *),
         task_free(thread);
         return (void *)p;
     }
+
+    thread->vmm = vmm_kernel();
 
     thread->stack_size = pow2(page_order) * PAGE_SIZE;
     stack_top = (addr_t)p->mem + thread->stack_size;
