@@ -598,6 +598,7 @@ struct vmm_area *vmm_alloc_addr(struct vmm_space *vmm,
     unsigned long irqstate;
 
     size = ALIGN(size, PAGE_SIZE);
+    addr &= PAGE_MASK;
     spin_lock_irq(&vmm->lock, &irqstate);
 
     struct vmm_block *block = vmm_find_by_addr(vmm, addr);
