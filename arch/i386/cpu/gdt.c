@@ -1,6 +1,6 @@
 /*
  * arch/i386/cpu/gdt.c
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,13 +36,28 @@ extern uint32_t bsp_stack_top;
 
 static void tss_init(uint32_t *tss_ptr, uint32_t esp0, uint32_t ss0);
 
-/*
- * gdt_entry:
- * Compress given values into a GDT descriptor.
- */
+#define GDT_ACCESSED   (1 << 0)
+#define GDT_RW         (1 << 1)
+#define GDT_CONFORMING (1 << 2)
+#define GDT_DIRECTION  (1 << 2)
+#define GDT_EXEC       (1 << 3)
+#define GDT_CODEDATA   (1 << 4)
+#define GDT_DPL(pl)    ((pl) << 5)
+#define GDT_PRESENT    (1 << 7)
+
+#define GDT_CODE (GDT_PRESENT | GDT_CODEDATA | GDT_EXEC | GDT_RW)
+#define GDT_DATA (GDT_PRESENT | GDT_CODEDATA | GDT_RW)
+
+#define GDT_FLAGS_64BIT (1 << 1)  // 64-bit code segment.
+#define GDT_FLAGS_32BIT (1 << 2)  // 16- or 32-bit segment.
+#define GDT_FLAGS_4KIB  (1 << 3)  // Byte or 4K granularity.
+
+#define GDT_FLAGS_DEFAULT (GDT_FLAGS_4KIB | GDT_FLAGS_32BIT)
+
+// Compresses values into a GDT descriptor.
 static uint64_t gdt_entry(uint32_t base,
                           uint32_t lim,
-                          int8_t access,
+                          uint8_t access,
                           uint8_t flags)
 {
     uint64_t ret;
@@ -62,7 +77,7 @@ static uint64_t gdt_entry(uint32_t base,
     return ret;
 }
 
-/* gdt_set: create an entry in the global descriptor table */
+// Creates an entry in the current CPU's global descriptor table.
 static __always_inline void gdt_set(
     size_t entry, uint32_t base, uint32_t lim, uint8_t access, uint8_t flags)
 {
@@ -78,43 +93,51 @@ static void __gdt_init(uint64_t *gdt_ptr, uint32_t *tss_ptr, uint32_t fsbase)
     tss_init(tss_ptr, bsp_stack_top, GDT_OFFSET(GDT_KERNEL_DATA));
 
     gdt_ptr[GDT_NULL] = gdt_entry(0, 0, 0, 0);
-    gdt_ptr[GDT_KERNEL_CODE] = gdt_entry(0, 0xFFFFFFFF, 0x9A, 0x0C);
-    gdt_ptr[GDT_KERNEL_DATA] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
-    gdt_ptr[GDT_USER_CODE] = gdt_entry(0, 0xFFFFFFFF, 0xFA, 0x0C);
-    gdt_ptr[GDT_USER_DATA] = gdt_entry(0, 0xFFFFFFFF, 0xF2, 0x0C);
-    gdt_ptr[GDT_TSS] = gdt_entry(tss_base, tss_base + TSS_SIZE, 0x89, 0x04);
-    gdt_ptr[GDT_FS] = gdt_entry(fsbase, 0xFFFFFFFF, 0x92, 0x0C);
-    gdt_ptr[GDT_GS] = gdt_entry(0, 0xFFFFFFFF, 0x92, 0x0C);
+    gdt_ptr[GDT_KERNEL_CODE] =
+        gdt_entry(0, 0xFFFFFFFF, GDT_CODE | GDT_DPL(0), GDT_FLAGS_DEFAULT);
+    gdt_ptr[GDT_KERNEL_DATA] =
+        gdt_entry(0, 0xFFFFFFFF, GDT_DATA | GDT_DPL(0), GDT_FLAGS_DEFAULT);
+    gdt_ptr[GDT_USER_CODE] =
+        gdt_entry(0, 0xFFFFFFFF, GDT_CODE | GDT_DPL(3), GDT_FLAGS_DEFAULT);
+    gdt_ptr[GDT_USER_DATA] =
+        gdt_entry(0, 0xFFFFFFFF, GDT_DATA | GDT_DPL(3), GDT_FLAGS_DEFAULT);
+    gdt_ptr[GDT_TSS] =
+        gdt_entry(tss_base,
+                  tss_base + TSS_SIZE,
+                  GDT_PRESENT | GDT_DPL(0) | GDT_EXEC | GDT_ACCESSED,
+                  GDT_FLAGS_32BIT);
+    gdt_ptr[GDT_FS] =
+        gdt_entry(fsbase, 0xFFFFFFFF, GDT_DATA | GDT_DPL(3), GDT_FLAGS_DEFAULT);
+    gdt_ptr[GDT_GS] =
+        gdt_entry(0, 0xFFFFFFFF, GDT_DATA | GDT_DPL(3), GDT_FLAGS_DEFAULT);
 
     gdt_load(gdt_ptr, GDT_SIZE);
     tss_load(GDT_OFFSET(GDT_TSS));
 }
 
-/*
- * gdt_init_early:
- * Populate and load a GDT for the bootstrap processor.
- */
+// Populates and loads an early boot GDT for the bootstrap processor.
 void gdt_init_early(void) { __gdt_init(gdt, tss, 0); }
 
-/* gdt_init: populate and load the global descriptor table for this cpu */
+// Populates and loads the global descriptor table for the current CPU.
 void gdt_init(uint32_t fsbase)
 {
     __gdt_init(raw_cpu_ptr(gdt), raw_cpu_ptr(tss), fsbase);
 }
 
-/* gdt_init_cpu: populate and load the GDT belonging to the given CPU number */
+// Populates and loads the GDT belonging to the given CPU ID on the current CPU.
+// Called by application processors when they boot (before they have a concept
+// of processor_id(), which requires a functional GDT).
 void gdt_init_cpu(int cpu, uint32_t fsbase)
 {
     __gdt_init(cpu_ptr(gdt, cpu), cpu_ptr(tss, cpu), fsbase);
 }
 
-/*
- * gdt_set_initial_fsbase:
- * Called by the BSP during early boot before interrupts/percpu vars are active.
- */
+// Sets the fsbase on the current CPU during early boot. Called by the BSP
+// before interrupts / percpu vars are active.
 void gdt_set_initial_fsbase(uint32_t base)
 {
-    gdt[GDT_FS] = gdt_entry(base, 0xFFFFFFFF, 0x92, 0x0C);
+    gdt[GDT_FS] =
+        gdt_entry(base, 0xFFFFFFFF, GDT_DATA | GDT_DPL(3), GDT_FLAGS_DEFAULT);
     asm volatile("mov %0, %%fs" : : "r"(GDT_OFFSET(GDT_FS)));
 }
 
@@ -123,7 +146,7 @@ void gdt_set_fsbase(uint32_t base)
     unsigned long irqstate;
 
     irq_save(irqstate);
-    gdt_set(GDT_FS, base, 0xFFFFFFFF, 0x92, 0x0C);
+    gdt_set(GDT_FS, base, 0xFFFFFFFF, GDT_DATA | GDT_DPL(3), GDT_FLAGS_DEFAULT);
     asm volatile("mov %0, %%fs" : : "r"(GDT_OFFSET(GDT_FS)));
     irq_restore(irqstate);
 }
@@ -133,27 +156,26 @@ void gdt_set_gsbase(uint32_t base)
     unsigned long irqstate;
 
     irq_save(irqstate);
-    gdt_set(GDT_GS, base, 0xFFFFFFFF, 0x92, 0x0C);
+    gdt_set(GDT_GS, base, 0xFFFFFFFF, GDT_DATA | GDT_DPL(3), GDT_FLAGS_DEFAULT);
     asm volatile("mov %0, %%gs" : : "r"(GDT_OFFSET(GDT_GS)));
     irq_restore(irqstate);
 }
 
 void tss_set_stack(uint32_t new_esp) { this_cpu_write(tss[1], new_esp); }
 
-/*
- * tss_init:
- * Initialize the task state segment.
- * ESP0 holds the value assigned to the stack pointer after a syscall interrupt.
- * SS0 holds the offset of the kernel's data segment entry in the GDT.
- */
+// Initializes the task state segment.
+//
+// ESP0 is the value assigned to the stack pointer in a cross-privilege
+// interrupt. SS0 holds the offset of the kernel's data segment entry in the
+// GDT.
 static void tss_init(uint32_t *tss_ptr, uint32_t esp0, uint32_t ss0)
 {
     memset(tss_ptr, 0, TSS_SIZE);
 
-    /* ESP0 at offset 0x4 */
+    // ESP0 at offset 0x4.
     tss_ptr[1] = esp0;
-    /* SS0 at offset 0x8 */
+    // SS0 at offset 0x8.
     tss_ptr[2] = ss0;
-    /* IOPB at offset 0x66 */
+    // IOPB at offset 0x66.
     tss_ptr[25] = TSS_SIZE << 16;
 }
