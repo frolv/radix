@@ -279,7 +279,7 @@ static int add_page_directory(pdpte_t *pdpt, size_t pdpti)
         return ERR_VAL(p);
     }
 
-    pdpt[pdpti] = make_pdpte(page_to_phys(p) | PAGE_RW | PAGE_PRESENT);
+    pdpt[pdpti] = make_pdpte(page_to_phys(p) | PAGE_PRESENT);
     memset(get_page_dir(pdpti), 0, PAGE_SIZE);
 
     return 0;
@@ -386,8 +386,7 @@ static int __map_pages_vmm(const struct vmm_space *vmm,
                 }
 
                 const addr_t pgdir_phys = page_to_phys(p);
-                pdpt[pdpti] =
-                    make_pdpte(pgdir_phys | PAGE_USER | PAGE_RW | PAGE_PRESENT);
+                pdpt[pdpti] = make_pdpte(pgdir_phys | PAGE_PRESENT);
 
                 // Recursively map the newly-allocated directory into the
                 // address space.
@@ -507,7 +506,7 @@ int arch_vmm_setup(struct vmm_space *vmm)
 
     const paddr_t phys = virt_to_phys(kernel_pd);
 
-    p->entries[PDPT_ENTRY_C0] = make_pdpte(phys | PAGE_RW | PAGE_PRESENT);
+    p->entries[PDPT_ENTRY_C0] = make_pdpte(phys | PAGE_PRESENT);
 
     // Recursively map the cloned directory.
     kernel_pd[PTRS_PER_PGDIR - 1] = make_pde(phys | PAGE_RW | PAGE_PRESENT);
