@@ -21,6 +21,7 @@
 #include <radix/console.h>
 #include <radix/kernel.h>
 #include <radix/klog.h>
+#include <radix/smp.h>
 #include <radix/spinlock.h>
 #include <radix/time.h>
 #include <radix/types.h>
@@ -30,7 +31,6 @@
 
 #include <stdarg.h>
 
-#define KLOG_SHIFT       CONFIG(KLOG_SHIFT)
 #define KLOG_MAX_MSG_LEN 256
 #define KLOG_WRAPAROUND  0xFFFF
 
@@ -43,150 +43,120 @@ struct klog_entry {
     char message[];
 };
 
-static unsigned char klog_buffer[1 << KLOG_SHIFT];
-static uintptr_t klog_end = (uintptr_t)klog_buffer + sizeof klog_buffer;
+static unsigned char __aligned(PAGE_SIZE)
+    klog_buffer[1 << CONFIG(KLOG_SHIFT)] = {0};
 
-static spinlock_t klog_lock = SPINLOCK_INIT;
+static struct {
+    spinlock_t lock;
+    uintptr_t buffer_start;
+    uintptr_t buffer_end;
+    uint32_t sequence_number;
+    struct klog_entry *write_cursor;
 
-static uint32_t klog_sequence_number = 0;
+    // TODO(frolv): This shouldn't be here. It's for early debugging.
+    struct console *console;
+} kernel_log = {
+    .lock = SPINLOCK_INIT,
+    .buffer_start = (uintptr_t)klog_buffer,
+    .buffer_end = (uintptr_t)klog_buffer + sizeof klog_buffer,
+    .sequence_number = 0,
+    .write_cursor = (struct klog_entry *)klog_buffer,
+    .console = NULL,
+};
 
-static struct klog_entry *first_entry = (struct klog_entry *)klog_buffer;
-static struct klog_entry *next_entry = (struct klog_entry *)klog_buffer;
-
-static int klog_written = 0;
-
-static struct console *klog_console = NULL;
-
-#define klog_entry_size(entry) (sizeof *(entry) + ALIGN((entry)->msg_len, 8))
-
-#define klog_next_entry(entry)                                            \
-    ({                                                                    \
-        typeof(entry) __kne_ret;                                          \
-        __kne_ret =                                                       \
-            (typeof(entry))((uintptr_t)(entry) + klog_entry_size(entry)); \
-        if (__kne_ret->msg_len == KLOG_WRAPAROUND)                        \
-            __kne_ret = (typeof(entry))klog_buffer;                       \
-        __kne_ret;                                                        \
-    })
-
-/*
- * klog_has_space:
- * Return 1 if there is sufficient space in the klog_buffer to store a
- * message of length `msg_len`.
- */
-static __always_inline int klog_has_space(uint16_t msg_len)
+static size_t klog_entry_size(const struct klog_entry *entry)
 {
-    int required;
-
-    /* must always have space for an empty klog_entry struct */
-    required = 2 * sizeof(struct klog_entry) + ALIGN(msg_len, 8);
-
-    return (uintptr_t)next_entry + required <= klog_end;
+    return sizeof *entry + ALIGN(entry->msg_len, 8);
 }
 
-static void klog_advance_first(uint16_t msg_len)
+static struct klog_entry *klog_next_entry(struct klog_entry *entry)
 {
-    size_t entry_size;
+    struct klog_entry *next =
+        (struct klog_entry *)(((uintptr_t)entry) + klog_entry_size(entry));
 
-    if (next_entry > first_entry) {
-        /*
-         * There are two cases in which next_entry > first_entry.
-         * The first occurs when the buffer has not yet filled up once.
-         * The second is when first_entry has wrapped around, but
-         * first_entry has not.
-         * Since we have already ensured that there is sufficient
-         * space in the buffer for the message, the first message
-         * cannot be overwritten in either case.
-         */
-        return;
+    if ((uintptr_t)(next + 1) > kernel_log.buffer_end) {
+        next = (struct klog_entry *)klog_buffer;
     }
 
-    entry_size = sizeof *next_entry + ALIGN(msg_len, 8);
-    while ((uintptr_t)next_entry + entry_size > (uintptr_t)first_entry)
-        first_entry = klog_next_entry(first_entry);
+    return next;
 }
 
-/*
- * klog_print:
- * Write the kernel log message represented by `entry` to `buf`.
- * `buf` is assumed to be long enough to fit the formatted message.
- */
-static int klog_print(struct klog_entry *entry, char *buf)
+// Returns true if there is sufficient space in the kernel log to store a
+// message of length `msg_len` at the write cursor.
+static __always_inline bool klog_has_space(uint16_t msg_len)
 {
-    unsigned long sec;
-    uint32_t rem;
-    int n;
-
-    sec = entry->timestamp / NSEC_PER_SEC;
-    rem = entry->timestamp % NSEC_PER_SEC;
-
-    n = sprintf(buf, "[%05lu.%06u] ", sec, rem / 1000);
-    memcpy(buf + n, entry->message, entry->msg_len);
-    buf[n + entry->msg_len] = '\n';
-
-    return n + entry->msg_len + 1;
+    // Must always have space for an empty klog_entry struct.
+    size_t required = 2 * sizeof(struct klog_entry) + ALIGN(msg_len, 8);
+    return (uintptr_t)kernel_log.write_cursor + required <=
+           kernel_log.buffer_end;
 }
 
-static void klog_console_write(struct klog_entry *entry)
+// Writes the kernel log message represented by `entry` to `buf`. The written
+// string is *NOT* null-terminated. Returns the written size.
+//
+// `buf` should be at least (KLOG_MAX_MSG_LEN + 32) in size to guarantee the
+// output fits.
+static size_t klog_print(const struct klog_entry *entry, char *buf)
 {
-    char buf[512];
-    int n;
+    uint32_t seconds = entry->timestamp / NSEC_PER_SEC;
+    uint32_t useconds = (entry->timestamp % NSEC_PER_SEC) / NSEC_PER_USEC;
 
-    n = klog_print(entry, buf);
-    klog_console->actions->write(klog_console, buf, n);
+    size_t size = sprintf(buf, "[%05lu.%06lu] ", seconds, useconds);
+
+    memcpy(buf + size, entry->message, entry->msg_len);
+    buf[size + entry->msg_len] = '\n';
+
+    return size + entry->msg_len + 1;
 }
 
-static int vklog(int level, const char *format, va_list ap)
+static void klog_console_write(const struct klog_entry *entry)
 {
-    char buf[KLOG_MAX_MSG_LEN];
-    struct klog_entry *entry;
+    char buf[KLOG_MAX_MSG_LEN + 32];
+    size_t size = klog_print(entry, buf);
+    kernel_log.console->actions->write(kernel_log.console, buf, size);
+}
+
+static void vklog(int level, const char *format, va_list ap)
+{
+    char msg_buf[KLOG_MAX_MSG_LEN];
+    size_t msg_len = vsnprintf(msg_buf, sizeof msg_buf, format, ap);
+    if (msg_len > 0 && msg_buf[msg_len - 1] == '\n') {
+        --msg_len;
+    }
+
     unsigned long irqstate;
-    int len;
+    spin_lock_irq(&kernel_log.lock, &irqstate);
 
-    len = vsnprintf(buf, sizeof buf, format, ap);
-    if (buf[len - 1] == '\n')
-        --len;
-
-    spin_lock_irq(&klog_lock, &irqstate);
-    if (!klog_has_space(len)) {
-        /* wraparound to the start of the buffer */
-        next_entry->msg_len = KLOG_WRAPAROUND;
-        next_entry = (struct klog_entry *)klog_buffer;
+    if (!klog_has_space(msg_len)) {
+        memset(kernel_log.write_cursor, 0, sizeof(*kernel_log.write_cursor));
+        kernel_log.write_cursor->msg_len = KLOG_WRAPAROUND;
+        kernel_log.write_cursor = (struct klog_entry *)kernel_log.buffer_start;
     }
 
-    /* we don't want to do this the first time a log message is written */
-    if (klog_written)
-        klog_advance_first(len);
-    klog_written = 1;
-
-    entry = next_entry;
-    next_entry = klog_next_entry(next_entry);
+    struct klog_entry *entry = kernel_log.write_cursor;
 
     entry->timestamp = time_ns();
-    entry->msg_len = len;
+    entry->msg_len = msg_len;
     entry->level = level;
     entry->flags = 0;
-    entry->seqno = klog_sequence_number++;
-    memcpy(entry->message, buf, len);
+    entry->seqno = kernel_log.sequence_number++;
+    memcpy(entry->message, msg_buf, msg_len);
 
-    spin_unlock_irq(&klog_lock, irqstate);
+    kernel_log.write_cursor = klog_next_entry(entry);
 
-    if (klog_console)
+    spin_unlock_irq(&kernel_log.lock, irqstate);
+
+    if (kernel_log.console && processor_id() == 0) {
         klog_console_write(entry);
-
-    return len;
+    }
 }
 
-int klog(int level, const char *format, ...)
+void klog(int level, const char *format, ...)
 {
     va_list ap;
-    int n;
-
     va_start(ap, format);
-    n = vklog(level, format, ap);
+    vklog(level, format, ap);
     va_end(ap);
-
-    return n;
 }
 
-void klog_set_console(struct console *c) { klog_console = c; }
+void klog_set_console(struct console *c) { kernel_log.console = c; }

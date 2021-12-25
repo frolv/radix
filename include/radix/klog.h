@@ -23,7 +23,8 @@
 
 enum { KLOG_INFO, KLOG_WARNING, KLOG_ERROR };
 
-int klog(int level, const char *format, ...);
+void klog(int level, const char *format, ...);
+
 void klog_set_console(struct console *c);
 
 #endif /* RADIX_KLOG_H */
