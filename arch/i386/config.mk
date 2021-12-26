@@ -6,4 +6,5 @@ KERNEL_ARCH_OBJS := $(patsubst %.c,%.o,$(wildcard $(ARCHDIR)/*.c))
 KERNEL_ARCH_OBJS += $(patsubst %.S,%.o,$(wildcard $(ARCHDIR)/*.S))
 KERNEL_ARCH_OBJS += $(patsubst %.c,%.o,$(wildcard $(ARCHDIR)/*/*.c))
 KERNEL_ARCH_OBJS += $(patsubst %.S,%.o,$(wildcard $(ARCHDIR)/*/*.S))
+KERNEL_ARCH_OBJS += $(ARCHDIR)/root/lib/crti.o $(ARCHDIR)/root/lib/crtn.o
 KERNEL_ARCH_OBJS += $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o
