@@ -43,8 +43,8 @@ enum event_type {
 };
 
 struct event {
+    struct list list;
     uint64_t timestamp;
-    unsigned long flags;
 
     union {
         // Period for a timekeeping event.
@@ -54,7 +54,7 @@ struct event {
         struct task *sl_task;
     };
 
-    struct list list;
+    unsigned long flags;
 };
 
 #define EVENT_STATIC    (1 << 2)
@@ -122,9 +122,8 @@ void event_handler(void)
 
     // Process events in the queue until the next occurs at least
     // MIN_EVENT_DELTA after the end of the current.
-    struct event *evt;
     while (!list_empty(eventq)) {
-        evt = list_first_entry(eventq, struct event, list);
+        struct event *evt = list_first_entry(eventq, struct event, list);
         uint64_t now = time_ns();
         if (now < evt->timestamp && evt->timestamp - now > MIN_EVENT_DELTA) {
             break;
@@ -142,7 +141,7 @@ void event_handler(void)
 
     // If there are more events to run, schedule the first.
     if (!list_empty(eventq)) {
-        __event_schedule(evt);
+        __event_schedule(list_first_entry(eventq, struct event, list));
     }
 
     // After all events have run, the scheduler can now be called if needed.
@@ -191,8 +190,9 @@ static void __event_insert(struct event *evt)
         return;
     }
 
-    struct event *curr;
-    list_for_each_entry (curr, eventq, list) {
+    struct list *it, *tmp;
+    list_for_each_safe (it, tmp, eventq) {
+        struct event *curr = list_entry(it, struct event, list);
         if (curr->timestamp > evt->timestamp) {
             list_ins(&curr->list, &evt->list);
             if (EVENT_TYPE(curr) == EVENT_DUMMY) {
@@ -213,7 +213,7 @@ check_prev:
 }
 
 // Schedules a dummy event to occur after the specified period. Dummy events
-// don't do anything; they are used as placeholderswhen the next real event
+// don't do anything; they are used as placeholders when the next real event
 // occurs after a period longer than the IRQ timer's max_ns.
 //
 // Precondition: This is called with event_lock held.
@@ -231,6 +231,16 @@ static void __event_schedule(const struct event *evt)
     assert(evt);
 
     uint64_t now = time_ns();
+
+    if (evt->timestamp <= now) {
+        // The event's timestamp has already passed. This may happen if the
+        // processor disabled interrupts near an event's expiry, then modified
+        // the event list to schedule something else. Schedule an interrupt to
+        // occur immediately.
+        schedule_timer_irq(1);
+        return;
+    }
+
     uint64_t delta = max(evt->timestamp - now, MIN_EVENT_DELTA);
     uint64_t max_ns = irq_timer_max_ns();
 
