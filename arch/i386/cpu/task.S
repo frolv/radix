@@ -24,9 +24,13 @@
 .global switch_task
 .type switch_task, @function
 
-# The offset of a regs struct within a task struct.
-# If radix/task.h is ever modified, this should be updated.
-#define REGS_OFFSET 32
+# The offsets of accessed fields within a task struct.
+#
+# If radix/task.h is ever modified, these should be updated.
+#define FLAGS_OFFSET 12
+#define REGS_OFFSET  32
+
+#define TASK_FLAGS_ON_CPU (1 << 1)
 
 # void switch_task(struct task *old, struct task *new);
 #
@@ -84,15 +88,20 @@ switch_task:
 	movl -4(%ebp), %edi
 	movl %edi, REGS_FLAGS(%eax, REGS_OFFSET)
 
+	# The CPU is finished with the task, so its CPU flag can be cleared.
+	andl $(~TASK_FLAGS_ON_CPU), FLAGS_OFFSET(%eax)
+
 .Lload_registers:
 	# Load the new task.
 	movl 12(%ebp), %eax
 
+	# First, mark this task as being executed to prevent use elsewhere.
+	xorl $(TASK_FLAGS_ON_CPU), FLAGS_OFFSET(%eax)
+
 	# Switch over to the new thread's stack.
 	# Make space for to store EFLAGS and EIP.
-	movl REGS_SP(%eax, REGS_OFFSET), %ecx
-	subl $8, %ecx
-	movl %ecx, %esp
+	movl REGS_SP(%eax, REGS_OFFSET), %esp
+	subl $8, %esp
 
 	# Store ecx and eax of new task on stack.
 	movl REGS_CX(%eax, REGS_OFFSET), %ecx

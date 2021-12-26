@@ -80,12 +80,17 @@ struct task {
     int exit_status;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline bool task_is_active(const struct task *t)
 {
     return t->state <= TASK_RUNNING;
 }
 
-#define TASK_FLAGS_IDLE (1 << 0)
+#define TASK_FLAGS_IDLE   (1 << 0)
+#define TASK_FLAGS_ON_CPU (1 << 1)
 
 // Compares two tasks in terms of priority.
 //
@@ -95,5 +100,9 @@ int task_comparator(const struct task *a, const struct task *b);
 
 DECLARE_PER_CPU(struct task *, current_task);
 #define current_task() (this_cpu_read(current_task))
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // RADIX_TASK_H

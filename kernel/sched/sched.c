@@ -423,6 +423,22 @@ void sched_unblock(struct task *task)
     assert(task != NULL);
     assert(task->state == TASK_BLOCKED);
 
+    // It is possible for a task to become unblocked immediately after it blocks
+    // itself. If this happens, it may still be yielding through schedule()
+    // while we unblock it, and as another CPU potentially tries to run it. This
+    // can result in a mess with multiple processors' schedulers stepping on one
+    // another trying to modify the same task.
+    //
+    // This problem is indicative of a fundamental design flaw in the SMP
+    // scheduler; however, it is difficult to solve and may require a large
+    // redesign. Certainly, there needs to be a lot more locking around task
+    // internals and finer control over what parts of the code modify the task
+    // struct, instead of the wild west it is today.
+    //
+    // For the time being, the hack below seems to work. We should only spin for
+    // a short period, as the unblocked task is yielding the processor.
+    while (atomic_read(&task->flags) & TASK_FLAGS_ON_CPU) {}
+
     int cpu = __find_best_cpu(task);
     if (cpu == -1) {
         panic("Could not find CPU to unblock task %s", task->cmdline[0]);
