@@ -44,6 +44,9 @@ void atomic_bad_size_call();
     ({                                                     \
         typeof(*(p)) __abs_ret;                            \
         switch (sizeof(*(p))) {                            \
+        case 1:                                            \
+            __abs_ret = atomic_##op##_1(p, ##__VA_ARGS__); \
+            break;                                         \
         case 2:                                            \
             __abs_ret = atomic_##op##_2(p, ##__VA_ARGS__); \
             break;                                         \
@@ -63,6 +66,9 @@ void atomic_bad_size_call();
 #define __atomic_by_size(op, p, ...)           \
     do {                                       \
         switch (sizeof(*(p))) {                \
+        case 1:                                \
+            atomic_##op##_1(p, ##__VA_ARGS__); \
+            break;                             \
         case 2:                                \
             atomic_##op##_2(p, ##__VA_ARGS__); \
             break;                             \

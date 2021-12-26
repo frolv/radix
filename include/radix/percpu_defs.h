@@ -134,6 +134,10 @@ extern addr_t __percpu_offset[MAX_CPUS];
         *raw_cpu_ptr(&(var)) op val;     \
     } while (0)
 
+#define raw_cpu_write_generic(var, val) raw_cpu_op_generic(var, val, =)
+#define raw_cpu_add_generic(var, val)   raw_cpu_op_generic(var, val, +=)
+#define raw_cpu_sub_generic(var, val)   raw_cpu_op_generic(var, val, -=)
+
 #define this_cpu_read_generic(var)            \
     ({                                        \
         typeof(var) __rg_ret;                 \
@@ -148,24 +152,24 @@ extern addr_t __percpu_offset[MAX_CPUS];
     ({                                   \
         unsigned long __wg_irqstate;     \
         irq_save(__wg_irqstate);         \
-        raw_cpu_op_generic(var, val, =); \
+        raw_cpu_write_generic(var, val); \
         irq_restore(__wg_irqstate);      \
     })
 
-#define this_cpu_add_generic(var, val)    \
-    ({                                    \
-        unsigned long __ag_irqstate;      \
-        irq_save(__ag_irqstate);          \
-        raw_cpu_op_generic(var, val, +=); \
-        irq_restore(__ag_irqstate);       \
+#define this_cpu_add_generic(var, val) \
+    ({                                 \
+        unsigned long __ag_irqstate;   \
+        irq_save(__ag_irqstate);       \
+        raw_cpu_add_generic(var, val); \
+        irq_restore(__ag_irqstate);    \
     })
 
-#define this_cpu_sub_generic(var, val)    \
-    ({                                    \
-        unsigned long __sg_irqstate;      \
-        irq_save(__sg_irqstate);          \
-        raw_cpu_op_generic(var, val, -=); \
-        irq_restore(__sg_irqstate);       \
+#define this_cpu_sub_generic(var, val) \
+    ({                                 \
+        unsigned long __sg_irqstate;   \
+        irq_save(__sg_irqstate);       \
+        raw_cpu_sub_generic(var, val); \
+        irq_restore(__sg_irqstate);    \
     })
 
 #ifndef this_cpu_read_1
@@ -244,6 +248,32 @@ extern addr_t __percpu_offset[MAX_CPUS];
 #endif
 #ifndef raw_cpu_write_8
 #define raw_cpu_write_8(var, val) raw_cpu_op_generic(var, val, =)
+#endif
+
+#ifndef raw_cpu_add_1
+#define raw_cpu_add_1(var, val) raw_cpu_add_generic(var, val)
+#endif
+#ifndef raw_cpu_add_2
+#define raw_cpu_add_2(var, val) raw_cpu_add_generic(var, val)
+#endif
+#ifndef raw_cpu_add_4
+#define raw_cpu_add_4(var, val) raw_cpu_add_generic(var, val)
+#endif
+#ifndef raw_cpu_add_8
+#define raw_cpu_add_8(var, val) raw_cpu_add_generic(var, val)
+#endif
+
+#ifndef raw_cpu_sub_1
+#define raw_cpu_sub_1(var, val) raw_cpu_sub_generic(var, val)
+#endif
+#ifndef raw_cpu_sub_2
+#define raw_cpu_sub_2(var, val) raw_cpu_sub_generic(var, val)
+#endif
+#ifndef raw_cpu_sub_4
+#define raw_cpu_sub_4(var, val) raw_cpu_sub_generic(var, val)
+#endif
+#ifndef raw_cpu_sub_8
+#define raw_cpu_sub_8(var, val) raw_cpu_sub_generic(var, val)
 #endif
 
 #endif /* RADIX_PERCPU_DEFS_H */

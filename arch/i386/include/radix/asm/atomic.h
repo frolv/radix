@@ -44,34 +44,43 @@
                  : "r"(val)                         \
                  : "memory")
 
+#define __x86_atomic_inst_ret(p, inst, size)            \
+    ({                                                  \
+        typeof(*(p)) __air_ret;                         \
+        asm volatile(inst __X86_SUFFIX_##size " %1, %0" \
+                     : "=" __X86_REG_##size(__air_ret)  \
+                     : "m"(*(p)));                      \
+        __air_ret;                                      \
+    })
+
+#define atomic_write_1(p, val) __x86_atomic_inst(p, val, "mov", 1)
 #define atomic_write_2(p, val) __x86_atomic_inst(p, val, "mov", 2)
 #define atomic_write_4(p, val) __x86_atomic_inst(p, val, "mov", 4)
 #define atomic_write_8(p, val) __x86_atomic_op_generic(p, val, =)
 
+#define atomic_or_1(p, val) __x86_atomic_inst(p, val, "or", 1)
 #define atomic_or_2(p, val) __x86_atomic_inst(p, val, "or", 2)
 #define atomic_or_4(p, val) __x86_atomic_inst(p, val, "or", 4)
 #define atomic_or_8(p, val) __x86_atomic_op_generic(p, val, |=)
 
+#define atomic_and_1(p, val) __x86_atomic_inst(p, val, "and", 1)
 #define atomic_and_2(p, val) __x86_atomic_inst(p, val, "and", 2)
 #define atomic_and_4(p, val) __x86_atomic_inst(p, val, "and", 4)
 #define atomic_and_8(p, val) __x86_atomic_op_generic(p, val, &=)
 
+#define atomic_add_1(p, val) __x86_atomic_inst(p, val, "add", 1)
 #define atomic_add_2(p, val) __x86_atomic_inst(p, val, "add", 2)
 #define atomic_add_4(p, val) __x86_atomic_inst(p, val, "add", 4)
 #define atomic_add_8(p, val) __x86_atomic_op_generic(p, val, +=)
 
+#define atomic_sub_1(p, val) __x86_atomic_inst(p, val, "sub", 1)
 #define atomic_sub_2(p, val) __x86_atomic_inst(p, val, "sub", 2)
 #define atomic_sub_4(p, val) __x86_atomic_inst(p, val, "sub", 4)
 #define atomic_sub_8(p, val) __x86_atomic_op_generic(p, val, -=)
 
-#define __x86_atomic_read(p)                              \
-    ({                                                    \
-        typeof(*(p)) __ar_ret = *(volatile typeof(p))(p); \
-        __ar_ret;                                         \
-    })
-
-#define atomic_read_2(p) __x86_atomic_read(p)
-#define atomic_read_4(p) __x86_atomic_read(p)
+#define atomic_read_1(p) __x86_atomic_inst_ret(p, "mov", 1)
+#define atomic_read_2(p) __x86_atomic_inst_ret(p, "mov", 2)
+#define atomic_read_4(p) __x86_atomic_inst_ret(p, "mov", 4)
 
 #define __x86_atomic_xchg(inst, p, val, size, lock)          \
     ({                                                       \
@@ -84,9 +93,12 @@
         __ax_v;                                              \
     })
 
+#define atomic_swap_1(p, val) __x86_atomic_xchg("xchg", p, val, 1, "")
 #define atomic_swap_2(p, val) __x86_atomic_xchg("xchg", p, val, 2, "")
 #define atomic_swap_4(p, val) __x86_atomic_xchg("xchg", p, val, 4, "")
 
+#define atomic_fetch_add_1(p, val) \
+    __x86_atomic_xchg("xadd", p, val, 1, __X86_LOCK)
 #define atomic_fetch_add_2(p, val) \
     __x86_atomic_xchg("xadd", p, val, 2, __X86_LOCK)
 #define atomic_fetch_add_4(p, val) \
@@ -106,6 +118,7 @@
         __ac_ret;                                                       \
     })
 
+#define atomic_cmpxchg_1(p, old, new) __x86_atomic_cmpxchg(p, old, new, 1)
 #define atomic_cmpxchg_2(p, old, new) __x86_atomic_cmpxchg(p, old, new, 2)
 #define atomic_cmpxchg_4(p, old, new) __x86_atomic_cmpxchg(p, old, new, 4)
 
