@@ -365,11 +365,7 @@ static void __prepare_next_task(struct task *next, uint64_t sched_ts)
 // The main scheduler function. Picks a task to run.
 void schedule(enum sched_action action)
 {
-    assert(action == SCHED_SELECT || action == SCHED_REPLACE);
-
-    if (action == SCHED_REPLACE && in_irq()) {
-        panic("Doesn't make sense to replace from within an interrupt");
-    }
+    assert(action == SCHED_REPLACE || action == SCHED_PREEMPT);
 
     uint64_t sched_ts = time_ns();
     struct task *curr = current_task();
@@ -386,7 +382,7 @@ void schedule(enum sched_action action)
     // Decide whether to reconsider the current task as a scheduling option.
     // This is done this when the following conditions are met:
     //
-    //   1. The task did not voluntarily yield (i.e action is SELECT).
+    //   1. The task did not voluntarily yield (i.e action is PREEMPT).
     //   2. The task is not blocked or otherwise unschedulable.
     //   3. The task still has time remaining to run.
     //
@@ -394,7 +390,7 @@ void schedule(enum sched_action action)
     // is unblocked and the scheduler must choose whether to preempt the current
     // task in favor of it.
     struct task *reconsider = NULL;
-    if (action == SCHED_SELECT && curr_is_schedulable && !curr_has_expired) {
+    if (action == SCHED_PREEMPT && curr_is_schedulable && !curr_has_expired) {
         reconsider = curr;
     }
 
@@ -417,7 +413,7 @@ void schedule(enum sched_action action)
 
     set_cpu_active(processor_id());
 
-    if (action == SCHED_REPLACE && curr != next) {
+    if (curr != next) {
         switch_task(curr, next);
     }
 }

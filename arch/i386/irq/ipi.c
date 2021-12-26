@@ -23,8 +23,6 @@
 #include <radix/smp.h>
 #include <radix/timer.h>
 
-#include <rlibc/string.h>
-
 void panic_shutdown(void);
 void tlb_shootdown(void);
 void timer_action(void);
@@ -69,23 +67,14 @@ void i386_send_sched_wake(int cpu)
     system_pic->send_ipi(IPI_VEC_SCHED_WAKE, CPUMASK_CPU(cpu));
 }
 
-void timer_action_handler(void)
+void timer_action_handler(__unused const struct interrupt_context *intctx)
 {
     system_pic->eoi(IPI_VEC_TIMER_ACTION);
     handle_timer_action();
 }
 
-void sched_wake_handler(struct interrupt_context *intctx)
+void sched_wake_handler(__unused const struct interrupt_context *intctx)
 {
     system_pic->eoi(IPI_VEC_SCHED_WAKE);
-
-    memcpy(&current_task()->regs, &intctx->regs, sizeof intctx->regs);
-    schedule(SCHED_SELECT);
-    memcpy(&intctx->regs, &current_task()->regs, sizeof intctx->regs);
-
-    intctx->ip = intctx->regs.ip;
-    intctx->cs = intctx->regs.cs;
-    intctx->flags = intctx->regs.flags;
-    intctx->sp = intctx->regs.sp;
-    intctx->ss = intctx->regs.ss;
+    schedule(SCHED_PREEMPT);
 }

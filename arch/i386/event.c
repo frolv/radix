@@ -1,6 +1,6 @@
 /*
  * arch/i386/event.c
- * Copyright (C) 2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,29 +19,9 @@
 #include <radix/asm/pic.h>
 #include <radix/asm/regs.h>
 #include <radix/event.h>
-#include <radix/task.h>
 
-#include <rlibc/string.h>
-
-/*
- * update_intctx:
- * Copy the necessary values from the specified interrupt context's
- * registers struct to their positions on the stack.
- */
-static void update_intctx(struct interrupt_context *intctx)
-{
-    intctx->ip = intctx->regs.ip;
-    intctx->cs = intctx->regs.cs;
-    intctx->flags = intctx->regs.flags;
-    intctx->sp = intctx->regs.sp;
-    intctx->ss = intctx->regs.ss;
-}
-
-void arch_event_handler(struct interrupt_context *intctx)
+void arch_event_handler(__unused const struct interrupt_context *intctx)
 {
     system_pic->eoi(0);
-    memcpy(&current_task()->regs, &intctx->regs, sizeof intctx->regs);
     event_handler();
-    memcpy(&intctx->regs, &current_task()->regs, sizeof intctx->regs);
-    update_intctx(intctx);
 }

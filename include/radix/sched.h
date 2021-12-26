@@ -25,19 +25,16 @@
 int sched_init(void);
 
 enum sched_action {
-    // Chooses a new task to run and stages it to execute. This can either
-    // choose a new task when the current task has completed its timeslice,
-    // or preempt the current task if a higher priority one has become
-    // available.
-    SCHED_SELECT,
-
-    // Chooses a new task to run and replaces the currently executing task
-    // with it. After the schedule() call completes, the processor will be
-    // running the new task.
-    //
-    // This should only be used from the context of a running task,
-    // outside of an interrupt.
+    // Chooses a new task to run and replaces the currently executing task with
+    // it. After the schedule() call completes, the processor will be running
+    // the new task.
     SCHED_REPLACE,
+
+    // Considers replacing the executing task with another, typically from the
+    // processor's unblock queue. Depending on the priorities of the tasks,
+    // either continues running the current task or switches to the other.
+    SCHED_PREEMPT,
+
 };
 
 void schedule(enum sched_action action);

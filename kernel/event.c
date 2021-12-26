@@ -71,15 +71,16 @@ static DEFINE_PER_CPU(struct event *, dummy_event) = NULL;
 static DEFINE_PER_CPU(struct event *, sched_event) = NULL;
 
 static void __event_insert(struct event *evt);
-static void __event_schedule(struct event *evt);
+static void __event_schedule(const struct event *evt);
 
 // Processes a single event.
 static void event_process(struct event *evt)
 {
     switch (EVENT_TYPE(evt)) {
     case EVENT_SCHED:
+        // Don't call into the scheduler yet; there may still be other events to
+        // process, which must be completed before context switching.
         this_cpu_write(sched_event, NULL);
-        schedule(SCHED_SELECT);
         break;
 
     case EVENT_SLEEP:
@@ -117,6 +118,7 @@ void event_handler(void)
     irq_save(irqstate);
 
     struct list *eventq = raw_cpu_ptr(&event_queue);
+    bool should_schedule = false;
 
     // Process events in the queue until the next occurs at least
     // MIN_EVENT_DELTA after the end of the current.
@@ -129,6 +131,11 @@ void event_handler(void)
         }
 
         list_del(&evt->list);
+
+        if (EVENT_TYPE(evt) == EVENT_SCHED) {
+            should_schedule = true;
+        }
+
         event_process(evt);
         event_free(evt);
     }
@@ -136,6 +143,11 @@ void event_handler(void)
     // If there are more events to run, schedule the first.
     if (!list_empty(eventq)) {
         __event_schedule(evt);
+    }
+
+    // After all events have run, the scheduler can now be called if needed.
+    if (should_schedule) {
+        schedule(SCHED_REPLACE);
     }
 
     irq_restore(irqstate);
@@ -147,6 +159,7 @@ static void struct_event_init(void *p)
 {
     struct event *evt = p;
 
+    evt->flags = 0;
     list_init(&evt->list);
 }
 
@@ -213,7 +226,7 @@ static void __schedule_dummy_event(uint64_t delta)
     schedule_timer_irq(delta);
 }
 
-static void __event_schedule(struct event *evt)
+static void __event_schedule(const struct event *evt)
 {
     assert(evt);
 
