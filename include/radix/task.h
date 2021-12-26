@@ -101,6 +101,21 @@ int task_comparator(const struct task *a, const struct task *b);
 DECLARE_PER_CPU(struct task *, current_task);
 #define current_task() (this_cpu_read(current_task))
 
+struct task *task_alloc(void);
+void task_free(struct task *task);
+
+void task_exit(struct task *task, int status);
+
+// Switches from running task old to task new. Implemented separately by each
+// architecture. Once the function call returns, `new` should be executing.
+//
+// Current register state should be saved into `old` and loaded from `new`.
+// Additionally, TASK_FLAGS_ON_CPU should be cleared from old's flags once it
+// is no longer running, and set in new's flags as soon as it first starts.
+void switch_task(struct task *old, struct task *new);
+
+void tasking_init(void);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

@@ -25,7 +25,7 @@
 #include <radix/sched.h>
 #include <radix/slab.h>
 #include <radix/smp.h>
-#include <radix/tasking.h>
+#include <radix/task.h>
 
 #include <rlibc/string.h>
 

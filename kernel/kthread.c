@@ -23,7 +23,7 @@
 #include <radix/mm.h>
 #include <radix/sched.h>
 #include <radix/slab.h>
-#include <radix/tasking.h>
+#include <radix/task.h>
 #include <radix/vmm.h>
 
 #include <rlibc/stdio.h>

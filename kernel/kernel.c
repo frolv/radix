@@ -30,7 +30,7 @@
 #include <radix/percpu.h>
 #include <radix/sched.h>
 #include <radix/smp.h>
-#include <radix/tasking.h>
+#include <radix/task.h>
 #include <radix/version.h>
 #include <radix/vmm.h>
 
@@ -57,7 +57,7 @@ static void kernel_boot_thread(void *p)
 {
     struct multiboot_info *mbt = p;
 
-    klog(KLOG_INFO, "Post-scheduler boot starting");
+    klog(KLOG_INFO, "%s started", current_task()->cmdline[0]);
 
     parse_multiboot_modules(mbt);
 

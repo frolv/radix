@@ -31,7 +31,7 @@
 #include <radix/sleep.h>
 #include <radix/smp.h>
 #include <radix/spinlock.h>
-#include <radix/tasking.h>
+#include <radix/task.h>
 #include <radix/time.h>
 
 #include <rlibc/string.h>

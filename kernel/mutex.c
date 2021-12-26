@@ -21,7 +21,7 @@
 #include <radix/kernel.h>
 #include <radix/mutex.h>
 #include <radix/sched.h>
-#include <radix/tasking.h>
+#include <radix/task.h>
 
 void mutex_init(struct mutex *m)
 {
