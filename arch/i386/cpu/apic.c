@@ -902,25 +902,34 @@ int lapic_init(void)
     ver = lapic_reg_read(APIC_REG_APICVER);
     lapic->lvt_count = (ver >> APIC_APICVER_LVT_SHIFT & 0xFF) + 1;
 
+    lapic_reset_vectors();
+    lapic_interrupt_setup();
+    lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
+    // Clear any interrupts which may have occurred.
+    lapic_reg_write(APIC_REG_EOI, 0);
+
+    return 0;
+}
+
+void lapic_reset_vectors(void)
+{
+    struct lapic *lapic = this_cpu_read(local_apic);
+
     lapic_reg_write(APIC_REG_LVT_LINT0, lapic_lvt_entry(lapic, APIC_LVT_LINT0));
     lapic_reg_write(APIC_REG_LVT_LINT1, lapic_lvt_entry(lapic, APIC_LVT_LINT1));
     lapic_reg_write(APIC_REG_LVT_TIMER, lapic_lvt_entry(lapic, APIC_LVT_TIMER));
     lapic_reg_write(APIC_REG_LVT_ERROR, lapic_lvt_entry(lapic, APIC_LVT_ERROR));
-    if (lapic->lvt_count > 4)
+    if (lapic->lvt_count > 4) {
         lapic_reg_write(APIC_REG_LVT_PMC, lapic_lvt_entry(lapic, APIC_LVT_PMC));
-    if (lapic->lvt_count > 5)
+    }
+    if (lapic->lvt_count > 5) {
         lapic_reg_write(APIC_REG_LVT_THERMAL,
                         lapic_lvt_entry(lapic, APIC_LVT_THERMAL));
-    if (lapic->lvt_count > 6)
+    }
+    if (lapic->lvt_count > 6) {
         lapic_reg_write(APIC_REG_LVT_CMCI,
                         lapic_lvt_entry(lapic, APIC_LVT_CMCI));
-
-    lapic_interrupt_setup();
-    lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
-    /* clear any interrupts which may have occurred */
-    lapic_reg_write(APIC_REG_EOI, 0);
-
-    return 0;
+    }
 }
 
 static struct irq_timer lapic_timer;

@@ -124,6 +124,7 @@ int lapic_set_lvt_trigger_mode(uint32_t apic_id, unsigned int pin, int trig);
 void lapic_error(void);
 
 int lapic_init(void);
+void lapic_reset_vectors(void);
 void lapic_timer_calibrate(void);
 void lapic_timer_register(void);
 

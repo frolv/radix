@@ -101,7 +101,7 @@ void arch_smp_boot(void)
 void prepare_ap_boot(int cpu_number) { ap_boot_info.cpu_number = cpu_number; }
 
 void ap_switch_stack(void *stack);
-void ap_stop(void);
+__noreturn void ap_stop(void);
 
 DECLARE_PER_CPU(void *, cpu_stack);
 
@@ -157,13 +157,17 @@ void ap_init(void)
 
     read_cpu_info();
 
-    if (cpu_init(1) != 0)
+    if (cpu_init(1) != 0) {
         ap_shutdown();
+    }
 
-    if (percpu_init(1) != 0)
+    if (percpu_init(1) != 0) {
         ap_shutdown();
+    }
 
     idt_init();
+    lapic_reset_vectors();
+
     sched_init();
 
     // Hop over to the first task on this processor.
