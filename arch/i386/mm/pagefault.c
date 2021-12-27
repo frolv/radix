@@ -21,6 +21,7 @@
 #include <radix/irq.h>
 #include <radix/kernel.h>
 #include <radix/mm.h>
+#include <radix/task.h>
 #include <radix/vmm.h>
 
 #define X86_PF_PROTECTION  (1 << 0)
@@ -29,10 +30,7 @@
 #define X86_PF_RESERVED    (1 << 3)
 #define X86_PF_INSTRUCTION (1 << 4)
 
-/*
- * do_kernel_pf:
- * Resolve a page fault triggered by a kernel thread.
- */
+// Resolves a page fault triggered by a kernel thread.
 static void do_kernel_pf(addr_t fault_addr, addr_t fault_ip, int error)
 {
     struct vmm_area *area;
@@ -42,6 +40,12 @@ static void do_kernel_pf(addr_t fault_addr, addr_t fault_ip, int error)
 
     page = fault_addr & PAGE_MASK;
     access = error & X86_PF_WRITE ? "write to" : "read from";
+
+    if (error & X86_PF_INSTRUCTION) {
+        panic("attempt to execute from non-executable address %p [eip: %p]\n",
+              fault_addr,
+              fault_ip);
+    }
 
     if (error & X86_PF_PROTECTION) {
         panic("illegal %s virtual address %p [eip: %p]\n",
@@ -80,14 +84,17 @@ static void do_kernel_pf(addr_t fault_addr, addr_t fault_ip, int error)
     vmm_add_area_pages(area, p);
 }
 
-void page_fault_handler(struct regs *regs, int error)
+void page_fault_handler(const struct interrupt_context *intctx, int error)
 {
-    addr_t fault_addr;
+    addr_t fault_addr = cpu_read_cr2();
+    addr_t fault_instruction = intctx->regs.ip;
 
-    fault_addr = cpu_read_cr2();
     if (error & X86_PF_USER) {
-        /* TODO */
+        // TODO(frolv): Handle userspace page faults.
+        panic("page fault in user task %d at address %p",
+              current_task()->pid,
+              fault_addr);
     } else {
-        do_kernel_pf(fault_addr, (addr_t)regs->ip, error);
+        do_kernel_pf(fault_addr, fault_instruction, error);
     }
 }

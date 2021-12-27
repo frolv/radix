@@ -243,7 +243,7 @@ void interrupt_handler(__unused struct interrupt_context *intctx, int vector)
     }
 }
 
-int in_interrupt(void) { return !!this_cpu_read(interrupt_depth); }
+int in_interrupt(void) { return this_cpu_read(interrupt_depth) > 0; }
 
 void interrupt_init(void)
 {
