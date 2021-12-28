@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+#include <radix/asm/msr.h>
 #include <radix/asm/page_defs.h>
 #include <radix/assembler.h>
 #include <radix/config.h>
@@ -66,6 +67,25 @@ BEGIN_FUNC(ap_boot)
 	mov %ax, %ss
 
 #if CONFIG(X86_PAE)
+
+#if CONFIG(X86_NX)
+	# Try to enable the NXE bit in the EFER MSR.
+
+	# The NXE bit is supported if edx bit 20 of CPUID 80000001h is set.
+	movl $0x80000001, %eax
+	cpuid
+	test $(1 << 20), %edx
+	je .Lno_nxe
+
+	# Set the NXE bit in the EFER MSR.
+	movl $(IA32_EFER), %ecx
+	rdmsr
+	orl $(IA32_EFER_NXE), %eax
+	wrmsr
+
+.Lno_nxe:
+#endif  // CONFIG(X86_NX)
+
 	# enable PAE
 	movl %cr4, %eax
 	orl $0x00000020, %eax
@@ -124,10 +144,11 @@ BEGIN_FUNC(ap_switch_stack)
 	jmp 1b
 END_FUNC(ap_switch_stack)
 
-# TODO: is there a better way to do this?
+# TODO(frolv): Should actually shut the processor down.
 BEGIN_FUNC(ap_stop)
 	cli
 	hlt
+	jmp ap_stop
 END_FUNC(ap_stop)
 
 #endif  // CONFIG(SMP)

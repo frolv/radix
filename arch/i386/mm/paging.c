@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "paging.h"
+
+#include <radix/asm/msr.h>
 #include <radix/config.h>
 #include <radix/cpu.h>
 #include <radix/kernel.h>
@@ -23,6 +26,7 @@
 #include <radix/limits.h>
 #include <radix/mm.h>
 #include <radix/slab.h>
+#include <radix/smp.h>
 #include <radix/vmm.h>
 
 #include <rlibc/string.h>
@@ -226,6 +230,10 @@ extern struct pdpt kernel_pdpt;
 // PDPTs are small (32 bytes). Instead of wasting an entire page for each one,
 // allocate them from a cache.
 static struct slab_cache *pdpt_cache;
+
+#if CONFIG(X86_NX)
+static pteval_t page_nx_flags = 0;
+#endif  // CONFIG(X86_NX)
 
 static __always_inline void get_paging_indices(addr_t virt,
                                                size_t *pdpti,
@@ -873,13 +881,11 @@ static int mp_args_to_flags(pteval_t *flags, int prot, enum cache_policy cp)
         *flags |= PAGE_RW;
     }
 
-#if 0
 #if CONFIG(X86_NX)
     if (!(prot & PROT_EXEC)) {
-        *flags |= PAGE_NX;
+        *flags |= page_nx_flags;
     }
 #endif  // CONFIG(X86_NX)
-#endif
 
     return cp_to_flags(flags, cp);
 }
@@ -933,4 +939,38 @@ void arch_vmm_init(struct vmm_space *kernel_vmm_space)
                               SLAB_PANIC,
                               NULL);
 #endif  // CONFIG(X86_PAE)
+}
+
+int cpu_paging_init(bool is_bootstrap_processor)
+{
+#if CONFIG(X86_NX)
+    // Check to see whether the early boot code enabled NX protections. In a
+    // kernel compiled with CONFIG_X86_NX, this will happen if the CPU supports
+    // it.
+    bool nx_enabled = false;
+
+    if (cpu_supports_extended(CPUID_EXT_NXE)) {
+        uint32_t eax, edx;
+        rdmsr(IA32_EFER, &eax, &edx);
+        nx_enabled = (eax & IA32_EFER_NXE) != 0;
+    }
+
+    if (is_bootstrap_processor) {
+        page_nx_flags = nx_enabled ? PAGE_NX : 0;
+    } else if (page_nx_flags == PAGE_NX && !nx_enabled) {
+        int cpu = processor_id();
+        klog(KLOG_ERROR,
+             "CPU0 activated NX memory protection, but CPU%d cannot.",
+             cpu);
+        klog(KLOG_ERROR, "Such a system configuration is not supported.");
+        klog(KLOG_ERROR, "Shutting down CPU%d.", cpu);
+        klog(KLOG_ERROR,
+             "Run a kernel compiled without CONFIG_X86_NX to use all "
+             "processors on this system.",
+             cpu);
+        return 1;
+    }
+#endif  // CONFIG(X86_NX)
+
+    return 0;
 }

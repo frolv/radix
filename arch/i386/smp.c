@@ -30,6 +30,8 @@
 
 #include <rlibc/string.h>
 
+#include "mm/paging.h"
+
 #if CONFIG(SMP)
 
 #define SMPBOOT "smpboot: "
@@ -82,7 +84,7 @@ void arch_smp_boot(void)
     /* identity map the trampoline page for when APs enable paging */
     map_page_kernel(virt_to_phys(smp_tramp_start),
                     virt_to_phys(smp_tramp_start),
-                    PROT_WRITE,
+                    PROT_WRITE | PROT_EXEC,
                     PAGE_CP_DEFAULT);
 
     memcpy(smp_tramp->mem, (void *)smp_tramp_start, smp_tramp_size);
@@ -162,6 +164,10 @@ void ap_init(void)
     }
 
     if (percpu_init(1) != 0) {
+        ap_shutdown();
+    }
+
+    if (cpu_paging_init(/*is_bootstrap_processor=*/false) != 0) {
         ap_shutdown();
     }
 

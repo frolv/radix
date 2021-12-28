@@ -26,6 +26,8 @@
 #include <radix/asm/cpu_defs.h>
 #include <radix/compiler.h>
 
+#include <stdbool.h>
+
 static __always_inline unsigned long cpuid_supported(void)
 {
     unsigned long res;
@@ -48,7 +50,8 @@ static __always_inline unsigned long cpuid_supported(void)
 
 #include <radix/types.h>
 
-int cpu_supports(uint64_t features);
+bool cpu_supports(uint64_t features);
+bool cpu_supports_extended(uint64_t features);
 
 #define __arch_cache_line_size()   i386_cache_line_size()
 #define __arch_set_kernel_stack(s) i386_set_kernel_stack(s)

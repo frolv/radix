@@ -102,6 +102,18 @@
 #define CPUID_RDRND     (1ULL << 62)
 #define CPUID_HYPER     (1ULL << 63)
 
+// cpuid 80000001h EDX bits.
+#define CPUID_EXT_SYSCALL (1ULL << 11)
+#define CPUID_EXT_NXE     (1ULL << 20)
+#define CPUID_EXT_1GPAGE  (1ULL << 26)
+#define CPUID_EXT_RDTSCP  (1ULL << 27)
+#define CPUID_EXT_X64     (1ULL << 29)
+
+// cpuid 80000001h ECX bits.
+#define CPUID_EXT_LAHF      (1ULL << 32)
+#define CPUID_EXT_LZCNT     (1ULL << 37)
+#define CPUID_EXT_PREFETCHW (1ULL << 40)
+
 /* EFLAGS register bits */
 #define EFLAGS_CF   (1 << 0)
 #define EFLAGS_PF   (1 << 2)

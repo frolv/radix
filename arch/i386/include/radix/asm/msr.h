@@ -1,6 +1,6 @@
 /*
  * arch/i386/include/radix/asm/msr.h
- * Copyright (C) 2016-2017 Alexei Frolov
+ * Copyright (C) 2021 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,11 @@
 #define IA32_MTRRCAP            0xFE
 #define IA32_PAT                0x277
 #define IA32_X2APIC_APICID      0x802
+#define IA32_EFER               0xc0000080
+
+#define IA32_EFER_NXE (1 << 11)
+
+#if !__ASSEMBLY__
 
 #include <radix/compiler.h>
 #include <radix/types.h>
@@ -41,4 +46,6 @@ static __always_inline void wrmsr(uint32_t msr, uint32_t lo, uint32_t hi)
     asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
 }
 
-#endif /* ARCH_I386_RADIX_ASM_MSR_H */
+#endif  // !__ASSEMBLY__
+
+#endif  // ARCH_I386_RADIX_ASM_MSR_H

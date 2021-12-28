@@ -76,6 +76,8 @@ struct cpu_info {
     unsigned long cpuid_1[4];
     uint64_t cpu_features;
     struct cache_info cache_info;
+    long cpuid_extended_max;
+    uint64_t cpu_extended_features;
 };
 
 static DEFINE_PER_CPU(struct cpu_info, cpu_info);
@@ -163,9 +165,15 @@ unsigned long i386_cache_line_size(void) { return cache_line_size; }
 
 void i386_set_kernel_stack(void *stack) { tss_set_stack((unsigned long)stack); }
 
-int cpu_supports(uint64_t features)
+bool cpu_supports(uint64_t features)
 {
-    return !!(cpu_shared_features & features);
+    return (cpu_shared_features & features) == features;
+}
+
+bool cpu_supports_extended(uint64_t features)
+{
+    return (this_cpu_read(cpu_info.cpu_extended_features) & features) ==
+           features;
 }
 
 static void add_cache(unsigned char level,
@@ -748,23 +756,29 @@ static char processor_name[64];
 /* TEMP */
 char *cpu_name(void) { return processor_name; }
 
-/*
- * extended_processor_info:
- * Read and extract information from the extended (0x80000000+)
- * cpuid instructions.
- */
+// Reads and extracts feature information from the extended range (0x80000000+)
+// of cpuid instructions.
 static void extended_processor_info(void)
 {
     unsigned long buf[4];
-    char *pos;
-    unsigned int i;
 
+    // cpuid 80000000h returns the maximum extended input value in eax.
     cpuid(0x80000000, buf[0], buf[1], buf[2], buf[3]);
+    this_cpu_write(cpu_info.cpuid_extended_max, buf[0]);
 
-    /* read full processor name */
+    if (buf[0] < 0x80000001) {
+        return;
+    }
+
+    // cpuid 80000001h returns the CPU's extended feature bits in ecx:edx.
+    cpuid(0x80000001, buf[0], buf[1], buf[2], buf[3]);
+    this_cpu_write(cpu_info.cpu_extended_features,
+                   ((uint64_t)buf[2] << 32) | buf[3]);
+
+    // Read the full processor name from 02-04.
     if (buf[0] >= 0x80000004) {
-        pos = processor_name;
-        for (i = 0x80000002; i < 0x80000005; ++i) {
+        char *pos = processor_name;
+        for (uint32_t i = 0x80000002; i < 0x80000005; ++i) {
             cpuid(i, buf[0], buf[1], buf[2], buf[3]);
             memcpy(pos, buf, sizeof buf);
             pos += 0x10;
