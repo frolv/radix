@@ -193,6 +193,8 @@ static unsigned int cpus_available = 0;
 
 DEFINE_PER_CPU(struct lapic *, local_apic) = NULL;
 
+static DEFINE_PER_CPU(unsigned int, ipis_sent) = 0;
+
 static struct pic apic;
 
 static uint32_t ioapic_reg_read(struct ioapic *ioapic, int reg)
@@ -809,6 +811,7 @@ static int lapic_send_ipi_flat(unsigned int vec, cpumask_t cpumask)
         return EINVAL;
 
     lapic_send_ipi(vec, cpumask & 0xFF, 0, APIC_INT_MODE_FIXED);
+    this_cpu_inc(ipis_sent);
     return 0;
 }
 
@@ -828,6 +831,8 @@ static int lapic_send_ipi_cluster(unsigned int vec, cpumask_t cpumask)
     online = cpumask_online();
     cpumask &= online;
     cpu_id = processor_id();
+
+    this_cpu_inc(ipis_sent);
 
     /* check for common shorthands to avoid looping through clusters */
     if (cpumask == online) {
@@ -907,6 +912,8 @@ int lapic_init(void)
     lapic_reg_write(APIC_REG_SVR, APIC_SVR_ENABLE | APIC_VEC_SPURIOUS);
     // Clear any interrupts which may have occurred.
     lapic_reg_write(APIC_REG_EOI, 0);
+
+    this_cpu_write(ipis_sent, 0);
 
     return 0;
 }
