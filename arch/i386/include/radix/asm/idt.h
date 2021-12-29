@@ -35,8 +35,14 @@ void idt_set(size_t vector,
 // Clears an interrupt vector.
 static inline void idt_unset(size_t vector) { idt_set(vector, NULL, 0, 0); }
 
-#define IDT_32BIT_TASK_GATE      0x85
-#define IDT_32BIT_INTERRUPT_GATE 0x8e
-#define IDT_32BIT_TRAP_GATE      0x8f
+#define IDT_GATE_TASK 0x5
+#define IDT_GATE_INT  0xe
+#define IDT_GATE_TRAP 0xf
+#define IDT_DPL(x)    ((uint8_t)(x & 0x3) << 5)
+#define IDT_PRESENT   (1u << 7)
+
+#define IDT_32BIT_TASK_GATE      (IDT_GATE_TASK | IDT_DPL(0) | IDT_PRESENT)
+#define IDT_32BIT_INTERRUPT_GATE (IDT_GATE_INT | IDT_DPL(0) | IDT_PRESENT)
+#define IDT_32BIT_TRAP_GATE      (IDT_GATE_TRAP | IDT_DPL(0) | IDT_PRESENT)
 
 #endif  // ARCH_I386_RADIX_IDT_H

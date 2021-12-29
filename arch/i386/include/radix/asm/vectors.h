@@ -80,6 +80,9 @@
 #define IPI_VEC_TIMER_ACTION  0xC2
 #define IPI_VEC_SCHED_WAKE    0xC3
 
+// x86 syscall interrupt uses vector 222 (0xde).
+#define VEC_SYSCALL 0xDE
+
 #define APIC_VEC_TIMER    0xE0
 #define APIC_VEC_NMI      0xE1
 #define APIC_VEC_SMI      0xE2
