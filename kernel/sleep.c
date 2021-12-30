@@ -28,6 +28,7 @@ void __sleep_blocking(uint64_t ns)
     // Disable interrupts when going to sleep so the task doesn't get preempted
     // between adding the sleep event and yielding.
     irq_save(irqstate);
+    assert(list_empty(&curr->queue));
 
     int err = sleep_event_add(curr, time_ns() + ns);
     if (err != 0) {

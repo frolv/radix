@@ -33,13 +33,17 @@
 
 static void raw_write(const char *s, size_t len)
 {
-    if (!active_console || !s)
+    if (!active_console || !s) {
         return;
+    }
 
     atomic_write(&active_console->lock.owner, 0);
     list_init(&active_console->lock.queue);
     active_console->actions->write(active_console, s, len);
 }
+
+// Prevents multiple processors from panicking at once.
+spinlock_t panic_lock = SPINLOCK_INIT;
 
 static char panic_buffer[PANIC_BUFSIZE];
 
@@ -52,14 +56,12 @@ __noreturn void panic(const char *err, ...)
     va_list ap;
     char *s;
 
+    spin_lock(&panic_lock);
+
     irq_disable();
     send_panic_ipi();
 
     s = panic_buffer;
-
-#ifdef DEBUG_STACKTRACE
-    s += stack_trace(panic_buffer, PANIC_TRACESIZE);
-#endif
 
     /* TODO: register dump */
 
@@ -69,6 +71,12 @@ __noreturn void panic(const char *err, ...)
     va_start(ap, err);
     s += vsprintf(s, err, ap);
     va_end(ap);
+
+    *s++ = '\n';
+
+#ifdef DEBUG_STACKTRACE
+    s += stack_trace(s, PANIC_TRACESIZE);
+#endif
 
     raw_write(panic_buffer, s - panic_buffer);
 
