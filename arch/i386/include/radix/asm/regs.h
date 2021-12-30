@@ -60,6 +60,4 @@ struct interrupt_context {
     uint32_t flags;
 };
 
-void kthread_reg_setup(struct regs *r, addr_t stack, addr_t func, addr_t arg);
-
 #endif  // ARCH_I386_RADIX_REGS_H

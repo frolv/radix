@@ -136,3 +136,10 @@ switch_task:
 	popf
 	cld
 	ret
+
+# Entrypoint for userspace tasks. When a task is created, its initial stack is
+# set up with a ring 3 interrupt stack frame. An iret will pop this stack frame
+# and start executing from the stored IP in ring 3.
+.global task_user_entry
+task_user_entry:
+	iret

@@ -39,6 +39,7 @@
 // Virtual address range for user processes.
 #define USER_VIRTUAL_BASE __ARCH_USER_VIRT_BASE
 #define USER_VIRTUAL_SIZE __ARCH_USER_VIRT_SIZE
+#define USER_STACK_TOP    __ARCH_USER_STACK_TOP
 
 #define MEM_LIMIT __ARCH_MEM_LIMIT
 

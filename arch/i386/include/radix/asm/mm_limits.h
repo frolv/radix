@@ -34,6 +34,7 @@
 // Virtual address range for user processes.
 #define __ARCH_USER_VIRT_BASE 0x0100000UL
 #define __ARCH_USER_VIRT_SIZE (__ARCH_KERNEL_VIRT_BASE - __ARCH_USER_VIRT_BASE)
+#define __ARCH_USER_STACK_TOP 0xC0000000UL
 
 #if CONFIG(X86_PAE)
 

@@ -106,6 +106,32 @@ void task_free(struct task *task);
 
 void task_exit(struct task *task, int status);
 
+// Creates a new user mode task running the executable located at a specified
+// file path.
+//
+// This initializes a new task with its own address space, loads and maps the
+// executable into that address space, and sets up the basic task parameters
+// and registers required for it to run. The task is not started; it must be
+// added to the scheduler separately, and may be modified by the creator prior
+// to execution.
+//
+// Returns an ERR_PTR to the initialized task.
+struct task *task_create(const char *path);
+
+// Sets up the registers and stack for a kernel thread to start executing
+// function `func` with argument `arg`. Implemented by individual architectures.
+void kthread_reg_setup(struct regs *regs,
+                       addr_t stack_top,
+                       addr_t func,
+                       addr_t arg);
+
+// Sets up the registers and stack for a user task to start executing from
+// address `entry`. Implemented by individual architectures.
+//
+// `stack` is the base physical address of the initially allocated page for the
+// user stack. It is already mapped into the task's address space.
+int user_task_setup(struct task *task, paddr_t stack, addr_t entry);
+
 // Switches from running task old to task new. Implemented separately by each
 // architecture. Once the function call returns, `new` should be executing.
 //
