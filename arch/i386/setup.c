@@ -22,10 +22,7 @@
 
 #include <acpi/acpi.h>
 
-/*
- * arch_main_setup:
- * Initialize x86-specific features and data structures.
- */
+// Initializes x86-specific hardware features and data structures.
 void arch_main_setup(void)
 {
     acpi_init();
@@ -35,12 +32,12 @@ void arch_main_setup(void)
     acpi_pm_register();
     rtc_register();
 
-    /* If there is no APIC, the PIT must be used as a scheduling timer. */
-    if (cpu_supports(CPUID_APIC)) {
+    if (cpu_supports(CPUID_APIC) && apic_enabled()) {
         lapic_timer_calibrate();
         lapic_timer_register();
         pit_register();
     } else {
+        // If there is no APIC, the PIT must be used as a scheduling timer.
         pit_oneshot_register();
     }
 }

@@ -1088,6 +1088,11 @@ static struct pic apic = {.eoi = apic_eoi,
                           .irq_count = 0,
                           .name = "APIC"};
 
+bool apic_enabled(void)
+{
+    return this_cpu_read(local_apic) != NULL;
+}
+
 static void bsp_apic_fail(void)
 {
     this_cpu_write(local_apic, NULL);

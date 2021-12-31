@@ -22,6 +22,8 @@
 #include <radix/mm_types.h>
 #include <radix/types.h>
 
+#include <stdbool.h>
+
 extern paddr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
 extern unsigned int ioapics_available;
@@ -94,6 +96,7 @@ struct lapic {
 #define APIC_INT_MODE_MASK     0x07
 
 int bsp_apic_init(void);
+bool apic_enabled(void);
 
 struct ioapic *ioapic_add(int id, addr_t phys_addr, int irq_base);
 struct ioapic *ioapic_from_id(unsigned int id);
