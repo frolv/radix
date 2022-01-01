@@ -70,6 +70,8 @@ static DEFINE_PER_CPU(spinlock_t, event_lock);
 static DEFINE_PER_CPU(struct event *, dummy_event) = NULL;
 static DEFINE_PER_CPU(struct event *, sched_event) = NULL;
 
+static DEFINE_PER_CPU(unsigned int, event_interrupt_count) = 0;
+
 static void __event_insert(struct event *evt);
 static void __event_schedule(const struct event *evt);
 
@@ -116,6 +118,8 @@ void event_handler(void)
 {
     unsigned long irqstate;
     irq_save(irqstate);
+
+    this_cpu_inc(event_interrupt_count);
 
     struct list *eventq = raw_cpu_ptr(&event_queue);
     bool should_schedule = false;
@@ -405,4 +409,6 @@ void cpu_event_init(void)
     dummy->timestamp = 0;
     dummy->flags = EVENT_STATIC | EVENT_DUMMY;
     this_cpu_write(dummy_event, dummy);
+
+    this_cpu_write(event_interrupt_count, 0);
 }
