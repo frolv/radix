@@ -19,10 +19,9 @@
 #ifndef ACPI_TABLES_HPET_H
 #define ACPI_TABLES_HPET_H
 
-#include <radix/types.h>
-
 #include <acpi/tables/gas.h>
 #include <acpi/tables/sdt.h>
+#include <stdint.h>
 
 #define ACPI_HPET_SIGNATURE "HPET"
 

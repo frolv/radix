@@ -24,12 +24,13 @@
 #include <radix/smp.h>
 #include <radix/spinlock.h>
 #include <radix/time.h>
-#include <radix/types.h>
 
 #include <rlibc/stdio.h>
 #include <rlibc/string.h>
 
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define KLOG_MAX_MSG_LEN 256
 #define KLOG_WRAPAROUND  0xFFFF

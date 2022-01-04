@@ -19,7 +19,8 @@
 #ifndef RADIX_INITRD_H
 #define RADIX_INITRD_H
 
-#include <radix/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
 struct initrd_file {
     const char *path;

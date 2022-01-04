@@ -24,9 +24,10 @@
 #include <radix/list.h>
 #include <radix/mm_types.h>
 #include <radix/percpu.h>
-#include <radix/types.h>
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 struct vmm_space;
 
@@ -60,10 +61,10 @@ struct task {
     int priority;
     int prio_level;
     uint32_t flags;
-    pid_t pid;
-    uid_t uid;
-    gid_t gid;
-    mode_t umask;
+    int pid;
+    unsigned int uid;
+    unsigned int gid;
+    unsigned int umask;
     struct regs regs;
     struct list queue;
     struct vmm_space *vmm;

@@ -24,7 +24,8 @@
 #endif
 
 #include <radix/compiler.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 static __always_inline unsigned int __fls_generic(uint64_t x)
 {

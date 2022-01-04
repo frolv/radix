@@ -30,6 +30,7 @@
 #include <radix/mm_types.h>
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #define PDE(x) ((x).pde)
 #define PTE(x) ((x).pte)
@@ -48,8 +49,6 @@ static __always_inline pdpte_t make_pdpte(pdpteval_t val)
     return (pdpte_t){val};
 }
 #endif  // CONFIG(X86_PAE)
-
-#include <radix/types.h>
 
 enum cache_policy;
 struct vmm_space;

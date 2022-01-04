@@ -19,9 +19,9 @@
 #ifndef RLIBC_STRING_H
 #define RLIBC_STRING_H
 
-#include <radix/types.h>
-
 #include <rlibc/asm/string.h>
+
+#include <stddef.h>
 
 #ifndef __ARCH_HAS_MEMCMP
 int memcmp(const void *s1, const void *s2, size_t n);

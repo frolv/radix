@@ -21,7 +21,8 @@
 
 #include <radix/asm/timer.h>
 #include <radix/list.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 struct timer {
     uint64_t (*read)(void);

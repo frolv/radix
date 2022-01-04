@@ -34,6 +34,8 @@
 #include <radix/version.h>
 #include <radix/vmm.h>
 
+#include <rlibc/string.h>
+
 #include "mm/slab.h"
 
 static void parse_multiboot_modules(struct multiboot_info *mbt)

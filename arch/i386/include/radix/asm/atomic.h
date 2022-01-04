@@ -27,7 +27,8 @@
 #include <radix/assert.h>
 #include <radix/compiler.h>
 #include <radix/kernel.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 #define __x86_atomic_op_generic(p, val, op)            \
     do {                                               \

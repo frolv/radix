@@ -19,6 +19,8 @@
 #ifndef ARCH_I386_RADIX_GDT_H
 #define ARCH_I386_RADIX_GDT_H
 
+#include <stdint.h>
+
 enum {
     GDT_NULL,
     GDT_KERNEL_CODE,
@@ -32,8 +34,6 @@ enum {
 
 #define GDT_DESCRIPTOR_SIZE 8
 #define GDT_OFFSET(desc)    ((desc)*GDT_DESCRIPTOR_SIZE)
-
-#include <radix/types.h>
 
 void gdt_init_early(void);
 void gdt_init(uint32_t fsbase);

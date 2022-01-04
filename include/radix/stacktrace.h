@@ -24,7 +24,8 @@
 #if CONFIG(DEBUG) && CONFIG(DEBUG_STACKTRACE)
 
 #include <radix/limits.h>
-#include <radix/types.h>
+
+#include <stddef.h>
 
 #define DEBUG_STACKTRACE
 

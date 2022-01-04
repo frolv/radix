@@ -19,9 +19,8 @@
 #ifndef ACPI_TABLES_MADT_H
 #define ACPI_TABLES_MADT_H
 
-#include <radix/types.h>
-
 #include <acpi/tables/sdt.h>
+#include <stdint.h>
 
 enum {
     ACPI_MADT_LOCAL_APIC = 0,

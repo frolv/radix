@@ -25,6 +25,8 @@
 
 #include <radix/compiler.h>
 
+#include <stddef.h>
+
 #define __ARCH_HAS_MEMSET
 static __always_inline void *memset(void *s, int c, size_t n)
 {

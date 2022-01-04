@@ -20,7 +20,8 @@
 #define RADIX_RBTREE_H
 
 #include <radix/compiler.h>
-#include <radix/types.h>
+
+#include <stddef.h>
 
 struct rb_node {
     unsigned long __parent;

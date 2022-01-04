@@ -21,7 +21,9 @@
 
 #include <radix/list.h>
 #include <radix/mutex.h>
-#include <radix/types.h>
+
+#include <stddef.h>
+#include <stdint.h>
 
 #define CON_NORMAL 0
 #define CON_BOLD   (1 << 3)

@@ -19,7 +19,7 @@
 #ifndef ARCH_I386_RADIX_BIOS_H
 #define ARCH_I386_RADIX_BIOS_H
 
-#include <radix/types.h>
+#include <stddef.h>
 
 void *bios_find_signature(const char *sig, size_t sig_size, size_t sig_align);
 

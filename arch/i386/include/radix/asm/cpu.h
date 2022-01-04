@@ -27,6 +27,7 @@
 #include <radix/compiler.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 
 static __always_inline unsigned long cpuid_supported(void)
 {
@@ -47,8 +48,6 @@ static __always_inline unsigned long cpuid_supported(void)
         : "%ecx");
     return res;
 }
-
-#include <radix/types.h>
 
 bool cpu_supports(uint64_t features);
 bool cpu_supports_extended(uint64_t features);

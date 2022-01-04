@@ -21,7 +21,8 @@
 
 #include <radix/list.h>
 #include <radix/spinlock.h>
-#include <radix/types.h>
+
+#include <stddef.h>
 
 #define NAME_LEN 0x40
 

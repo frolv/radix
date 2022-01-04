@@ -21,7 +21,9 @@
 
 #include <radix/asm/gdt.h>
 #include <radix/irq.h>
-#include <radix/types.h>
+
+#include <stddef.h>
+#include <stdint.h>
 
 void idt_init_early(void);
 void idt_init(void);

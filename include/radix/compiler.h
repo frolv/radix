@@ -35,7 +35,12 @@
 #define __aligned(x) __attribute__((aligned(x)))
 #define __section(x) __attribute__((section(x)))
 
+#define __printf(string_index, arg_index) \
+    __attribute__((format(printf, string_index, arg_index)))
+
+#ifndef offsetof
 #define offsetof(type, member) __builtin_offsetof(type, member)
+#endif  // offsetof
 
 #define container_of(ptr, type, member)                   \
     ({                                                    \

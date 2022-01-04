@@ -19,7 +19,7 @@
 #ifndef RADIX_TTY_H
 #define RADIX_TTY_H
 
-#include <radix/types.h>
+#include <stddef.h>
 
 #define TTY_TAB_STOP 8
 

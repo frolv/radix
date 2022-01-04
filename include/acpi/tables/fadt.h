@@ -19,10 +19,9 @@
 #ifndef ACPI_TABLES_FADT_H
 #define ACPI_TABLES_FADT_H
 
-#include <radix/types.h>
-
 #include <acpi/tables/gas.h>
 #include <acpi/tables/sdt.h>
+#include <stdint.h>
 
 #define ACPI_FADT_SIGNATURE "FACP"
 

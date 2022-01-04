@@ -20,9 +20,9 @@
 #define ARCH_I386_RADIX_APIC_H
 
 #include <radix/mm_types.h>
-#include <radix/types.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 
 extern paddr_t lapic_phys_base;
 extern addr_t lapic_virt_base;
