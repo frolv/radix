@@ -23,7 +23,8 @@
 #include <radix/irq.h>
 #include <radix/time.h>
 #include <radix/timer.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 #define PIT_CHANNEL_0_PORT 0x40
 #define PIT_CHANNEL_1_PORT 0x41

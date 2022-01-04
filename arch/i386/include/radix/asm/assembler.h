@@ -41,6 +41,8 @@
 
 #ifdef __KERNEL__
 
+#include <stdint.h>
+
 // Helpers for writing inline assembly.
 
 #define __X86_LOCK "lock; "

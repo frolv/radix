@@ -24,7 +24,8 @@
 #endif
 
 #include <radix/compiler.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 #define __arch_outb x86_outb
 #define __arch_outw x86_outw

@@ -26,7 +26,9 @@
 #include <radix/rbtree.h>
 #include <radix/spinlock.h>
 #include <radix/task.h>
-#include <radix/types.h>
+
+#include <stddef.h>
+#include <stdint.h>
 
 struct vmm_area {
     addr_t base;

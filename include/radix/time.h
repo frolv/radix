@@ -19,7 +19,7 @@
 #ifndef RADIX_TIME_H
 #define RADIX_TIME_H
 
-#include <radix/types.h>
+#include <stdint.h>
 
 #define NSEC_PER_SEC 1000000000ULL
 #define USEC_PER_SEC 1000000ULL

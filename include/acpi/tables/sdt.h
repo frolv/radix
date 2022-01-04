@@ -19,7 +19,7 @@
 #ifndef ACPI_TABLES_SDT_H
 #define ACPI_TABLES_SDT_H
 
-#include <radix/types.h>
+#include <stdint.h>
 
 /* Header of an ACPI System Description Table. */
 struct acpi_sdt_header {

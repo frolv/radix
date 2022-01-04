@@ -27,7 +27,8 @@
 #include <radix/bits/fls.h>
 #include <radix/compiler.h>
 #include <radix/config.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 #define __fop_size(name, x)               \
     ({                                    \

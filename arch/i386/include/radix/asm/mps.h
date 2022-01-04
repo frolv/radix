@@ -24,7 +24,7 @@
 #define MP_FP_SIGNATURE     "_MP_"
 #define MP_CONFIG_SIGNATURE "PCMP"
 
-#include <radix/types.h>
+#include <stdint.h>
 
 struct mp_floating_pointer {
     char signature[4];

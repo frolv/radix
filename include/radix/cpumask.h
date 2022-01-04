@@ -20,7 +20,8 @@
 #define RADIX_CPUMASK_H
 
 #include <radix/config.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 #define MAX_CPUS CONFIG(MAX_CPUS)
 

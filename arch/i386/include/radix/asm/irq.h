@@ -27,7 +27,6 @@
 #include <radix/asm/vectors.h>
 #include <radix/compiler.h>
 #include <radix/percpu.h>
-#include <radix/types.h>
 
 #define VECTOR_TO_IRQ(vec) ((vec)-IRQ_BASE)
 #define IRQ_TO_VECTOR(irq) ((irq) + IRQ_BASE)

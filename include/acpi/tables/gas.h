@@ -19,7 +19,7 @@
 #ifndef ACPI_TABLES_GAS_H
 #define ACPI_TABLES_GAS_H
 
-#include <radix/types.h>
+#include <stdint.h>
 
 struct acpi_generic_address {
     uint8_t address_space;

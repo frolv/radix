@@ -19,10 +19,11 @@
 #ifndef RADIX_ELF_H
 #define RADIX_ELF_H
 
-#include <radix/types.h>
 #include <radix/vmm.h>
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define EI_NIDENT 16
 

@@ -25,7 +25,8 @@
 
 #include <radix/asm/page_defs.h>
 #include <radix/config.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 #if CONFIG(X86_PAE)
 

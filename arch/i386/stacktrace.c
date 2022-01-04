@@ -20,6 +20,8 @@
 
 #include <rlibc/stdio.h>
 
+#include <stdint.h>
+
 #ifdef DEBUG_STACKTRACE
 
 int stack_trace(char *buf, size_t size)

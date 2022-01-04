@@ -19,6 +19,8 @@
 #include <acpi/acpi.h>
 #include <acpi/tables/sdt.h>
 
+#include <stddef.h>
+
 int acpi_valid_checksum(struct acpi_sdt_header *header)
 {
     size_t i;

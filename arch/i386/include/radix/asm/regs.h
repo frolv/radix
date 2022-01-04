@@ -20,7 +20,8 @@
 #define ARCH_I386_RADIX_REGS_H
 
 #include <radix/mm_types.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 // Registers in an x86 system. Must be kept in sync with regs_asm.h and
 // arch/i386/irq/isr.S.

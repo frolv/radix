@@ -24,9 +24,10 @@
 #include <radix/error.h>
 #include <radix/mm_types.h>
 #include <radix/multiboot.h>
-#include <radix/types.h>
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 // Base virtual address at which kernel code is loaded.
 #define KERNEL_VIRTUAL_BASE __ARCH_KERNEL_VIRT_BASE

@@ -34,7 +34,8 @@
 #if !__ASSEMBLY__
 
 #include <radix/compiler.h>
-#include <radix/types.h>
+
+#include <stdint.h>
 
 static __always_inline void rdmsr(uint32_t msr, uint32_t *lo, uint32_t *hi)
 {

@@ -38,7 +38,7 @@
 #define atomic_fetch_add(p, val) __atomic_by_size_ret(fetch_add, p, val)
 #define atomic_fetch_inc(p)      atomic_fetch_add(p, 1)
 
-void atomic_bad_size_call();
+void atomic_bad_size_call(void);
 
 #define __atomic_by_size_ret(op, p, ...)                   \
     ({                                                     \

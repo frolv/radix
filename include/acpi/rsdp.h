@@ -19,7 +19,7 @@
 #ifndef ACPI_RSDP_H
 #define ACPI_RSDP_H
 
-#include <radix/types.h>
+#include <stdint.h>
 
 /* ACPI Root System Description Pointer descriptor. */
 struct acpi_rsdp {
