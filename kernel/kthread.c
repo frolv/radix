@@ -26,7 +26,7 @@
 #include <radix/task.h>
 #include <radix/vmm.h>
 
-#include <rlibc/stdio.h>
+#include <stdio.h>
 
 static struct task *__kthread_create(void (*func)(void *),
                                      void *arg,

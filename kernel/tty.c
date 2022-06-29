@@ -20,10 +20,9 @@
 #include <radix/mutex.h>
 #include <radix/tty.h>
 
-#include <rlibc/ctype.h>
-#include <rlibc/string.h>
-
+#include <ctype.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define TTY_BUFSIZE 8192
 #define ASCII_ESC   0x1B

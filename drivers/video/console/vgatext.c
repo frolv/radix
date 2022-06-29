@@ -23,7 +23,7 @@
 #include <radix/klog.h>
 #include <radix/mm.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 #define VGATEXT_WIDTH   80
 #define VGATEXT_HEIGHT  25

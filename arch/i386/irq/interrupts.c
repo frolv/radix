@@ -26,7 +26,7 @@
 #include <radix/slab.h>
 #include <radix/task.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 struct pic *system_pic = NULL;
 

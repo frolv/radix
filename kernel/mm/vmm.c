@@ -22,8 +22,8 @@
 #include <radix/slab.h>
 #include <radix/vmm.h>
 
-#include <rlibc/stdio.h>
-#include <rlibc/string.h>
+#include <stdio.h>
+#include <string.h>
 
 // A block of virtual addresses in a virtual address space.
 //
@@ -760,8 +760,8 @@ void vmm_space_dump(struct vmm_space *vmm)
 
         printf("%d\t%p-%p\t[%s]\n",
                i++,
-               block->area.base,
-               block->area.base + block->area.size,
+               (void *)block->area.base,
+               (void *)(block->area.base + block->area.size),
                flags);
     }
 }
@@ -774,9 +774,9 @@ static void vmm_page_dump(struct page *p)
     phys = page_to_phys(p);
     npages = pow2(PM_PAGE_BLOCK_ORDER(p));
 
-    printf("%p-%p [%3d page%c]\n",
-           phys,
-           phys + npages * PAGE_SIZE,
+    printf("%p-%p [%3ld page%c]\n",
+           (void *)phys,
+           (void *)(phys + npages * PAGE_SIZE),
            npages,
            npages > 1 ? 's' : ' ');
 }
@@ -785,9 +785,9 @@ void vmm_block_dump(struct vmm_block *block)
 {
     struct page *p;
 
-    printf("vmm_block:\n%p-%p [%u KiB]\n",
-           block->area.base,
-           block->area.base + block->area.size,
+    printf("vmm_block:\n%p-%p [%lu KiB]\n",
+           (void *)block->area.base,
+           (void *)(block->area.base + block->area.size),
            (block->area.base + block->area.size) / KIB(1));
 
     if (!(p = block->allocated_pages)) {

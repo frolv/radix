@@ -27,7 +27,7 @@
 #include <radix/timer.h>
 #include <radix/vmm.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 extern int __percpu_start;
 extern int __percpu_end;

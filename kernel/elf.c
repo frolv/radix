@@ -24,10 +24,9 @@
 #include <radix/mm.h>
 #include <radix/vmm.h>
 
-#include <rlibc/errno.h>
-#include <rlibc/string.h>
-
+#include <errno.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define ELF "elf: "
 

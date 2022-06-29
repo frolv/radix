@@ -30,7 +30,7 @@
 #include <radix/task.h>
 #include <radix/vmm.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 static struct slab_cache *task_cache;
 

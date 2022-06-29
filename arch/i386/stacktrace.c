@@ -18,9 +18,8 @@
 
 #include <radix/stacktrace.h>
 
-#include <rlibc/stdio.h>
-
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef DEBUG_STACKTRACE
 

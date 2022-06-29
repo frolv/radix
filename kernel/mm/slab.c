@@ -27,8 +27,8 @@
 #include <radix/mm.h>
 #include <radix/slab.h>
 
-#include <rlibc/stdio.h>
-#include <rlibc/string.h>
+#include <stdio.h>
+#include <string.h>
 
 struct list slab_caches;
 
@@ -447,8 +447,7 @@ static void __init_cache(struct slab_cache *cache,
     list_init(&cache->free_slabs);
     list_init(&cache->list);
 
-    cache->cache_name[0] = '\0';
-    strncat(cache->cache_name, name, NAME_LEN - 1);
+    strlcpy(cache->cache_name, name, NAME_LEN);
 }
 
 /*
@@ -479,7 +478,7 @@ void kmalloc_init(void)
 
     for (i = 1; i <= 24; ++i) {
         sz = i * 8;
-        sprintf(name, "kmalloc-%u", sz);
+        sprintf(name, "kmalloc-%lu", sz);
         cache = create_cache(name, sz, SLAB_MIN_ALIGN, SLAB_PANIC, NULL);
 
         for (j = 0; j < 32; ++j) {
@@ -491,7 +490,7 @@ void kmalloc_init(void)
 
     for (i = 0; i < 6; ++i) {
         sz = 256 * pow2(i);
-        sprintf(name, "kmalloc-%u", sz);
+        sprintf(name, "kmalloc-%lu", sz);
         cache = create_cache(name, sz, SLAB_MIN_ALIGN, SLAB_PANIC, NULL);
         if ((err = __grow_cache_unlocked(cache)))
             goto err_grow;

@@ -28,7 +28,7 @@
 #include <radix/sched.h>
 #include <radix/smp.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 #include "mm/paging.h"
 

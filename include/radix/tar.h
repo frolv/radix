@@ -19,11 +19,10 @@
 #ifndef RADIX_TAR_H
 #define RADIX_TAR_H
 
-#include <rlibc/string.h>
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {

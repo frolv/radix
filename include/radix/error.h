@@ -19,9 +19,7 @@
 #ifndef RADIX_ERROR_H
 #define RADIX_ERROR_H
 
-#define MAX_ERRNO 79
-
-#include <rlibc/errno.h>
+#include <errno.h>
 
 /*
  * The last page of virtual addresses maps to the page directory,
@@ -31,7 +29,7 @@
  * of one of the standard error values - a large unsigned number.
  */
 #define ERR_PTR(err) ((void *)(-(err)))
-#define IS_ERR(ptr)  ((unsigned long)ptr >= (unsigned long)(-MAX_ERRNO))
+#define IS_ERR(ptr)  ((unsigned long)ptr >= (unsigned long)(-ERRNO_MAX))
 #define ERR_VAL(ptr) (-((unsigned long)(ptr)))
 
 #endif /* RADIX_ERROR_H */
