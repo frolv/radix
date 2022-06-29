@@ -21,7 +21,7 @@
 #include <radix/irq.h>
 #include <radix/percpu.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 DEFINE_PER_CPU(uint64_t, gdt[8]);
 DEFINE_PER_CPU(uint32_t, tss[26]);

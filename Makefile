@@ -37,9 +37,11 @@ LIBS := $(LIBS) -nostdlib -lgcc
 KERNELDIR := kernel
 ARCHDIR := arch/$(HOSTARCH)
 DRIVERDIR := drivers
-LIBDIR := lib
-INCLUDEDIRS := include $(ARCHDIR)/include
+LIBKDIR := rlibc
+INCLUDEDIRS := include $(ARCHDIR)/include $(LIBKDIR)/include
 CONFDIR := config
+
+LIBK_BIN := $(LIBKDIR)/build/libk.a
 
 CONFIG_FILE := $(CONFDIR)/config
 CONFIG_PARTIALS := $(wildcard $(CONFDIR)/.rconfig.*)
@@ -49,7 +51,6 @@ RCONFIG ?= util/rconfig/rconfig
 CONFGEN := util/confgen
 
 include $(ARCHDIR)/config.mk
-include $(LIBDIR)/config.mk
 include $(DRIVERDIR)/config.mk
 
 CFLAGS := $(CFLAGS) $(KERNEL_ARCH_CFLAGS)
@@ -57,7 +58,7 @@ LDFLAGS := $(LDFLAGS) $(KERNEL_ARCH_LDFLAGS)
 LIBS := $(LIBS) $(KERNEL_ARCH_LIBS)
 
 # This is pretty hacky, but it works.
-DEBUG_PATTERN := '^\#define CONFIG_DEBUG$$'
+DEBUG_PATTERN := '^\#define __CONFIG_DEBUG() 1$$'
 DEBUG_KERNEL := $(shell grep -q $(DEBUG_PATTERN) $(CONFIG_H) 2>/dev/null; echo $$?)
 ifeq ($(DEBUG_KERNEL), 0)
 	CFLAGS := $(CFLAGS) -fno-omit-frame-pointer -g
@@ -76,7 +77,6 @@ INCLUDE := $(patsubst %,-I%,$(_INCLUDE)) $(GLOBAL_INCLUDES)
 
 KERNEL_DEPS := $(KERNEL_OBJS:%.o=%.d)
 DRIVER_DEPS := $(DRIVER_OBJS:%.o=%.d)
-LIBK_DEPS := $(LIBK_OBJS:%.o=%.d)
 
 .SUFFIXES: .o .c .S
 
@@ -132,20 +132,25 @@ rconfig-gen-default: rconfig
 rconfig-lint: rconfig
 	$(RCONFIG) --arch=$(HOSTARCH) --lint
 
--include $(LIBK_DEPS)
 -include $(KERNEL_DEPS)
 -include $(DRIVER_DEPS)
 
-$(KERNEL_FILE): $(BUILD_DIR) $(CONFIG_H) $(LIBK_OBJS) $(DRIVER_OBJS) $(KERNEL_OBJS) \
-	$(ARCHDIR)/linker.ld
+$(KERNEL_FILE): $(BUILD_DIR) $(CONFIG_H) $(DRIVER_OBJS) $(KERNEL_OBJS) \
+	$(ARCHDIR)/linker.ld $(LIBK_BIN)
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(KERNEL_OBJS) \
-		$(LIBK_OBJS) $(DRIVER_OBJS) $(LDFLAGS) $(LIBS)
+		$(DRIVER_OBJS) $(LIBK_BIN) $(LDFLAGS) $(LIBS)
 
 $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 	OBJ=`$(CC) -print-file-name=$(@F)` && cp "$$OBJ" $@
 
 .PHONY: libk
-libk: $(LIBK_OBJS)
+libk: $(LIBK_BIN)
+
+# Build libk from the submodule's Makefile, forwarding the kernel's compiler
+# flags to it.
+$(LIBK_BIN):
+	RADIX_FLAGS="$(CFLAGS) $(INCLUDE) -std=gnu11" \
+		    $(MAKE) -C $(LIBKDIR) build-libk
 
 # temp
 .PHONY: drivers
@@ -187,8 +192,7 @@ iso: kernel initrd
 
 .PHONY: ctags
 ctags:
-	$(CTAGS) -R $(KERNELDIR) $(ARCHDIR) $(LIBDIR) $(DRIVERDIR) \
-		$(INCLUDEDIRS)
+	$(CTAGS) -R $(KERNELDIR) $(ARCHDIR) $(DRIVERDIR) $(INCLUDEDIRS)
 
 .PHONY: clean
 clean: clean-all-kernel
@@ -211,7 +215,7 @@ clean-kernel:
 
 .PHONY: clean-libk
 clean-libk:
-	$(RM) $(LIBK_OBJS) $(LIBK_DEPS)
+	$(MAKE) -C $(LIBKDIR) clean-libk
 
 # temp
 .PHONY: clean-drivers

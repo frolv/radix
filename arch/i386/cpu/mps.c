@@ -24,7 +24,7 @@
 #include <radix/mm.h>
 #include <radix/slab.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 /*
  * Multiprocessor specification table parsing.

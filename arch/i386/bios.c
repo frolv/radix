@@ -20,7 +20,7 @@
 #include <radix/kernel.h>
 #include <radix/mm.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 #define EBDA_BASE_LOCATION_PHYS 0x0000040E
 #define BIOS_REGION_PHYS_START  0x000E0000

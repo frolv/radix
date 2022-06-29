@@ -21,8 +21,8 @@
 #include <radix/slab.h>
 #include <radix/tar.h>
 
-#include <rlibc/errno.h>
-#include <rlibc/string.h>
+#include <errno.h>
+#include <string.h>
 
 #define INITRD "initrd: "
 

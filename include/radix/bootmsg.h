@@ -19,7 +19,7 @@
 #ifndef RADIX_BOOTMSG_H
 #define RADIX_BOOTMSG_H
 
-#include <rlibc/stdio.h>
+#include <stdio.h>
 
 #define BOOT_OK_MSG(msg, ...) \
     printf("[  \x1B[1;32mOK\x1B[0;37m  ] " msg, ##__VA_ARGS__)

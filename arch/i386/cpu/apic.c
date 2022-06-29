@@ -38,10 +38,9 @@
 #include <radix/timer.h>
 #include <radix/vmm.h>
 
-#include <rlibc/string.h>
-
 #include <acpi/tables/madt.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define APIC "APIC: "
 #define SMP  "SMP: "
@@ -1088,10 +1087,7 @@ static struct pic apic = {.eoi = apic_eoi,
                           .irq_count = 0,
                           .name = "APIC"};
 
-bool apic_enabled(void)
-{
-    return this_cpu_read(local_apic) != NULL;
-}
+bool apic_enabled(void) { return this_cpu_read(local_apic) != NULL; }
 
 static void bsp_apic_fail(void)
 {

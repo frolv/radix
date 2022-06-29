@@ -34,9 +34,8 @@
 #include <radix/task.h>
 #include <radix/time.h>
 
-#include <rlibc/string.h>
-
 #include <stdbool.h>
+#include <string.h>
 
 #include "idle.h"
 

@@ -29,7 +29,7 @@
 #include <radix/smp.h>
 #include <radix/vmm.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 // The page directory containing the kernel's page mappings.
 extern pde_t kernel_pgdir[PTRS_PER_PGDIR];

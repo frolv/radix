@@ -30,7 +30,7 @@ __noreturn void __assert_fail(const char *, const char *, int);
 
 #else
 
-#define assert(x) ((void)0)
+#define assert(x) ((void)(x))
 
 #endif  // CONFIG(DEBUG) && CONFIG(ASSERT)
 

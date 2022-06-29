@@ -23,11 +23,10 @@
 #include <radix/mm.h>
 #include <radix/vmm.h>
 
-#include <rlibc/string.h>
-
 #include <acpi/acpi.h>
 #include <acpi/rsdp.h>
 #include <acpi/tables/sdt.h>
+#include <string.h>
 
 #define RSDP_SIG "RSD PTR "
 

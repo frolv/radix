@@ -1,0 +1,3 @@
+[submodule "rlibc"]
+	path = rlibc
+	url = https://github.com/frolv/rlibc

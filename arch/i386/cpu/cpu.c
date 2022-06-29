@@ -26,8 +26,8 @@
 #include <radix/percpu.h>
 #include <radix/smp.h>
 
-#include <rlibc/stdio.h>
-#include <rlibc/string.h>
+#include <stdio.h>
+#include <string.h>
 
 struct cpu_cache {
     /* id[0..3]: level; id[4..7]: type */
@@ -961,7 +961,7 @@ static char *print_caches(char *pos)
     for (i = 0; i < ncaches; ++i) {
         cache = this_cpu_ptr(&cpu_info.cache_info.caches[i]);
         pos += sprintf(pos,
-                       "L%u%c:\t\t%lu KiB, %lu byte lines, "
+                       "L%u%c:\t\t%lu KiB, %d byte lines, "
                        "%s associativity\n",
                        cache->id & 0xF,
                        assoc_char(cache->id >> 4),
@@ -988,7 +988,7 @@ char *i386_cache_str(void)
         pos = print_caches(pos);
         pf = this_cpu_read(cpu_info.cache_info.prefetching);
         if (pf)
-            pos += sprintf(pos, "Prefetch:\t%lu bytes", pf);
+            pos += sprintf(pos, "Prefetch:\t%d bytes", pf);
         if (*--pos == '\n')
             *pos = '\0';
     }

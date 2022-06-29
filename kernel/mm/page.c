@@ -22,7 +22,7 @@
 #include <radix/mm.h>
 #include <radix/vmm.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 #include "buddy.h"
 
