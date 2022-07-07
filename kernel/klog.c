@@ -1,6 +1,6 @@
 /*
  * kernel/klog.c
- * Copyright (C) 2021 Alexei Frolov
+ * Copyright (C) 2022 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ static size_t klog_print(const struct klog_entry *entry, char *buf)
     uint32_t seconds = entry->timestamp / NSEC_PER_SEC;
     uint32_t useconds = (entry->timestamp % NSEC_PER_SEC) / NSEC_PER_USEC;
 
-    size_t size = sprintf(buf, "[%05lu.%06lu] ", seconds, useconds);
+    size_t size = sprintf(buf, "[%05u.%06u] ", seconds, useconds);
 
     memcpy(buf + size, entry->message, entry->msg_len);
     buf[size + entry->msg_len] = '\n';
