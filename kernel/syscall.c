@@ -1,6 +1,6 @@
 /*
  * kernel/syscall.c
- * Copyright (C) 2021 Alexei Frolov
+ * Copyright (C) 2022 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <radix/asm/syscall.h>
 #include <radix/irqstate.h>
 #include <radix/sched.h>
 #include <radix/syscall.h>
 #include <radix/task.h>
+
+void syscall_init(void) { arch_syscall_init(); }
 
 void sys_exit(int status)
 {

@@ -1,6 +1,6 @@
 /*
  * kernel/kernel.c
- * Copyright (C) 2021 Alexei Frolov
+ * Copyright (C) 2022 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,11 +30,12 @@
 #include <radix/percpu.h>
 #include <radix/sched.h>
 #include <radix/smp.h>
+#include <radix/syscall.h>
 #include <radix/task.h>
 #include <radix/version.h>
 #include <radix/vmm.h>
 
-#include <rlibc/string.h>
+#include <string.h>
 
 #include "mm/slab.h"
 
@@ -65,6 +66,8 @@ static void kernel_boot_thread(void *p)
 
     event_start();
     smp_init();
+
+    syscall_init();
 
     while (1) {
         HALT();

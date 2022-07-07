@@ -1,6 +1,6 @@
 /*
  * include/radix/syscall.h
- * Copyright (C) 2021 Alexei Frolov
+ * Copyright (C) 2022 Alexei Frolov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void syscall_init(void);
 
 // Terminates the current task with the specified exit status.
 void sys_exit(int status);

@@ -24,8 +24,8 @@
 #include <radix/list.h>
 #include <radix/stacktrace.h>
 
-#include <rlibc/stdio.h>
-#include <rlibc/string.h>
+#include <stdio.h>
+#include <string.h>
 
 #define PANIC           "kernel panic: "
 #define PANIC_BUFSIZE   8192
